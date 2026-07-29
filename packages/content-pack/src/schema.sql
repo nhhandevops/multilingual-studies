@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS words (
   extra      TEXT                         -- JSON spillover, Zod-validated at ingest
 ) WITHOUT ROWID;                          -- clustered by id: no separate PK autoindex
 CREATE INDEX IF NOT EXISTS idx_words_lang_headword ON words(lang, headword);
+CREATE INDEX IF NOT EXISTS idx_words_headword      ON words(headword);
 CREATE INDEX IF NOT EXISTS idx_words_lang_level    ON words(lang, level);
 CREATE INDEX IF NOT EXISTS idx_words_lang_freq     ON words(lang, freq_rank);
 

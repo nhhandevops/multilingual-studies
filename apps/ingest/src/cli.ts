@@ -88,9 +88,10 @@ pack
   .action((opts: { version?: string }) => {
     const version = opts.version ?? newestPack();
     mkdirSync(WEB_PACKS_DIR, { recursive: true });
-    for (const f of ['manifest.json', 'content.db.gz']) {
-      cpSync(join(PACKS_DIR, version, f), join(WEB_PACKS_DIR, f));
-    }
+    cpSync(join(PACKS_DIR, version, 'manifest.json'), join(WEB_PACKS_DIR, 'manifest.json'));
+    // Neutral extension on purpose: servers special-case *.gz (Content-Encoding) and corrupt
+    // the byte stream; .pack is served as opaque bytes everywhere. Still gzip inside.
+    cpSync(join(PACKS_DIR, version, 'content.db.gz'), join(WEB_PACKS_DIR, 'content.pack'));
     console.log(`✓ published pack ${version} → apps/web/public/packs/`);
   });
 

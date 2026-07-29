@@ -1,0 +1,60 @@
+{
+  "app": {
+    "title": "Multilingual Studies",
+    "tagline": "Learn English · Chinese · French"
+  },
+  "nav": {
+    "search": "Search",
+    "browse": "Browse",
+    "licenses": "Sources & licenses"
+  },
+  "db": {
+    "loading": "Starting…",
+    "phase": {
+      "start": "Starting…",
+      "sqlite": "Loading SQLite…",
+      "manifest": "Checking content pack…",
+      "download": "Downloading content pack (first run ~20 MB)…",
+      "verify": "Verifying data…",
+      "install": "Installing content pack…"
+    },
+    "error": "Database error",
+    "packVersion": "Content pack {{version}}"
+  },
+  "search": {
+    "placeholder": "Search: 你好 · hello · bonjour · ni hao…",
+    "noResults": "No results for “{{q}}”",
+    "hint": "Search by characters, reading, or English meaning."
+  },
+  "browse": {
+    "title": "Browse vocabulary",
+    "allLevels": "All",
+    "noLevels": "No levels yet (HSK/CEFR land in the next update) — ordered by frequency.",
+    "more": "Load more"
+  },
+  "word": {
+    "traditional": "Traditional",
+    "reading": "Reading",
+    "definitions": "Definitions",
+    "level": "Level",
+    "freqRank": "Frequency rank",
+    "source": "Data source",
+    "notFound": "Word not found.",
+    "back": "← Back"
+  },
+  "licenses": {
+    "title": "Data sources & licenses",
+    "intro": "All data in this app comes from free, openly licensed sources. With thanks to:",
+    "license": "License",
+    "retrieved": "Retrieved",
+    "packNote": "The compiled content pack is published under CC BY-SA 4.0."
+  },
+  "lang": {
+    "en": "English",
+    "zh": "Chinese",
+    "fr": "French"
+  },
+  "ui": {
+    "language": "UI language"
+  }
+}

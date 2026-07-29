@@ -1,0 +1,60 @@
+{
+  "app": {
+    "title": "Multilingual Studies",
+    "tagline": "Học tiếng Anh · Trung · Pháp"
+  },
+  "nav": {
+    "search": "Tra từ",
+    "browse": "Duyệt từ vựng",
+    "licenses": "Nguồn & giấy phép"
+  },
+  "db": {
+    "loading": "Đang khởi động…",
+    "phase": {
+      "start": "Đang khởi động…",
+      "sqlite": "Đang nạp SQLite…",
+      "manifest": "Đang kiểm tra gói dữ liệu…",
+      "download": "Đang tải gói dữ liệu (lần đầu ~20 MB)…",
+      "verify": "Đang xác minh dữ liệu…",
+      "install": "Đang cài đặt gói dữ liệu…"
+    },
+    "error": "Lỗi cơ sở dữ liệu",
+    "packVersion": "Gói dữ liệu {{version}}"
+  },
+  "search": {
+    "placeholder": "Tra từ: 你好 · hello · bonjour · ni hao…",
+    "noResults": "Không tìm thấy từ nào cho “{{q}}”",
+    "hint": "Tìm theo chữ Hán, phiên âm, hoặc nghĩa tiếng Anh."
+  },
+  "browse": {
+    "title": "Duyệt từ vựng",
+    "allLevels": "Tất cả",
+    "noLevels": "Chưa có cấp độ (HSK/CEFR sẽ có ở bản cập nhật tiếp theo) — đang xếp theo tần suất.",
+    "more": "Xem thêm"
+  },
+  "word": {
+    "traditional": "Phồn thể",
+    "reading": "Phiên âm",
+    "definitions": "Định nghĩa",
+    "level": "Cấp độ",
+    "freqRank": "Hạng tần suất",
+    "source": "Nguồn dữ liệu",
+    "notFound": "Không tìm thấy từ này.",
+    "back": "← Quay lại"
+  },
+  "licenses": {
+    "title": "Nguồn dữ liệu & giấy phép",
+    "intro": "Toàn bộ dữ liệu trong ứng dụng đến từ các nguồn miễn phí, giấy phép mở. Xin cảm ơn:",
+    "license": "Giấy phép",
+    "retrieved": "Tải ngày",
+    "packNote": "Gói dữ liệu tổng hợp được phát hành theo CC BY-SA 4.0."
+  },
+  "lang": {
+    "en": "Tiếng Anh",
+    "zh": "Tiếng Trung",
+    "fr": "Tiếng Pháp"
+  },
+  "ui": {
+    "language": "Ngôn ngữ giao diện"
+  }
+}
