@@ -8,6 +8,77 @@
       "retrievedAt": "2026-07-29T16:08:26.209Z",
       "license": "CC BY-SA 4.0",
       "notes": "CC-CEDICT dictionary export from MDBG; updated near-daily upstream"
+    },
+    "cefrj:vocabulary-profile-1.5.csv": {
+      "url": "https://raw.githubusercontent.com/openlanguageprofiles/olp-en-cefrj/master/cefrj-vocabulary-profile-1.5.csv",
+      "sha256": "b0dd3c635f1c9a4fdf1490c7e5b7c48e8bbe55b652ad0c9860a95f98e10ae498",
+      "bytes": 233214,
+      "retrievedAt": "2026-07-29T16:48:23.910Z",
+      "license": "Free for research and commercial use with citation (CEFR-J, Tono Lab TUFS)"
+    },
+    "freq:shared/freq-en_50k.txt": {
+      "url": "https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/en/en_50k.txt",
+      "sha256": "5351ff405b1126ef555791dd4d9798a48e3e9a501a9fc481a9da957752cfb458",
+      "bytes": 622749,
+      "retrievedAt": "2026-07-29T16:49:48.202Z",
+      "license": "CC BY-SA 4.0"
+    },
+    "freq:shared/freq-zh_cn_50k.txt": {
+      "url": "https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/zh_cn/zh_cn_50k.txt",
+      "sha256": "25599e00347b893e55c3058a748819b3fe19403291cd12f7c03af128e7f3fe45",
+      "bytes": 565895,
+      "retrievedAt": "2026-07-29T16:49:48.580Z",
+      "license": "CC BY-SA 4.0"
+    },
+    "hsk:complete.json": {
+      "url": "https://raw.githubusercontent.com/drkameleon/complete-hsk-vocabulary/main/complete.json",
+      "sha256": "c869a0ce353279c9333d9b42c31fc3549785e8b40673dab57ee42bc99cd14131",
+      "bytes": 9763716,
+      "retrievedAt": "2026-07-29T16:47:58.407Z",
+      "license": "MIT (repo); HSK lists are PRC national standard data (GF0025-2021)"
+    },
+    "ipa-dict:shared/ipa-en_US.txt": {
+      "url": "https://raw.githubusercontent.com/open-dict-data/ipa-dict/master/data/en_US.txt",
+      "sha256": "2af6f154a5c363275f052d1f85acedef38ed185ca9745aa4314be77f6b70de67",
+      "bytes": 3180267,
+      "retrievedAt": "2026-07-29T16:49:44.981Z",
+      "license": "MIT"
+    },
+    "ipa-dict:shared/ipa-fr_FR.txt": {
+      "url": "https://raw.githubusercontent.com/open-dict-data/ipa-dict/master/data/fr_FR.txt",
+      "sha256": "def906754262cfae80ee7a639e945114d98a2a104df62ad765c96475a83168cd",
+      "bytes": 6153972,
+      "retrievedAt": "2026-07-29T16:49:45.887Z",
+      "license": "MIT"
+    },
+    "kaikki:dictionary-French.jsonl.gz": {
+      "url": "https://kaikki.org/dictionary/French/kaikki.org-dictionary-French.jsonl.gz",
+      "sha256": "47600620938080a3644a18e8b6807056a3b3643184ce2b0e2cf97a482ecb7cc1",
+      "bytes": 56136402,
+      "retrievedAt": "2026-07-29T16:49:25.278Z",
+      "license": "CC BY-SA 4.0 + GFDL (Wiktionary content, wiktextract by Tatu Ylonen)"
+    },
+    "lexique:Lexique383.tsv": {
+      "url": "http://www.lexique.org/databases/Lexique383/Lexique383.tsv",
+      "sha256": "637ba37a767a66679c48371d673ece50cbf541b49a4e40e598963d4f3fbce52b",
+      "bytes": 25850780,
+      "retrievedAt": "2026-07-29T16:48:32.579Z",
+      "license": "CC BY-SA 4.0",
+      "notes": "New & Pallier, Lexique 3.83 — mirror: github.com/chrplr/openlexicon"
+    },
+    "octanove:vocabulary-profile-c1c2-1.0.csv": {
+      "url": "https://raw.githubusercontent.com/openlanguageprofiles/olp-en-cefrj/master/octanove-vocabulary-profile-c1c2-1.0.csv",
+      "sha256": "18c33a407f2f89f7b8de9671c6d45fe3ea0bce45e7d2d7dcaab48d73e0f7b380",
+      "bytes": 46462,
+      "retrievedAt": "2026-07-29T16:48:24.187Z",
+      "license": "CC BY-SA 4.0"
+    },
+    "oewn:english-wordnet-2024.xml.gz": {
+      "url": "https://en-word.net/downloads/english-wordnet-2024.xml.gz",
+      "sha256": "e1f633b0a93758cae34ea27c44c4dad310a8af2467b155f99dd6673af697e875",
+      "bytes": 12912118,
+      "retrievedAt": "2026-07-29T16:48:47.451Z",
+      "license": "CC BY 4.0"
     }
   }
 }

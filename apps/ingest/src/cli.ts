@@ -15,9 +15,16 @@ const program = new Command('ingest');
 
 type SeedFn = (db: ReturnType<typeof openStaging>) => Promise<void>;
 
+// Order matters for seed:all — backbones first (cedict, cefrj, lexique), then enrichers.
 const SEEDS: Record<string, () => Promise<{ run: SeedFn }>> = {
   'zh-cedict': () => import('./sources/zh/cedict'),
-  // 0.1 (coming): 'zh-hsk', 'en-ngsl', 'en-cefrj', 'en-kaikki', 'fr-lexique', 'fr-kaikki-en', 'freq', 'fr-cefr-derive'
+  'zh-hsk': () => import('./sources/zh/hsk'), //          needs zh-cedict
+  'en-cefrj': () => import('./sources/en/cefrj'),
+  'en-oewn': () => import('./sources/en/oewn'), //        needs en-cefrj
+  'fr-lexique': () => import('./sources/fr/lexique'),
+  'fr-kaikki-en': () => import('./sources/fr/kaikki'), // needs fr-lexique
+  ipa: () => import('./sources/shared/ipa'), //           fills readings still NULL — after kaikki
+  freq: () => import('./sources/shared/freq'),
 };
 
 for (const name of Object.keys(SEEDS)) {
