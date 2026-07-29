@@ -1,0 +1,20 @@
+# deps / build output
+node_modules/
+dist/
+build/
+*.tsbuildinfo
+
+# databases & packs (distributed via GitHub Releases, never git history)
+*.db
+*.db-wal
+*.db-shm
+*.db.gz
+apps/web/public/packs/
+
+# raw source dumps (mirrored locally; provenance recorded in sources.lock.json)
+apps/ingest/data-cache/
+
+# env & editor
+.env
+.env.*
+.DS_Store

@@ -1,0 +1,19 @@
+{
+  "name": "multilingual-studies",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local-first EN/ZH/FR study app: free data sources, SQLite content packs, FSRS reviews",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@11.9.0",
+  "scripts": {
+    "dev": "pnpm --filter @mls/web dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "ingest": "pnpm --filter @mls/ingest start --",
+    "pack:build": "pnpm --filter @mls/ingest start -- pack build",
+    "pack:verify": "pnpm --filter @mls/ingest start -- pack verify"
+  }
+}
