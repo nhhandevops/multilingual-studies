@@ -12,6 +12,7 @@
   "dependencies": {
     "@mls/shared": "workspace:*",
     "@sqlite.org/sqlite-wasm": "^3.50.4-build1",
+    "hanzi-writer": "^3.7.3",
     "i18next": "^24.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

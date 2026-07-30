@@ -141,6 +141,132 @@ export async function browseWords(
   );
 }
 
+// --- writing systems (v0.3) -------------------------------------------------
+
+export interface GraphemeRow {
+  id: string;
+  lang: string;
+  glyph: string;
+  kind: string;
+  reading: string | null;
+  ipa: string | null;
+  stroke_json: string | null;
+  ord: number | null;
+  source_id: string;
+}
+
+/** makemeahanzi dictionary.txt data — LGPL, deliberately a separate table and a separate type. */
+export interface HanziInfoRow {
+  definition: string | null;
+  pinyin: string | null; //        JSON array
+  decomposition: string | null; // IDS, e.g. '⿰女子'
+  radical: string | null;
+  etymology: string | null; //     JSON {type,hint,phonetic,semantic}
+}
+
+const GRAPHEME_COLS = 'id, lang, glyph, kind, reading, ipa, stroke_json, ord, source_id';
+// A character's HSK level = the level of its standalone word entry, when it has one.
+const HANZI_LEVEL_SQL = `(SELECT MIN(w.level) FROM words w
+   WHERE w.lang = 'zh' AND w.headword = g.glyph AND w.level IS NOT NULL)`;
+
+export interface GraphemeDetail {
+  grapheme: GraphemeRow;
+  info: HanziInfoRow | null;
+  /** Provenance of the stroke data (Arphic PL). */
+  source: SourceRow;
+  /** Provenance of `info` (LGPL) — a distinct row on purpose; null when there is no info. */
+  infoSource: SourceRow | null;
+}
+
+export async function getGrapheme(db: Db, glyph: string): Promise<GraphemeDetail | null> {
+  const rows = await db.query<GraphemeRow>(
+    `SELECT ${GRAPHEME_COLS} FROM graphemes WHERE lang = 'zh' AND kind = 'hanzi' AND glyph = ?`,
+    [glyph],
+  );
+  const grapheme = rows[0];
+  if (!grapheme) return null;
+  const info = await db.query<HanziInfoRow & { source_id: string }>(
+    `SELECT definition, pinyin, decomposition, radical, etymology, source_id
+       FROM hanzi_info WHERE grapheme_id = ?`,
+    [grapheme.id],
+  );
+  const ids = [grapheme.source_id, ...(info[0] ? [info[0].source_id] : [])];
+  const sources = await db.query<SourceRow>(
+    `SELECT * FROM sources WHERE id IN (${ids.map(() => '?').join(',')})`,
+    ids,
+  );
+  const byId = new Map(sources.map((s) => [s.id, s]));
+  return {
+    grapheme,
+    info: info[0] ?? null,
+    source: byId.get(grapheme.source_id)!,
+    infoSource: info[0] ? byId.get(info[0].source_id) ?? null : null,
+  };
+}
+
+export interface HanziListRow extends GraphemeRow {
+  level: string | null;
+}
+
+/** Browse hanzi by HSK level (via their standalone word) or by stroke count. */
+export async function browseHanzi(
+  db: Db,
+  filter: { level?: string; strokes?: number },
+  offset = 0,
+  limit = 60,
+): Promise<HanziListRow[]> {
+  if (filter.level) {
+    return db.query<HanziListRow>(
+      `SELECT ${GRAPHEME_COLS}, ${HANZI_LEVEL_SQL} AS level FROM graphemes g
+        WHERE g.lang = 'zh' AND g.kind = 'hanzi' AND ${HANZI_LEVEL_SQL} = ?
+        ORDER BY g.ord, g.glyph LIMIT ? OFFSET ?`,
+      [filter.level, limit, offset],
+    );
+  }
+  if (filter.strokes !== undefined) {
+    return db.query<HanziListRow>(
+      `SELECT ${GRAPHEME_COLS}, ${HANZI_LEVEL_SQL} AS level FROM graphemes g
+        WHERE g.lang = 'zh' AND g.kind = 'hanzi' AND g.ord = ?
+        ORDER BY g.glyph LIMIT ? OFFSET ?`,
+      [filter.strokes, limit, offset],
+    );
+  }
+  return db.query<HanziListRow>(
+    `SELECT ${GRAPHEME_COLS}, ${HANZI_LEVEL_SQL} AS level FROM graphemes g
+      WHERE g.lang = 'zh' AND g.kind = 'hanzi'
+      ORDER BY g.ord, g.glyph LIMIT ? OFFSET ?`,
+    [limit, offset],
+  );
+}
+
+/** Which of these characters have stroke data — one query, for highlighting in word views. */
+export async function haveStrokeData(db: Db, glyphs: string[]): Promise<Set<string>> {
+  if (glyphs.length === 0) return new Set();
+  const holes = glyphs.map(() => '?').join(',');
+  const rows = await db.query<{ glyph: string }>(
+    `SELECT glyph FROM graphemes WHERE lang = 'zh' AND kind = 'hanzi' AND glyph IN (${holes})`,
+    glyphs,
+  );
+  return new Set(rows.map((r) => r.glyph));
+}
+
+/** Words containing this character, most common first — the "where do I meet it" list. */
+export async function wordsWithChar(db: Db, glyph: string, limit = 20): Promise<WordRow[]> {
+  return db.query<WordRow>(
+    `SELECT ${WORD_COLS} FROM words
+      WHERE lang = 'zh' AND headword LIKE ? AND freq_rank IS NOT NULL
+      ORDER BY freq_rank LIMIT ?`,
+    [`%${glyph}%`, limit],
+  );
+}
+
+export async function hanziStrokeCounts(db: Db): Promise<{ ord: number; n: number }[]> {
+  return db.query(
+    `SELECT ord, COUNT(*) AS n FROM graphemes
+      WHERE lang = 'zh' AND kind = 'hanzi' AND ord IS NOT NULL GROUP BY ord ORDER BY ord`,
+  );
+}
+
 export async function listSources(db: Db): Promise<SourceRow[]> {
   return db.query<SourceRow>(`SELECT * FROM sources ORDER BY id`);
 }

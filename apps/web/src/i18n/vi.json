@@ -7,7 +7,8 @@
     "search": "Tra từ",
     "browse": "Duyệt từ vựng",
     "review": "Ôn tập",
-    "licenses": "Nguồn & giấy phép"
+    "licenses": "Nguồn & giấy phép",
+    "write": "Tập viết"
   },
   "deck": {
     "add": "Thêm vào bộ thẻ",
@@ -51,18 +52,42 @@
       "month": "{{n}} tháng"
     }
   },
+  "write": {
+    "title": "Tập viết chữ Hán",
+    "intro": "Xem từng nét được viết ra, rồi tự tô lại bằng chuột hoặc ngón tay.",
+    "byStrokes": "Theo số nét:",
+    "empty": "Không có chữ nào cho lựa chọn này.",
+    "notFound": "Chưa có dữ liệu nét cho “{{glyph}}”.",
+    "backToIndex": "← Danh sách chữ",
+    "noStrokes": "Chữ này chưa có dữ liệu nét.",
+    "animate": "Viết mẫu",
+    "trace": "Tự tô",
+    "reveal": "Hiện chữ",
+    "strokeCount": "{{count}} nét",
+    "tracing": "Nét {{done}}/{{total}} · {{mistakes}} lỗi",
+    "traced": "Xong! {{mistakes}} lỗi.",
+    "tracedPerfect": "Hoàn hảo — không lỗi nào! 🎉",
+    "radical": "Bộ",
+    "decomposition": "Cấu tạo",
+    "etymology": "Nguồn gốc chữ",
+    "inWords": "Gặp trong các từ",
+    "openGlyph": "Tập viết “{{glyph}}”"
+  },
   "db": {
     "loading": "Đang khởi động…",
     "phase": {
       "start": "Đang khởi động…",
       "sqlite": "Đang nạp SQLite…",
       "manifest": "Đang kiểm tra gói dữ liệu…",
-      "download": "Đang tải gói dữ liệu (lần đầu ~20 MB)…",
+      "download": "Đang tải gói dữ liệu (lần đầu ~41 MB)…",
       "verify": "Đang xác minh dữ liệu…",
-      "install": "Đang cài đặt gói dữ liệu…"
+      "install": "Đang cài đặt gói dữ liệu…",
+      "waiting-for-storage": "Đang chờ giải phóng bộ lưu trữ…"
     },
     "error": "Lỗi cơ sở dữ liệu",
-    "packVersion": "Gói dữ liệu {{version}}"
+    "packVersion": "Gói dữ liệu {{version}}",
+    "locked": "Dữ liệu đang được một tab hoặc trang khác của ứng dụng sử dụng. Hãy tải lại trang này để tiếp tục.",
+    "reload": "Tải lại trang"
   },
   "search": {
     "placeholder": "Tra từ: 你好 · hello · bonjour · ni hao…",

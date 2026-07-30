@@ -108,3 +108,35 @@ button.rating-easy, button.rating-good { border-color: var(--accent); }
 .backup button { border: 1px solid var(--border); background: var(--bg-soft); color: var(--fg);
   border-radius: 6px; padding: 0.35rem 0.8rem; cursor: pointer; }
 .debug-clock { color: #c0392b; }
+
+/* --- writing systems (v0.3) ---------------------------------------------- */
+ul.glyph-grid { list-style: none; padding: 0; margin: 1rem 0;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 0.5rem; }
+ul.glyph-grid a { display: flex; flex-direction: column; align-items: center; gap: 0.1rem;
+  padding: 0.5rem 0.2rem; border: 1px solid var(--border); border-radius: 8px; color: inherit; }
+ul.glyph-grid a:hover { background: var(--bg-soft); text-decoration: none; border-color: var(--accent); }
+ul.glyph-grid .glyph { font-size: 1.9rem; line-height: 1.1; }
+ul.glyph-grid .reading { font-size: 0.8rem; }
+ul.glyph-grid .hint { font-size: 0.68rem; }
+
+.glyph-detail .hw { font-size: 2.8rem; margin-right: 0.8rem; }
+.glyph-detail .hw a { color: inherit; }
+.glyph-head { display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 0.5rem; }
+.glyph-head .reading { font-size: 1.3rem; margin-right: 0.6rem; }
+.gloss-block { color: var(--fg-soft); margin: 0.2rem 0 0; }
+.decomposition { font-size: 2rem; letter-spacing: 0.15rem; margin: 0.3rem 0; }
+.decomposition .ids-op { color: var(--fg-soft); }
+.glyph-detail section { margin-top: 1.4rem; }
+.glyph-detail section h3 { margin-bottom: 0.3rem; }
+
+.stroke-writer { display: flex; flex-direction: column; align-items: center; margin: 1rem 0; }
+.stroke-stage { border: 1px solid var(--border); border-radius: 12px; background: var(--bg-soft);
+  touch-action: none; /* the trace quiz needs the pointer, not a scroll gesture */ }
+.stroke-controls { display: flex; gap: 0.5rem; margin-top: 0.7rem; flex-wrap: wrap; justify-content: center; }
+.stroke-controls button { border: 1px solid var(--border); background: var(--bg-soft); color: var(--fg);
+  border-radius: 8px; padding: 0.4rem 0.9rem; cursor: pointer; }
+.stroke-controls button.sw-trace { border-color: var(--accent); color: var(--accent); }
+.stroke-status { min-height: 1.2rem; margin: 0.5rem 0 0; }
+/* Character-level links in a headword shouldn't look like body links until hovered. */
+.word-detail .hw a { color: inherit; }
+.word-detail .hw a:hover { color: var(--accent); }

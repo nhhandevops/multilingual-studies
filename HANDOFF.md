@@ -33,6 +33,20 @@ working session, and commit it with the session's push. It is the single source 
     or split strokes into an optional second pack.
   - The **ID-churn gate ran for real for the first time** (two pack dirs now exist in
     `build/packs/`) and reported **0 vanished word IDs** across the schema change.
+  - **P2 done — you can watch 好 draw itself and trace it.** `hanzi-writer@3.7.3` (MIT) is
+    wrapped by [stroke-writer.tsx](apps/web/src/components/stroke-writer.tsx); its
+    `charDataLoader` returns the JSON we already hold, so it **never touches the network**.
+    New routes: `/write` (browse by HSK level or by stroke count) and `/write/:glyph`
+    (animate · trace · reveal, reading, radical, definition, IDS decomposition whose
+    components are links when we have their strokes, and the words the character appears in).
+    Characters in a word page's headword now link into `/write/:glyph` — the discovery path.
+  - Verified in headless Chrome: the trace quiz was driven with **real pointer events replayed
+    along the character's own medians** and completed 6/6 with zero mistakes, proving the
+    packed stroke data is usable and not just present. Licenses screen lists Arphic PL + LGPL
+    and `/licenses/ARPHICPL.TXT` serves the 6,900-byte text. 0 console errors.
+    Script: `scratchpad/e2e/verify-v03-p2.mjs` (it reads medians from the built pack itself and
+    inverts hanzi-writer's Positioner — bounds `(0,-124)..(1024,900)` — to hit real coordinates).
+  - **Fixed a real navigation bug found on the way** (see the storage-lock note below).
 - **v0.2 shipped & tagged** — "Daily review loop":
   - `user.db` (SRS state) lives in the browser's OPFS **beside** the content pack, in the same
     `mls-pool` SAH pool, same worker — the pack-update path never touches it. Schema (cards /
@@ -79,8 +93,22 @@ HSK-1 character has stroke data (build check), ARPHICPL.TXT visible on the Licen
 
 Known v0.2 follow-ups, deliberately deferred (none block v0.3):
 
-- Multi-tab: opfs-sahpool takes exclusive OPFS handles, so a second tab fails init with an opaque
-  error and cannot record reviews. Needs a Web-Locks/BroadcastChannel takeover story + UI.
+- **Storage lock (sharpened in v0.3 P2 — measured, no longer just "multi-tab").** opfs-sahpool
+  holds *exclusive* OPFS sync access handles, one holder per origin. The failure is wider than a
+  second tab: **Chrome can put the page you navigate away from into the back/forward cache**, and
+  a frozen page keeps its worker — and the handles — alive. The next full document load then dies
+  with "Access Handles cannot be created…". Measured: held >20 s, and a frozen page cannot run
+  code, so it can neither be asked to release them (a `postMessage` is queued and never
+  processed) nor time out. `pagehide`/`pageshow` suspend hooks are wired via `pauseVfs()` and do
+  fire when the worker still gets a slice, but they cannot be relied on.
+  - What v0.3 P2 did about it: `installPool()` retries ~8 s (wins the genuine reload race), and
+    on final failure the worker throws `storage-locked:…` which the UI renders as a plain-language
+    message plus a **Reload** button — reloading demonstrably recovers. Regression script:
+    `scratchpad/e2e/probe-locked.mjs`.
+  - What is still owed: a real takeover protocol (Web Locks + `pauseVfs()`/`unpauseVfs()`, which
+    sqlite-wasm 3.50 exposes) so the newest document wins automatically instead of asking the
+    user to reload. Until then, **prefer in-app SPA navigation in tests** — a bare `page.goto`
+    between two app pages can trip the lock, which is exactly how this was found.
 - No automated test framework yet — verification is still ad-hoc Playwright scripts (see
   "Testing recipe"). A real harness is worth its own slice before the surface grows further.
 - Suspend/bury, undo-last-rating, and per-card notes are unimplemented (`cards.suspended` exists

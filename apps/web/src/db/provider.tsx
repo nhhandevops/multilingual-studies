@@ -53,7 +53,30 @@ export function DbProvider({ children }: { children: ReactNode }) {
     });
     worker.postMessage({ id, type: 'init' });
 
-    return () => worker.terminate();
+    // Back/forward cache: a frozen page keeps this worker alive, and opfs-sahpool handles are
+    // exclusive per origin — so a second document could never open the DB, and pressing Back
+    // would restore a page whose worker had lost the race. Hand the handles back while frozen.
+    const send = (type: 'suspend' | 'resume') => {
+      const w = workerRef.current;
+      if (!w) return;
+      const rpcId = nextId.current++;
+      pending.current.set(rpcId, { resolve: () => {}, reject: () => {} });
+      w.postMessage({ id: rpcId, type });
+    };
+    const onPageHide = (e: PageTransitionEvent) => {
+      if (e.persisted) send('suspend'); //  a real unload needs nothing: the worker dies with us
+    };
+    const onPageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) send('resume');
+    };
+    window.addEventListener('pagehide', onPageHide);
+    window.addEventListener('pageshow', onPageShow);
+
+    return () => {
+      window.removeEventListener('pagehide', onPageHide);
+      window.removeEventListener('pageshow', onPageShow);
+      worker.terminate();
+    };
   }, []);
 
   const db = useMemo<Db>(() => {

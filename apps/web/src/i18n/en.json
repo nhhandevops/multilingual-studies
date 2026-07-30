@@ -7,7 +7,8 @@
     "search": "Search",
     "browse": "Browse",
     "review": "Review",
-    "licenses": "Sources & licenses"
+    "licenses": "Sources & licenses",
+    "write": "Writing"
   },
   "deck": {
     "add": "Add to deck",
@@ -51,18 +52,42 @@
       "month": "{{n}}mo"
     }
   },
+  "write": {
+    "title": "Hanzi writing practice",
+    "intro": "Watch each stroke being drawn, then trace it yourself with a mouse or finger.",
+    "byStrokes": "By stroke count:",
+    "empty": "No characters for this filter.",
+    "notFound": "No stroke data for “{{glyph}}”.",
+    "backToIndex": "← Character list",
+    "noStrokes": "This character has no stroke data.",
+    "animate": "Animate",
+    "trace": "Trace it",
+    "reveal": "Show character",
+    "strokeCount": "{{count}} strokes",
+    "tracing": "Stroke {{done}}/{{total}} · {{mistakes}} mistakes",
+    "traced": "Done! {{mistakes}} mistakes.",
+    "tracedPerfect": "Perfect — no mistakes! 🎉",
+    "radical": "Radical",
+    "decomposition": "Composition",
+    "etymology": "Etymology",
+    "inWords": "Seen in words",
+    "openGlyph": "Practise writing “{{glyph}}”"
+  },
   "db": {
     "loading": "Starting…",
     "phase": {
       "start": "Starting…",
       "sqlite": "Loading SQLite…",
       "manifest": "Checking content pack…",
-      "download": "Downloading content pack (first run ~20 MB)…",
+      "download": "Downloading the content pack (~41 MB the first time)…",
       "verify": "Verifying data…",
-      "install": "Installing content pack…"
+      "install": "Installing content pack…",
+      "waiting-for-storage": "Waiting for storage to be released…"
     },
     "error": "Database error",
-    "packVersion": "Content pack {{version}}"
+    "packVersion": "Content pack {{version}}",
+    "locked": "The database is held by another tab or page of this app. Reload this page to continue.",
+    "reload": "Reload page"
   },
   "search": {
     "placeholder": "Search: 你好 · hello · bonjour · ni hao…",

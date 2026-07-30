@@ -2,11 +2,13 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useDb } from '../db/provider';
-import { getWord } from '../db/queries';
+import { getWord, haveStrokeData } from '../db/queries';
 import { getCard } from '../db/user-queries';
 import { AddToDeck } from '../components/add-to-deck';
 
 type Detail = Awaited<ReturnType<typeof getWord>>;
+
+const isHan = (ch: string): boolean => /\p{Script=Han}/u.test(ch);
 
 export function WordPage() {
   const { t } = useTranslation();
@@ -15,14 +17,21 @@ export function WordPage() {
   const { id } = useParams<{ id: string }>();
   const [detail, setDetail] = useState<Detail | 'loading'>('loading');
   const [inDeck, setInDeck] = useState(false);
+  const [drawable, setDrawable] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     let cancelled = false;
     setDetail('loading');
+    setDrawable(new Set());
     if (id) {
       const rawId = id; // React Router v7 already percent-decodes params — never decode twice
-      void getWord(db, rawId).then((d) => {
-        if (!cancelled) setDetail(d);
+      void getWord(db, rawId).then(async (d) => {
+        if (cancelled) return;
+        setDetail(d);
+        if (!d) return;
+        const chars = [...new Set([...d.word.headword].filter(isHan))];
+        const inPack = await haveStrokeData(db, chars);
+        if (!cancelled) setDrawable(inPack);
       });
       void getCard(db, rawId).then((c) => {
         if (!cancelled) setInDeck(c !== null);
@@ -50,7 +59,20 @@ export function WordPage() {
         </button>
       </p>
       <div style={{ display: 'flex', gap: '1rem', alignItems: 'baseline', flexWrap: 'wrap' }}>
-        <span className="hw">{word.headword}</span>
+        {/* Each character with stroke data links to its own writing page — the discovery path into /write. */}
+        <span className="hw">
+          {drawable.size > 0
+            ? [...word.headword].map((ch, i) =>
+                drawable.has(ch) ? (
+                  <Link key={i} to={`/write/${encodeURIComponent(ch)}`} title={t('write.openGlyph', { glyph: ch })}>
+                    {ch}
+                  </Link>
+                ) : (
+                  <span key={i}>{ch}</span>
+                ),
+              )
+            : word.headword}
+        </span>
         {word.reading && <span className="reading" style={{ fontSize: '1.3rem' }}>{word.reading}</span>}
         <span className="badge">{t(`lang.${word.lang}`, word.lang)}</span>
         {word.level && <span className="badge">{word.level}</span>}

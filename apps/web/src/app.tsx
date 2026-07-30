@@ -6,6 +6,8 @@ import { Home } from './routes/home';
 import { Browse } from './routes/browse';
 import { WordPage } from './routes/word';
 import { Review } from './routes/review';
+import { WriteIndex } from './routes/write';
+import { GlyphPage } from './routes/glyph';
 import { Licenses } from './routes/licenses';
 
 export function App() {
@@ -22,6 +24,7 @@ export function App() {
           <Link to="/">{t('nav.search')}</Link>
           <Link to="/browse">{t('nav.browse')}</Link>
           <Link to="/review">{t('nav.review')}</Link>
+          <Link to="/write">{t('nav.write')}</Link>
           <Link to="/licenses">{t('nav.licenses')}</Link>
         </nav>
         <div className="ui-lang" title={t('ui.language')}>
@@ -35,11 +38,21 @@ export function App() {
       </header>
 
       {db.status.state === 'loading' && <p className="status">{t(`db.phase.${db.status.phase}`, t('db.loading'))}</p>}
-      {db.status.state === 'error' && (
-        <p className="status error">
-          {t('db.error')}: {db.status.message}
-        </p>
-      )}
+      {db.status.state === 'error' &&
+        (db.status.message.startsWith('storage-locked') ? (
+          // Another document (a second tab, or a page frozen in the back/forward cache) holds
+          // the exclusive OPFS handles. Reloading takes them over; the raw error helps nobody.
+          <div className="status">
+            <p className="error">{t('db.locked')}</p>
+            <button className="more" onClick={() => window.location.reload()}>
+              {t('db.reload')}
+            </button>
+          </div>
+        ) : (
+          <p className="status error">
+            {t('db.error')}: {db.status.message}
+          </p>
+        ))}
       {db.status.state === 'ready' && (
         <>
           <Routes>
@@ -47,6 +60,8 @@ export function App() {
             <Route path="/browse" element={<Browse />} />
             <Route path="/word/:id" element={<WordPage />} />
             <Route path="/review" element={<Review />} />
+            <Route path="/write" element={<WriteIndex />} />
+            <Route path="/write/:glyph" element={<GlyphPage />} />
             <Route path="/licenses" element={<Licenses />} />
           </Routes>
           <footer className="pack">{t('db.packVersion', { version: db.status.packVersion })}</footer>

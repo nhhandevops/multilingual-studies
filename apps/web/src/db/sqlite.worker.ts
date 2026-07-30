@@ -18,7 +18,11 @@ interface UserQueryMsg { id: number; type: 'user-query'; sql: string; params?: u
 interface UserExecMsg { id: number; type: 'user-exec'; statements: { sql: string; params?: unknown[] }[] }
 interface UserExportMsg { id: number; type: 'user-export' }
 interface UserImportMsg { id: number; type: 'user-import'; bytes: ArrayBuffer }
-type InMsg = InitMsg | QueryMsg | UserQueryMsg | UserExecMsg | UserExportMsg | UserImportMsg;
+interface SuspendMsg { id: number; type: 'suspend' }
+interface ResumeMsg { id: number; type: 'resume' }
+type InMsg =
+  | InitMsg | QueryMsg | UserQueryMsg | UserExecMsg | UserExportMsg | UserImportMsg
+  | SuspendMsg | ResumeMsg;
 
 const post = (msg: Record<string, unknown>, transfer?: Transferable[]) =>
   (self as unknown as Worker).postMessage(msg, transfer ?? []);
@@ -31,6 +35,9 @@ let sqlite3: Sqlite3Static | null = null;
 let poolUtil: Awaited<ReturnType<Sqlite3Static['installOpfsSAHPoolVfs']>> | null = null;
 let db: Database | null = null; // content.db
 let userDb: Database | null = null; // user.db
+/** Non-null while the VFS is paused for the back/forward cache — see suspend()/resume(). */
+let suspension: Promise<void> | null = null;
+let releaseSuspension: () => void = () => {};
 
 async function sha256Hex(bytes: ArrayBuffer): Promise<string> {
   const digest = await crypto.subtle.digest('SHA-256', bytes);
@@ -60,10 +67,40 @@ function migrateUserDb(u: Database): void {
   }
 }
 
+/** Recognised by the UI to offer a Reload button instead of a raw exception. */
+export const STORAGE_LOCKED = 'storage-locked';
+
+/**
+ * opfs-sahpool takes *exclusive* OPFS sync access handles, one holder per origin.
+ *
+ * Two situations produce "Access Handles cannot be created…":
+ *  1. A brief teardown race on reload — the old worker still has them. Retrying wins.
+ *  2. Another live document holds them: a second tab, or — measured, not theorised — a page
+ *     Chrome kept in the back/forward cache. A frozen page cannot run code, so it can neither
+ *     be asked to release them nor release them itself; it holds on indefinitely (>20 s
+ *     observed). Retrying cannot win, so we stop and let the UI offer a reload, which does
+ *     recover. The real fix is a takeover protocol (see HANDOFF "Next up").
+ */
+async function installPool(sqlite3: Sqlite3Static): Promise<NonNullable<typeof poolUtil>> {
+  const DELAYS_MS = [0, 60, 120, 250, 500, 900, 1500, 2500, 2500];
+  let lastError: unknown;
+  for (const delay of DELAYS_MS) {
+    if (delay > 0) await new Promise((r) => setTimeout(r, delay));
+    try {
+      return await sqlite3.installOpfsSAHPoolVfs({ name: 'mls-pool' });
+    } catch (e) {
+      lastError = e;
+      if (!/Access Handles|createSyncAccessHandle|NoModificationAllowed/i.test(String(e))) throw e;
+      progress('waiting-for-storage');
+    }
+  }
+  throw new Error(`${STORAGE_LOCKED}: ${lastError instanceof Error ? lastError.message : String(lastError)}`);
+}
+
 async function init(): Promise<{ packVersion: string }> {
   progress('sqlite');
   sqlite3 = await sqlite3InitModule({ print: () => {}, printErr: console.error });
-  poolUtil = await sqlite3.installOpfsSAHPoolVfs({ name: 'mls-pool' });
+  poolUtil = await installPool(sqlite3);
   // Default pool capacity is 6; two DBs plus journal/temp files need headroom.
   // reserveMinimumCapacity is idempotent and persists in OPFS.
   await poolUtil.reserveMinimumCapacity(8);
@@ -241,9 +278,60 @@ async function userImport(bytes: ArrayBuffer): Promise<void> {
   }
 }
 
+/**
+ * Release the pool's OPFS handles without touching the data (`pauseVfs`, NOT `wipeFiles`).
+ *
+ * Why this exists: a page frozen into the back/forward cache keeps its worker alive, and
+ * opfs-sahpool handles are exclusive per origin. Without this, loading any other document
+ * and then pressing Back leaves two live workers fighting over the same files and the
+ * restored page dies with "Access Handles cannot be created…". Both databases must be
+ * closed before pausing and reopened after unpausing — that is the documented contract.
+ */
+function suspend(): void {
+  if (!poolUtil || suspension) return;
+  db?.close();
+  userDb?.close();
+  db = null;
+  userDb = null;
+  poolUtil.pauseVfs();
+  progress('suspended');
+}
+
+async function resume(): Promise<void> {
+  const pool = poolUtil;
+  if (!pool || !pool.isPaused()) return;
+  await pool.unpauseVfs();
+  db = new pool.OpfsSAHPoolDb('/content.db');
+  userDb = new pool.OpfsSAHPoolDb('/user.db');
+  progress('resumed');
+}
+
+/** Queries that arrive while paused wait for the resume rather than failing. */
+async function awaitResume(): Promise<void> {
+  while (suspension) await suspension;
+}
+
 self.onmessage = async (ev: MessageEvent<InMsg>) => {
   const msg = ev.data;
   try {
+    if (msg.type === 'suspend') {
+      suspend();
+      // Held until 'resume' arrives so in-flight queries queue instead of erroring.
+      let release = (): void => {};
+      suspension = new Promise<void>((r) => { release = r; });
+      releaseSuspension = release;
+      post({ id: msg.id, ok: true, rows: [] });
+      return;
+    }
+    if (msg.type === 'resume') {
+      await resume();
+      suspension = null;
+      releaseSuspension();
+      releaseSuspension = () => {};
+      post({ id: msg.id, ok: true, rows: [] });
+      return;
+    }
+    if (msg.type !== 'init') await awaitResume();
     if (msg.type === 'init') {
       const { packVersion } = await init();
       post({ id: msg.id, ok: true, packVersion });
