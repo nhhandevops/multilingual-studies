@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
-import { CardSnapshot, GRADES, previewMinutes, State, type Grade, type UserCardRow } from '@mls/shared/srs';
+import { CardSnapshot, GRADES, previewMinutes, snapshotKind, State, type Grade, type UserCardRow } from '@mls/shared/srs';
+import { StrokeWriter } from '../components/stroke-writer';
 import { useDb } from '../db/provider';
 import {
   fetchQueue,
@@ -124,6 +125,7 @@ export function Review() {
   if (phase === 'session' && queue.length > 0) {
     const card = queue[0]!;
     const snap = parseSnapshot(card);
+    const isGrapheme = snap !== null && snapshotKind(snap) === 'grapheme';
     const preview = previewMinutes(card, srsNow());
     return (
       <main className="review">
@@ -145,6 +147,11 @@ export function Review() {
                 ))}
               </ol>
               {snap.level && <span className="badge">{snap.level}</span>}
+              {/* Grapheme cards get the writer on the answer side: recall first, then practise
+                  the strokes. Stroke data comes from the snapshot — never from content.db. */}
+              {isGrapheme && snap.strokeJson && (
+                <StrokeWriter glyph={snap.headword} strokeJson={snap.strokeJson} />
+              )}
             </div>
           )}
         </div>
@@ -168,7 +175,11 @@ export function Review() {
           </div>
         )}
         <p>
-          <Link to={`/word/${encodeURIComponent(card.id)}`}>{t('review.wordDetail')}</Link>
+          {isGrapheme ? (
+            <Link to={`/write/${encodeURIComponent(snap?.headword ?? '')}`}>{t('review.glyphDetail')}</Link>
+          ) : (
+            <Link to={`/word/${encodeURIComponent(card.id)}`}>{t('review.wordDetail')}</Link>
+          )}
         </p>
       </main>
     );

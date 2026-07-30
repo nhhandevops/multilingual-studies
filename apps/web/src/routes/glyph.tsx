@@ -3,7 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useDb } from '../db/provider';
 import { getGrapheme, haveStrokeData, wordsWithChar, type GraphemeDetail, type WordRow } from '../db/queries';
+import { addGraphemeCard, getCard, removeCard } from '../db/user-queries';
 import { StrokeWriter } from '../components/stroke-writer';
+import { srsNow } from '../srs/clock';
 
 /** U+2FF0–U+2FFB: the ideographic description operators inside an IDS like '⿰女子'. */
 const isIdsOperator = (ch: string): boolean => ch >= '⿰' && ch <= '⿻';
@@ -23,17 +25,23 @@ export function GlyphPage() {
   const [detail, setDetail] = useState<GraphemeDetail | null | 'loading'>('loading');
   const [words, setWords] = useState<WordRow[]>([]);
   const [drawable, setDrawable] = useState<Set<string>>(new Set());
+  const [inDeck, setInDeck] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     setDetail('loading');
     setWords([]);
+    setInDeck(false);
     if (!glyph) return;
     const raw = glyph; // React Router already percent-decodes params — never decode twice
     void getGrapheme(db, raw).then(async (d) => {
       if (cancelled) return;
       setDetail(d);
       if (!d) return;
+      void getCard(db, d.grapheme.id).then((c) => {
+        if (!cancelled) setInDeck(c !== null);
+      });
       const parts = [...(d.info?.decomposition ?? '')].filter((c) => !isIdsOperator(c) && c !== raw);
       const [inPack, containing] = await Promise.all([
         haveStrokeData(db, parts),
@@ -58,6 +66,24 @@ export function GlyphPage() {
     );
 
   const { grapheme, info, source, infoSource } = detail;
+
+  const toggleDeck = async () => {
+    if (busy) return; //  re-entrancy guard, same as the word-card button
+    setBusy(true);
+    try {
+      if (inDeck) {
+        await removeCard(db, grapheme.id);
+        setInDeck(false);
+      } else {
+        const packVersion = db.status.state === 'ready' ? db.status.packVersion : '';
+        await addGraphemeCard(db, grapheme, info?.definition ?? null, packVersion, srsNow());
+        setInDeck(true);
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
   let etymology: Etymology | null = null;
   if (info?.etymology) {
     try {
@@ -85,6 +111,13 @@ export function GlyphPage() {
               {t('write.radical')}: {info.radical}
             </span>
           )}
+          <button
+            className={`deck-btn labeled${inDeck ? ' in-deck' : ''}`}
+            disabled={busy}
+            onClick={() => void toggleDeck()}
+          >
+            {inDeck ? `✓ ${t('deck.remove')}` : `＋ ${t('write.addCard')}`}
+          </button>
         </div>
         {info?.definition && <p className="gloss-block">{info.definition}</p>}
       </div>

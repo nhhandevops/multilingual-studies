@@ -47,6 +47,23 @@ working session, and commit it with the session's push. It is the single source 
     Script: `scratchpad/e2e/verify-v03-p2.mjs` (it reads medians from the built pack itself and
     inverts hanzi-writer's Positioner — bounds `(0,-124)..(1024,900)` — to hit real coordinates).
   - **Fixed a real navigation bug found on the way** (see the storage-lock note below).
+  - **P3 done — writing cards go through the v0.2 SRS loop.** ＋ on `/write/:glyph` creates a
+    card keyed on the **grapheme ID** (`zh:g:mmah:好`) in the same `cards` table, scheduled by
+    the same FSRS engine, counted in the same per-language due/new budgets. `CardSnapshot`
+    gained two **optional** fields — `kind: 'word' | 'grapheme'` and `strokeJson` — so every
+    card written by v0.2 still passes import validation; absent `kind` means `'word'` (helper
+    `snapshotKind()`). The stroke data is frozen into the snapshot, so a review renders the
+    writer **without joining content.db** (invariant 6).
+  - In `/review`, a grapheme card shows the glyph as the prompt and the interactive writer on
+    the answer side (recall first, then practise); word cards are untouched, and the footer link
+    points at `/write/:glyph` instead of `/word/:id`.
+  - Verified: mixed deck of one word card + one grapheme card in a single session; the writer
+    appears only on the grapheme card; FSRS advanced it **2 d → 16 d** under a +4 d debug clock
+    (the same growth v0.2 measured for words); export → import round-tripped a user.db
+    containing a grapheme card. 0 console errors. Script: `scratchpad/e2e/verify-v03-p3.mjs`.
+  - Small UX wart noticed, not fixed: clicking "Ôn tập" in the nav while the done screen is up
+    leaves `phase='done'` (the route doesn't change, so nothing remounts). The done screen's own
+    back button works. Worth a `useEffect` on location if it annoys.
 - **v0.2 shipped & tagged** — "Daily review loop":
   - `user.db` (SRS state) lives in the browser's OPFS **beside** the content pack, in the same
     `mls-pool` SAH pool, same worker — the pack-update path never touches it. Schema (cards /

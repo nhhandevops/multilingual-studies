@@ -50,7 +50,8 @@
       "hour": "{{n}}h",
       "day": "{{n}}d",
       "month": "{{n}}mo"
-    }
+    },
+    "glyphDetail": "Open character page →"
   },
   "write": {
     "title": "Hanzi writing practice",
@@ -71,7 +72,8 @@
     "decomposition": "Composition",
     "etymology": "Etymology",
     "inWords": "Seen in words",
-    "openGlyph": "Practise writing “{{glyph}}”"
+    "openGlyph": "Practise writing “{{glyph}}”",
+    "addCard": "Add writing card"
   },
   "db": {
     "loading": "Starting…",

@@ -24,8 +24,16 @@ export const CardSnapshot = z.object({
   freqRank: z.number().int().nullable(),
   senses: z.array(SnapshotSense),
   packVersion: z.string(),
+  // v0.3 additions — OPTIONAL so every card written by v0.2 still validates on import.
+  // Absent `kind` means 'word': that is the only thing v0.2 could create.
+  kind: z.enum(['word', 'grapheme']).optional(),
+  /** Graphemes only: hanzi-writer `{strokes,medians}`, frozen in so review never joins content.db. */
+  strokeJson: z.string().optional(),
 });
 export type CardSnapshot = z.infer<typeof CardSnapshot>;
+
+/** Cards created before v0.3 carry no `kind`; they are all word cards. */
+export const snapshotKind = (s: CardSnapshot): 'word' | 'grapheme' => s.kind ?? 'word';
 
 /** cards row, column-for-column (snake_case = SQL column names). */
 export interface UserCardRow {

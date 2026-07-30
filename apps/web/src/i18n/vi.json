@@ -50,7 +50,8 @@
       "hour": "{{n}} giờ",
       "day": "{{n}} ngày",
       "month": "{{n}} tháng"
-    }
+    },
+    "glyphDetail": "Xem chi tiết chữ →"
   },
   "write": {
     "title": "Tập viết chữ Hán",
@@ -71,7 +72,8 @@
     "decomposition": "Cấu tạo",
     "etymology": "Nguồn gốc chữ",
     "inWords": "Gặp trong các từ",
-    "openGlyph": "Tập viết “{{glyph}}”"
+    "openGlyph": "Tập viết “{{glyph}}”",
+    "addCard": "Thêm thẻ tập viết"
   },
   "db": {
     "loading": "Đang khởi động…",

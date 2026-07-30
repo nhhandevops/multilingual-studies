@@ -3,7 +3,7 @@
  * Every scheduling mutation goes through db.userExec — one message = one transaction.
  */
 import type { Db } from './provider';
-import type { SenseRow, WordRow } from './queries';
+import type { GraphemeRow, SenseRow, WordRow } from './queries';
 import {
   DEFAULT_NEW_PER_DAY,
   newSrsFields,
@@ -47,7 +47,48 @@ function buildSnapshot(word: WordRow, senses: SenseRow[], packVersion: string): 
     freqRank: word.freq_rank,
     senses: senses.slice(0, 4).map((s) => ({ pos: s.pos, glossEn: s.gloss_en, glossVi: s.gloss_vi })),
     packVersion,
+    kind: 'word',
   };
+}
+
+/**
+ * Grapheme cards ride the same `cards` table and the same FSRS scheduler as word cards —
+ * only the snapshot differs. `strokeJson` is frozen in for the same reason as every other
+ * snapshot field: a review must never join content.db (see HANDOFF invariant 6).
+ */
+function buildGraphemeSnapshot(g: GraphemeRow, definition: string | null, packVersion: string): CardSnapshot {
+  return {
+    headword: g.glyph,
+    altForm: null,
+    reading: g.reading,
+    level: null,
+    freqRank: null,
+    senses: definition ? [{ pos: null, glossEn: definition, glossVi: null }] : [],
+    packVersion,
+    kind: 'grapheme',
+    ...(g.stroke_json ? { strokeJson: g.stroke_json } : {}),
+  };
+}
+
+export async function addGraphemeCard(
+  db: Db,
+  grapheme: GraphemeRow,
+  definition: string | null,
+  packVersion: string,
+  now: Date,
+): Promise<void> {
+  const f = newSrsFields(now);
+  const snapshot = JSON.stringify(buildGraphemeSnapshot(grapheme, definition, packVersion));
+  await db.userExec([
+    {
+      sql: `INSERT OR IGNORE INTO cards (${CARD_COLS})
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)`,
+      params: [
+        grapheme.id, grapheme.lang, f.due, f.stability, f.difficulty, f.elapsed_days, f.scheduled_days,
+        f.learning_steps, f.reps, f.lapses, f.state, f.last_review, snapshot, now.toISOString(),
+      ],
+    },
+  ]);
 }
 
 export async function addCard(
