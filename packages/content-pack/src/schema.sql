@@ -111,6 +111,14 @@ CREATE TABLE IF NOT EXISTS graphemes (
 );
 CREATE INDEX IF NOT EXISTS idx_graphemes_lang ON graphemes(lang, kind, ord);
 
+-- Audio bytes live beside `audio` rather than in it: metadata is scanned constantly (pack
+-- verify audits every row) while the blobs are only ever fetched one at a time by primary key.
+-- Keeping them apart also means adding audio never rewrites the `audio` table's pages.
+CREATE TABLE IF NOT EXISTS audio_blobs (
+  audio_id TEXT PRIMARY KEY REFERENCES audio(id),
+  bytes    BLOB NOT NULL
+) WITHOUT ROWID;
+
 -- makemeahanzi's dictionary.txt is LGPL-3.0-or-later while its graphics.txt is Arphic PL.
 -- They live in separate tables on purpose: the LGPL half stays a separate, replaceable
 -- component (see docs/RESEARCH-SOURCES.md) and `graphemes` keeps only bundle-clean data.

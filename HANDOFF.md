@@ -1,9 +1,10 @@
 # HANDOFF — continue the work from any machine
 
-> **TL;DR (tiếng Việt):** **v0.2 đã xong và đã tag.** **v0.3 đang làm dở: P1–P3 đã xong**
+> **TL;DR (tiếng Việt):** **v0.2 đã xong và đã tag.** **v0.3 đang làm dở: P1–P3 + P4a đã xong**
 > (dữ liệu nét chữ Hán trong pack · trang `/write` xem chữ tự viết và tự tô · thẻ tập viết chạy
-> trong vòng ôn SRS). **Còn P4:** bảng pinyin + âm thanh, luyện thanh điệu, bảng IPA, hình
-> sagittal, và ~62 chữ Latin phải tự dựng. **Chưa tag v0.3** — chỉ tag khi P4 xong.
+> trong vòng ôn SRS · trang `/pinyin` nghe đủ 1.707 âm tiết, phát offline từ trong pack).
+> **Còn lại:** luyện thanh điệu, bảng IPA + hình sagittal, và ~62 chữ Latin phải tự dựng.
+> **Chưa tag v0.3** — chỉ tag khi phần còn lại xong.
 > Kế hoạch tổng thể: [docs/PLAN.md](docs/PLAN.md).
 > Trên máy mới: `pnpm install` → `pnpm ingest seed:all` → `pnpm pack:build` → `pnpm ingest pack publish` → `pnpm dev`.
 
@@ -63,6 +64,28 @@ working session, and commit it with the session's push. It is the single source 
     appears only on the grapheme card; FSRS advanced it **2 d → 16 d** under a +4 d debug clock
     (the same growth v0.2 measured for words); export → import round-tripped a user.db
     containing a grapheme card. 0 console errors. Script: `scratchpad/e2e/verify-v03-p3.mjs`.
+  - **P4a done — hear every pinyin syllable.** `seed:zh-pinyin-audio` ingests all **1,707**
+    Mandarin syllable recordings from `hugolpz/audio-cmn` (CC BY-SA, Chen Wang, via the dead
+    Shtooka project's mirror). At the `24k-abr` encoding the whole chart is **7.5 MB**, so it
+    ships **inside the content pack** — the separate audio pack this file previously suggested
+    turned out to be unnecessary. Bytes live in a new `audio_blobs` table beside `audio`
+    (metadata is scanned constantly by `pack verify`; blobs are only fetched one at a time).
+  - `/pinyin` renders the classic initials × finals grid per tone (39×24 for tones 1–4, 14×2 for
+    the 19 neutral-tone syllables); clicking a cell plays the clip from a Blob URL.
+    [audio/player.ts](apps/web/src/audio/player.ts) caches one object URL per clip — creating one
+    per click leaks them.
+  - Verified: all **1,707** syllables are reachable across the five tone tabs, hǎo decoded to a
+    1.28 s clip from a `blob:` URL, and **zero off-origin requests** were made (the whole feature
+    is offline). Script: `scratchpad/e2e/verify-v03-p4.mjs`.
+  - Pack: 41.2 → **47.4 MB gz** (mp3 is already compressed, so it adds close to its raw size).
+  - Two ingest traps fixed here, both worth remembering:
+    - GitHub's **contents** API silently caps a directory listing at 1,000 entries *and* ignores
+      `page`, so it reported 1,000 of the 1,707 files and re-served the same page. Use the **git
+      trees API** (`/git/trees/{ref}?recursive=1`) and check its `truncated` flag.
+    - `alreadyIngested()` keys on the input hash, so fixing a **parser** leaves the database
+      stale — the seed just skips. `zh-pinyin-audio` folds a `PARSER_VERSION` into the ingest
+      hash (but *not* into the lock hash, which must only move when upstream moves). Any seed
+      whose parsing is non-trivial should do the same.
   - Small UX wart noticed, not fixed: clicking "Ôn tập" in the nav while the done screen is up
     leaves `phase='done'` (the route doesn't change, so nothing remounts). The done screen's own
     back button works. Worth a `useEffect` on location if it annoys.
@@ -106,21 +129,22 @@ P1–P3 are done and pushed (see "Current state"). The 0.3 acceptance row in
 [docs/PLAN.md](docs/PLAN.md) is *"Watch 好 draw itself and trace it; trace é; hear every pinyin
 syllable"* — the first clause is shipped, the other two are P4. **Do not tag v0.3 until P4 lands.**
 
-Suggested order (each is independently shippable, so commit + update this file per step):
+**P4a (pinyin chart + audio) is done** — see "Current state". What remains:
 
-1. **Pinyin chart + audio** — `hugolpz/audio-cmn` (CC BY-SA, 1,707 syllables + 8,596 HSK words).
-   First binary-asset path in the project: decide now whether audio ships **inside** the pack
-   (blobs in the `audio` table, which the schema already has) or as separate files fetched and
-   cached — the pack is already 41 MB, so lean toward a **second, optional audio pack**. Note
-   `pack verify` already fails on any `audio` row missing attribution/license, and on NC/ND audio.
-2. **Tone drills** — reuse the SRS loop; a tone card is a grapheme/syllable card with an audio
-   prompt. `graphemes.kind` already allows `'pinyin_syllable'`.
-3. **IPA chart + sagittal diagrams** — `drammock` SVGs (CC0, 51 files) into `graphemes.diagram_ref`
-   with `kind='ipa_phone'`, `lang='all'` (the ID helper already supports `all`).
-4. **Latin glyphs** — the one genuinely manual asset: extract per-glyph `d` attributes from Relief
-   SingleLine (SIL OFL) and **hand-order the strokes** for ~62 glyphs into the same
-   `{strokes,medians}` shape. The renderer needs no changes — `stroke_json` is format-agnostic and
-   `StrokeWriter` is already glyph-agnostic. That is what makes "trace é" cheap once the data exists.
+1. **Tone drills** — reuse the SRS loop; a tone card is a syllable card with an audio prompt and
+   the four tones as answers. The pieces all exist now: `graphemes.kind='pinyin_syllable'` rows
+   carry `audio_id`, `playAudio()` handles playback, and `CardSnapshot.kind` is already an enum
+   that can take a third value (keep it optional — v0.2 cards must still validate).
+2. **IPA chart + sagittal diagrams** — `drammock/phonetics-teaching-assets` (CC0, 51 SVGs) into
+   `graphemes.diagram_ref` with `kind='ipa_phone'`, `lang='all'` (the ID helper supports `all`).
+   SVGs are text, so they can go in a blob table like `audio_blobs` or straight into a column.
+3. **Latin glyphs** — the one genuinely manual asset, and the last piece of "trace é".
+   **Design note from P2 that changes the plan:** hanzi-writer does *not* stroke the paths in
+   `strokes` — it animates by stroking a thick line **clipped** to them, so a stroke entry must be
+   a **closed outline**, not a centerline. Relief SingleLine (SIL OFL) is a *single-line* font, so
+   its glyph `d` attributes are centerlines and cannot be fed in directly: they need an offsetting
+   step (sample each path to a polyline, offset by ±½ pen width, close it) which then also gives
+   the `medians` for free. Budget for that converter, not just for stroke ordering.
 
 Watch out for: `graphemes.kind` is a CHECK constraint (`letter`/`hanzi`/`pinyin_syllable`/`ipa_phone`)
 — adding a kind means a schema edit, and per invariant 4 that means bumping `SCHEMA_VERSION` if
@@ -182,13 +206,14 @@ Notes:
 > `apps/ingest` rồi build lại pack. File này không nằm trong git; máy khác lấy nó bằng cách
 > tự build (cách A) hoặc tải từ GitHub Releases (cách B).
 
-> **Size changed in v0.3:** the pack is now **41.2 MB gz** (was 27.7 MB) because it carries stroke
-> data for 9,432 characters. The published v0.1 release asset is still the old 27.7 MB pack — it
-> works, but has no `graphemes`/`hanzi_info`, so `/write` will be empty. Rebuild from sources
-> (way A) to get the writing features.
+> **Size changed in v0.3:** the pack is now **47.4 MB gz** (was 27.7 MB) — stroke data for 9,432
+> characters plus 7.5 MB of pinyin syllable audio. The published v0.1 release asset is still the
+> old 27.7 MB pack: it works, but has no `graphemes`/`hanzi_info`/`audio`, so `/write` and
+> `/pinyin` will be empty. Rebuild from sources (way A) to get the writing and audio features.
 
 **What it is.** `content.db` is a read-only SQLite database holding all study content
-(tables: `words`, `senses`, `graphemes`, `hanzi_info`, `sources`, `meta`, FTS index `words_fts`;
+(tables: `words`, `senses`, `graphemes`, `hanzi_info`, `audio`, `audio_blobs`, `sources`, `meta`,
+FTS index `words_fts`;
 later: sentences, grammar…). It is **generated, never edited**: `apps/ingest` downloads vetted sources into
 `data-cache/`, normalizes them into `build/staging.db`, and `pack build` produces
 `build/packs/<version>/content.db` (+ `content.db.gz` + `manifest.json` with sha256).

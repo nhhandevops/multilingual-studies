@@ -260,6 +260,28 @@ export async function wordsWithChar(db: Db, glyph: string, limit = 20): Promise<
   );
 }
 
+export interface SyllableRow {
+  id: string;
+  glyph: string; //    tone-marked, e.g. 'hǎo'
+  reading: string; //  numbered, e.g. 'hao3' — the upstream key
+  ord: number | null; //  tone 1-5
+  audio_id: string | null;
+}
+
+/** The whole pinyin chart: 1,707 rows, small enough to load once and pivot in memory. */
+export async function listPinyinSyllables(db: Db): Promise<SyllableRow[]> {
+  return db.query<SyllableRow>(
+    `SELECT id, glyph, reading, ord, audio_id FROM graphemes
+      WHERE lang = 'zh' AND kind = 'pinyin_syllable' ORDER BY reading`,
+  );
+}
+
+/** Audio bytes come back as a Uint8Array (SQLite BLOB) — kept out of the metadata queries. */
+export async function getAudioBytes(db: Db, id: string): Promise<Uint8Array | null> {
+  const rows = await db.query<{ bytes: Uint8Array }>(`SELECT bytes FROM audio_blobs WHERE audio_id = ?`, [id]);
+  return rows[0]?.bytes ?? null;
+}
+
 export async function hanziStrokeCounts(db: Db): Promise<{ ord: number; n: number }[]> {
   return db.query(
     `SELECT ord, COUNT(*) AS n FROM graphemes

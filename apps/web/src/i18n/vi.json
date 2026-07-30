@@ -8,7 +8,8 @@
     "browse": "Duyệt từ vựng",
     "review": "Ôn tập",
     "licenses": "Nguồn & giấy phép",
-    "write": "Tập viết"
+    "write": "Tập viết",
+    "pinyin": "Bảng pinyin"
   },
   "deck": {
     "add": "Thêm vào bộ thẻ",
@@ -74,6 +75,15 @@
     "inWords": "Gặp trong các từ",
     "openGlyph": "Tập viết “{{glyph}}”",
     "addCard": "Thêm thẻ tập viết"
+  },
+  "pinyin": {
+    "title": "Bảng pinyin có âm thanh",
+    "intro": "{{n}} âm tiết, thu âm bởi người bản ngữ. Bấm vào ô bất kỳ để nghe.",
+    "tone1": "Thanh 1 ˉ",
+    "tone2": "Thanh 2 ˊ",
+    "tone3": "Thanh 3 ˇ",
+    "tone4": "Thanh 4 ˋ",
+    "tone5": "Thanh nhẹ ·"
   },
   "db": {
     "loading": "Đang khởi động…",

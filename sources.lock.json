@@ -1,6 +1,14 @@
 {
   "$comment": "Every raw artifact downloaded by apps/ingest is recorded here by lib/download.ts: { id, url, sha256, bytes, retrievedAt, license, notes }. This file is the mirror-rot insurance and license audit trail. Never hand-edit entries; add sources only after vetting in docs/RESEARCH-SOURCES.md.",
   "artifacts": {
+    "audio-cmn:24k-abr/syllabs": {
+      "url": "https://github.com/hugolpz/audio-cmn/tree/master/24k-abr/syllabs",
+      "sha256": "9fd2dddcdb8a46651e39099874d77c4593c3ba70c5bd9ab7e98bdc97e79b55b3",
+      "bytes": 7831492,
+      "retrievedAt": "2026-07-30T14:14:36.785Z",
+      "license": "CC BY-SA (Chen Wang, via the Shtooka cmn-caen-tan collection)",
+      "notes": "1707 mp3 files, aggregate hash over sorted (name, bytes)"
+    },
     "cedict:cedict_1_0_ts_utf-8_mdbg.txt.gz": {
       "url": "https://www.mdbg.net/chinese/export/cedict/cedict_1_0_ts_utf-8_mdbg.txt.gz",
       "sha256": "9a12837b99d692af1a96c97af0200c94efb32904a1db002e83ccbd52ce909b5f",

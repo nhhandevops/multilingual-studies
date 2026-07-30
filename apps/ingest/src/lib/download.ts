@@ -38,6 +38,39 @@ export function sha256File(path: string): string {
 }
 
 /**
+ * Record provenance for a *set* of downloads under one lock key.
+ *
+ * `download()` writes one lock entry per file, which is right for the handful of bulk files
+ * every other source ships. Some sources are thousands of tiny files (audio-cmn: 1,707 mp3s)
+ * where per-file entries would bury sources.lock.json — so the caller fetches them itself and
+ * reports one aggregate entry. `sha256` must be computed over the files in a deterministic
+ * order so an upstream change still shows up as a hash change.
+ */
+export function recordArtifactSet(opts: {
+  id: string;
+  url: string; //     the listing/base URL the set came from
+  sha256: string; //   aggregate over sorted (name, bytes)
+  bytes: number; //    total
+  license: string;
+  notes?: string;
+}): void {
+  const lock = readLock();
+  const existing = lock.artifacts[opts.id];
+  lock.artifacts[opts.id] = {
+    url: opts.url,
+    sha256: opts.sha256,
+    bytes: opts.bytes,
+    retrievedAt: existing && existing.sha256 === opts.sha256 ? existing.retrievedAt : new Date().toISOString(),
+    license: opts.license,
+    ...(opts.notes ? { notes: opts.notes } : {}),
+  };
+  if (existing && existing.sha256 !== opts.sha256) {
+    console.warn(`  ! ${opts.id}: set changed since ${existing.retrievedAt}`);
+  }
+  writeLock(lock);
+}
+
+/**
  * Download `url` → data-cache/<relPath> unless already cached.
  * Records { id → url, sha256, license } in sources.lock.json either way.
  */

@@ -8,7 +8,8 @@
     "browse": "Browse",
     "review": "Review",
     "licenses": "Sources & licenses",
-    "write": "Writing"
+    "write": "Writing",
+    "pinyin": "Pinyin"
   },
   "deck": {
     "add": "Add to deck",
@@ -74,6 +75,15 @@
     "inWords": "Seen in words",
     "openGlyph": "Practise writing “{{glyph}}”",
     "addCard": "Add writing card"
+  },
+  "pinyin": {
+    "title": "Pinyin chart with audio",
+    "intro": "{{n}} syllables recorded by native speakers. Click any cell to hear it.",
+    "tone1": "Tone 1 ˉ",
+    "tone2": "Tone 2 ˊ",
+    "tone3": "Tone 3 ˇ",
+    "tone4": "Tone 4 ˋ",
+    "tone5": "Neutral ·"
   },
   "db": {
     "loading": "Starting…",

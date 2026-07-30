@@ -137,6 +137,19 @@ ul.glyph-grid .hint { font-size: 0.68rem; }
   border-radius: 8px; padding: 0.4rem 0.9rem; cursor: pointer; }
 .stroke-controls button.sw-trace { border-color: var(--accent); color: var(--accent); }
 .stroke-status { min-height: 1.2rem; margin: 0.5rem 0 0; }
+/* Wide tables scroll inside their own box — the page body must never scroll sideways. */
+.chart-scroll { overflow-x: auto; margin: 1rem 0; }
+table.pinyin-chart { border-collapse: collapse; font-size: 0.9rem; }
+table.pinyin-chart th { position: sticky; color: var(--fg-soft); font-weight: 500;
+  background: var(--bg); padding: 0.2rem 0.4rem; font-size: 0.78rem; }
+table.pinyin-chart thead th { top: 0; }
+table.pinyin-chart tbody th { left: 0; text-align: right; }
+table.pinyin-chart td { padding: 0; }
+button.syl { border: 1px solid transparent; background: none; color: var(--fg); cursor: pointer;
+  padding: 0.22rem 0.45rem; border-radius: 5px; font: inherit; white-space: nowrap; width: 100%; }
+button.syl:hover { background: var(--bg-soft); border-color: var(--border); }
+button.syl.playing { background: var(--accent); color: #fff; border-color: var(--accent); }
+
 /* Character-level links in a headword shouldn't look like body links until hovered. */
 .word-detail .hw a { color: inherit; }
 .word-detail .hw a:hover { color: var(--accent); }
