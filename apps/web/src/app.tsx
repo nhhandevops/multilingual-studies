@@ -5,6 +5,7 @@ import { useDb } from './db/provider';
 import { Home } from './routes/home';
 import { Browse } from './routes/browse';
 import { WordPage } from './routes/word';
+import { Review } from './routes/review';
 import { Licenses } from './routes/licenses';
 
 export function App() {
@@ -20,6 +21,7 @@ export function App() {
         <nav>
           <Link to="/">{t('nav.search')}</Link>
           <Link to="/browse">{t('nav.browse')}</Link>
+          <Link to="/review">{t('nav.review')}</Link>
           <Link to="/licenses">{t('nav.licenses')}</Link>
         </nav>
         <div className="ui-lang" title={t('ui.language')}>
@@ -44,6 +46,7 @@ export function App() {
             <Route path="/" element={<Home />} />
             <Route path="/browse" element={<Browse />} />
             <Route path="/word/:id" element={<WordPage />} />
+            <Route path="/review" element={<Review />} />
             <Route path="/licenses" element={<Licenses />} />
           </Routes>
           <footer className="pack">{t('db.packVersion', { version: db.status.packVersion })}</footer>

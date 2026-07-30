@@ -1,8 +1,23 @@
 import { Link } from 'react-router-dom';
 import type { WordRow } from '../db/queries';
+import { AddToDeck } from './add-to-deck';
 
-/** Shared result-row list. gloss comes pre-joined from a summary query when available. */
-export function WordList({ words, glosses }: { words: WordRow[]; glosses?: Map<string, string> }) {
+/**
+ * Shared result-row list. gloss comes pre-joined from a summary query when available.
+ * Pass `deck` (ids already in the SRS deck) to show an add-to-deck button per row —
+ * the button sits NEXT TO the Link, never inside it.
+ */
+export function WordList({
+  words,
+  glosses,
+  deck,
+  onDeckChange,
+}: {
+  words: WordRow[];
+  glosses?: Map<string, string>;
+  deck?: Set<string>;
+  onDeckChange?: (id: string, inDeck: boolean) => void;
+}) {
   if (words.length === 0) return null;
   return (
     <ul className="words">
@@ -16,6 +31,9 @@ export function WordList({ words, glosses }: { words: WordRow[]; glosses?: Map<s
             <span className="gloss">{glosses?.get(w.id) ?? ''}</span>
             {w.level && <span className="badge">{w.level}</span>}
           </Link>
+          {deck && (
+            <AddToDeck compact word={w} inDeck={deck.has(w.id)} onChange={(v) => onDeckChange?.(w.id, v)} />
+          )}
         </li>
       ))}
     </ul>

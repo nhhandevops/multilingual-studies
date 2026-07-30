@@ -8,7 +8,16 @@ export type DbStatus =
 
 export interface Db {
   status: DbStatus;
+  /** SELECT against content.db (read-only pack). */
   query: <T = Record<string, unknown>>(sql: string, params?: unknown[]) => Promise<T[]>;
+  /** SELECT against user.db (SRS state). */
+  userQuery: <T = Record<string, unknown>>(sql: string, params?: unknown[]) => Promise<T[]>;
+  /** Write statements against user.db — all run in ONE transaction. */
+  userExec: (statements: { sql: string; params?: unknown[] }[]) => Promise<void>;
+  /** Serialize user.db to bytes (backup download). */
+  userExport: () => Promise<ArrayBuffer>;
+  /** Replace user.db from bytes (validated in the worker; restores on failure). */
+  userImport: (bytes: ArrayBuffer) => Promise<void>;
 }
 
 const DbContext = createContext<Db | null>(null);
@@ -24,7 +33,7 @@ export function DbProvider({ children }: { children: ReactNode }) {
     workerRef.current = worker;
 
     worker.onmessage = (ev: MessageEvent) => {
-      const msg = ev.data as { id?: number; ok?: boolean; type?: string; phase?: string; error?: string; rows?: unknown; packVersion?: string };
+      const msg = ev.data as { id?: number; ok?: boolean; type?: string; phase?: string; error?: string; rows?: unknown; bytes?: ArrayBuffer; packVersion?: string };
       if (msg.type === 'progress') {
         setStatus((s) => (s.state === 'loading' ? { state: 'loading', phase: msg.phase ?? '' } : s));
         return;
@@ -33,7 +42,7 @@ export function DbProvider({ children }: { children: ReactNode }) {
       const p = pending.current.get(msg.id);
       if (!p) return;
       pending.current.delete(msg.id);
-      if (msg.ok) p.resolve((msg.rows ?? msg) as never);
+      if (msg.ok) p.resolve((msg.rows ?? msg.bytes ?? msg) as never);
       else p.reject(new Error(msg.error ?? 'worker error'));
     };
 
@@ -47,20 +56,29 @@ export function DbProvider({ children }: { children: ReactNode }) {
     return () => worker.terminate();
   }, []);
 
-  const db = useMemo<Db>(
-    () => ({
+  const db = useMemo<Db>(() => {
+    const request = <T,>(msg: Record<string, unknown>, transfer?: Transferable[]) =>
+      new Promise<T>((resolve, reject) => {
+        const worker = workerRef.current;
+        if (!worker) return reject(new Error('worker gone'));
+        const id = nextId.current++;
+        pending.current.set(id, { resolve: resolve as (v: never) => void, reject });
+        worker.postMessage({ id, ...msg }, transfer ?? []);
+      });
+
+    return {
       status,
-      query: <T,>(sql: string, params: unknown[] = []) =>
-        new Promise<T[]>((resolve, reject) => {
-          const worker = workerRef.current;
-          if (!worker) return reject(new Error('worker gone'));
-          const id = nextId.current++;
-          pending.current.set(id, { resolve: resolve as (v: never) => void, reject });
-          worker.postMessage({ id, type: 'query', sql, params });
-        }),
-    }),
-    [status],
-  );
+      query: <T,>(sql: string, params: unknown[] = []) => request<T[]>({ type: 'query', sql, params }),
+      userQuery: <T,>(sql: string, params: unknown[] = []) => request<T[]>({ type: 'user-query', sql, params }),
+      userExec: async (statements) => {
+        await request<unknown[]>({ type: 'user-exec', statements });
+      },
+      userExport: () => request<ArrayBuffer>({ type: 'user-export' }),
+      userImport: async (bytes) => {
+        await request<unknown[]>({ type: 'user-import', bytes }, [bytes]);
+      },
+    };
+  }, [status]);
 
   return <DbContext.Provider value={db}>{children}</DbContext.Provider>;
 }

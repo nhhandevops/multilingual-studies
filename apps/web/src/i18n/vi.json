@@ -6,7 +6,50 @@
   "nav": {
     "search": "Tra từ",
     "browse": "Duyệt từ vựng",
+    "review": "Ôn tập",
     "licenses": "Nguồn & giấy phép"
+  },
+  "deck": {
+    "add": "Thêm vào bộ thẻ",
+    "added": "Đã có trong bộ thẻ",
+    "remove": "Xóa khỏi bộ thẻ"
+  },
+  "review": {
+    "title": "Ôn tập hằng ngày",
+    "due": "Đến hạn",
+    "new": "Từ mới",
+    "cards": "{{n}} thẻ trong bộ",
+    "newBudget": "Từ mới mỗi ngày:",
+    "streak": "Chuỗi ngày học: {{n}} ngày 🔥",
+    "today": "Hôm nay: {{new}} từ mới · {{reviews}} lượt ôn",
+    "start": "Bắt đầu",
+    "startAll": "Ôn tất cả ({{n}} thẻ)",
+    "allDone": "Đã ôn xong hôm nay — quay lại vào ngày mai!",
+    "emptyDeck": "Bộ thẻ đang trống. Nhấn ＋ ở danh sách từ hoặc trang chi tiết từ để thêm thẻ.",
+    "remaining": "Còn {{n}} thẻ",
+    "showAnswer": "Hiện đáp án",
+    "again": "Học lại",
+    "hard": "Khó",
+    "good": "Nhớ",
+    "easy": "Dễ",
+    "newBadge": "MỚI",
+    "wordDetail": "Xem chi tiết từ →",
+    "doneTitle": "Xong phiên hôm nay! 🎉",
+    "backupTitle": "Sao lưu tiến độ",
+    "backupHint": "Tiến độ học chỉ lưu trên máy này. Hãy tải bản sao lưu thường xuyên.",
+    "export": "Tải bản sao lưu (user.db)",
+    "import": "Phục hồi từ bản sao lưu",
+    "importConfirm": "Phục hồi sẽ THAY THẾ toàn bộ tiến độ học trên máy này bằng tệp sao lưu. Tiếp tục?",
+    "importOk": "Đã phục hồi thành công.",
+    "importError": "Không phục hồi được: {{message}}",
+    "debugClock": "Đồng hồ debug: {{offset}}",
+    "iv": {
+      "now": "<1 ph",
+      "min": "{{n}} ph",
+      "hour": "{{n}} giờ",
+      "day": "{{n}} ngày",
+      "month": "{{n}} tháng"
+    }
   },
   "db": {
     "loading": "Đang khởi động…",

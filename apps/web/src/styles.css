@@ -63,3 +63,48 @@ ul.words a:hover { background: var(--bg-soft); text-decoration: none; }
 button.more { margin: 0.5rem 0 2rem; padding: 0.4rem 1.2rem; cursor: pointer; }
 footer.pack { color: var(--fg-soft); font-size: 0.75rem; border-top: 1px solid var(--border);
   margin-top: 3rem; padding-top: 0.7rem; }
+
+/* --- SRS (v0.2) ---------------------------------------------------------- */
+.linklike { background: none; border: none; padding: 0; font: inherit; cursor: pointer;
+  color: var(--accent); }
+.linklike:hover { text-decoration: underline; }
+button:disabled { opacity: 0.55; cursor: default; }
+.deck-btn { border: 1px solid var(--border); background: var(--bg-soft); color: var(--accent);
+  border-radius: 6px; padding: 0.15rem 0.55rem; cursor: pointer; font-size: 1rem; line-height: 1.4; }
+.deck-btn.in-deck { color: var(--fg-soft); cursor: default; }
+.deck-btn.labeled { font-size: 0.85rem; padding: 0.25rem 0.7rem; }
+.deck-btn.labeled.in-deck { cursor: pointer; }
+ul.words li { display: flex; align-items: center; gap: 0.5rem; }
+ul.words li > a { flex: 1; min-width: 0; }
+ul.words li > .deck-btn { flex: none; margin-right: 0.2rem; }
+
+.review-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.8rem; }
+.review-summary .card button.more { margin: 0.5rem 0 0; }
+.review-summary input[type="number"] { width: 3.5rem; border: 1px solid var(--border); border-radius: 4px;
+  background: var(--bg); color: var(--fg); padding: 0.1rem 0.3rem; }
+button.start-all { display: block; width: 100%; margin: 1rem 0; padding: 0.7rem;
+  background: var(--accent); color: #fff; border: none; border-radius: 8px;
+  font-size: 1.05rem; cursor: pointer; }
+
+.review-card { border: 1px solid var(--border); border-radius: 12px; padding: 2rem 1.5rem;
+  margin: 1rem 0; text-align: center; min-height: 14rem; }
+.review-hw { font-size: 3rem; font-weight: 700; margin: 0.5rem 0; }
+.review-answer { border-top: 1px solid var(--border); margin-top: 1rem; padding-top: 1rem; }
+.review-answer .reading { font-size: 1.4rem; }
+.review-answer .senses { text-align: left; display: inline-block; margin: 0.6rem auto; }
+.new-badge { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+button.show-answer { display: block; width: 100%; padding: 0.8rem; font-size: 1.05rem; cursor: pointer;
+  background: var(--bg-soft); color: var(--fg); border: 1px solid var(--border); border-radius: 8px; }
+.rating-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; }
+button.rating { display: flex; flex-direction: column; align-items: center; gap: 0.15rem;
+  padding: 0.55rem 0.2rem; cursor: pointer; border: 1px solid var(--border); border-radius: 8px;
+  background: var(--bg-soft); color: var(--fg); font-size: 0.95rem; }
+button.rating .iv { font-size: 0.72rem; color: var(--fg-soft); }
+button.rating-again { border-color: #c0392b; }
+button.rating-easy, button.rating-good { border-color: var(--accent); }
+
+.backup { border-top: 1px solid var(--border); margin-top: 2rem; padding-top: 1rem; }
+.backup button { border: 1px solid var(--border); background: var(--bg-soft); color: var(--fg);
+  border-radius: 6px; padding: 0.35rem 0.8rem; cursor: pointer; }
+.debug-clock { color: #c0392b; }

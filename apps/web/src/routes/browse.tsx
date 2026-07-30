@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDb } from '../db/provider';
 import { browseWords, listLevels, type WordRow } from '../db/queries';
+import { deckIds } from '../db/user-queries';
 import { WordList } from '../components/word-list';
 
 const LANGS = ['zh', 'en', 'fr'] as const;
@@ -14,21 +15,23 @@ export function Browse() {
   const [levels, setLevels] = useState<{ level: string; n: number }[]>([]);
   const [level, setLevel] = useState<string | null>(null);
   const [words, setWords] = useState<WordRow[]>([]);
-  const [offset, setOffset] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [deck, setDeck] = useState<Set<string>>(new Set());
+  const epoch = useRef(''); // identifies the {lang,level} the current list belongs to
 
   useEffect(() => {
     void listLevels(db, lang).then(setLevels);
     setLevel(null);
-    setOffset(0);
   }, [lang, db]);
 
   useEffect(() => {
     let cancelled = false;
-    void browseWords(db, lang, level, 0, PAGE).then((w) => {
-      if (!cancelled) {
-        setWords(w);
-        setOffset(PAGE);
-      }
+    epoch.current = `${lang}|${level}`;
+    void browseWords(db, lang, level, 0, PAGE).then(async (w) => {
+      if (cancelled) return;
+      setWords(w);
+      const inDeck = await deckIds(db, w.map((x) => x.id));
+      if (!cancelled) setDeck(inDeck);
     });
     return () => {
       cancelled = true;
@@ -36,9 +39,28 @@ export function Browse() {
   }, [lang, level, db]);
 
   const more = async () => {
-    const next = await browseWords(db, lang, level, offset, PAGE);
-    setWords((w) => [...w, ...next]);
-    setOffset((o) => o + PAGE);
+    if (loadingMore) return; // double-click must not duplicate a page
+    setLoadingMore(true);
+    const key = epoch.current;
+    try {
+      // offset derives from what's rendered, never from a stale closure counter
+      const next = await browseWords(db, lang, level, words.length, PAGE);
+      if (epoch.current !== key) return; // lang/level switched mid-flight — drop the result
+      setWords((w) => [...w, ...next]);
+      const inDeck = await deckIds(db, next.map((x) => x.id));
+      if (epoch.current === key) setDeck((d) => new Set([...d, ...inDeck]));
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
+  const onDeckChange = (id: string, inDeck: boolean) => {
+    setDeck((d) => {
+      const next = new Set(d);
+      if (inDeck) next.add(id);
+      else next.delete(id);
+      return next;
+    });
   };
 
   return (
@@ -65,9 +87,9 @@ export function Browse() {
       ) : (
         <p className="hint">{t('browse.noLevels')}</p>
       )}
-      <WordList words={words} />
+      <WordList words={words} deck={deck} onDeckChange={onDeckChange} />
       {words.length >= PAGE && (
-        <button className="more" onClick={() => void more()}>
+        <button className="more" disabled={loadingMore} onClick={() => void more()}>
           {t('browse.more')}
         </button>
       )}

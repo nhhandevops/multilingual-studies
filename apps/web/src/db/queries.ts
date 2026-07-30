@@ -109,6 +109,13 @@ export async function getWord(db: Db, id: string): Promise<{ word: WordRow; sens
   return { word, senses, source: sources[0]! };
 }
 
+export async function listSenses(db: Db, wordId: string): Promise<SenseRow[]> {
+  return db.query<SenseRow>(
+    `SELECT ord, pos, gloss_en, gloss_vi, examples FROM senses WHERE word_id = ? ORDER BY ord`,
+    [wordId],
+  );
+}
+
 export async function listLevels(db: Db, lang: string): Promise<{ level: string; n: number }[]> {
   return db.query(`SELECT level, COUNT(*) AS n FROM words WHERE lang = ? AND level IS NOT NULL GROUP BY level ORDER BY level`, [lang]);
 }

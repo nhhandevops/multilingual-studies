@@ -1,23 +1,31 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useDb } from '../db/provider';
 import { getWord } from '../db/queries';
+import { getCard } from '../db/user-queries';
+import { AddToDeck } from '../components/add-to-deck';
 
 type Detail = Awaited<ReturnType<typeof getWord>>;
 
 export function WordPage() {
   const { t } = useTranslation();
   const db = useDb();
+  const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const [detail, setDetail] = useState<Detail | 'loading'>('loading');
+  const [inDeck, setInDeck] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     setDetail('loading');
     if (id) {
-      void getWord(db, decodeURIComponent(id)).then((d) => {
+      const rawId = id; // React Router v7 already percent-decodes params — never decode twice
+      void getWord(db, rawId).then((d) => {
         if (!cancelled) setDetail(d);
+      });
+      void getCard(db, rawId).then((c) => {
+        if (!cancelled) setInDeck(c !== null);
       });
     }
     return () => {
@@ -37,13 +45,16 @@ export function WordPage() {
   return (
     <main className="word-detail">
       <p>
-        <Link to={-1 as never}>{t('word.back')}</Link>
+        <button className="linklike" onClick={() => navigate(-1)}>
+          {t('word.back')}
+        </button>
       </p>
       <div style={{ display: 'flex', gap: '1rem', alignItems: 'baseline', flexWrap: 'wrap' }}>
         <span className="hw">{word.headword}</span>
         {word.reading && <span className="reading" style={{ fontSize: '1.3rem' }}>{word.reading}</span>}
         <span className="badge">{t(`lang.${word.lang}`, word.lang)}</span>
         {word.level && <span className="badge">{word.level}</span>}
+        <AddToDeck word={word} senses={senses} inDeck={inDeck} onChange={setInDeck} />
       </div>
       <dl>
         {word.alt_form && word.alt_form !== word.headword && (

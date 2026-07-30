@@ -6,7 +6,50 @@
   "nav": {
     "search": "Search",
     "browse": "Browse",
+    "review": "Review",
     "licenses": "Sources & licenses"
+  },
+  "deck": {
+    "add": "Add to deck",
+    "added": "In your deck",
+    "remove": "Remove from deck"
+  },
+  "review": {
+    "title": "Daily review",
+    "due": "Due",
+    "new": "New",
+    "cards": "{{n}} cards in deck",
+    "newBudget": "New cards per day:",
+    "streak": "Study streak: {{n}} days 🔥",
+    "today": "Today: {{new}} new · {{reviews}} reviews",
+    "start": "Start",
+    "startAll": "Review all ({{n}} cards)",
+    "allDone": "All done for today — come back tomorrow!",
+    "emptyDeck": "Your deck is empty. Tap ＋ on a word list or word page to add cards.",
+    "remaining": "{{n}} cards left",
+    "showAnswer": "Show answer",
+    "again": "Again",
+    "hard": "Hard",
+    "good": "Good",
+    "easy": "Easy",
+    "newBadge": "NEW",
+    "wordDetail": "Word detail →",
+    "doneTitle": "Session complete! 🎉",
+    "backupTitle": "Back up your progress",
+    "backupHint": "Progress lives only on this device. Download a backup regularly.",
+    "export": "Download backup (user.db)",
+    "import": "Restore from backup",
+    "importConfirm": "Restoring will REPLACE all study progress on this device with the backup file. Continue?",
+    "importOk": "Restore complete.",
+    "importError": "Restore failed: {{message}}",
+    "debugClock": "Debug clock: {{offset}}",
+    "iv": {
+      "now": "<1m",
+      "min": "{{n}}m",
+      "hour": "{{n}}h",
+      "day": "{{n}}d",
+      "month": "{{n}}mo"
+    }
   },
   "db": {
     "loading": "Starting…",

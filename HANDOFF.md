@@ -1,7 +1,8 @@
 # HANDOFF — continue the work from any machine
 
-> **TL;DR (tiếng Việt):** Dự án đang ở **v0.1** (đã xong, đã tag). Kế hoạch tổng thể nằm ở
-> [docs/PLAN.md](docs/PLAN.md). Việc tiếp theo là **v0.2 — vòng lặp ôn tập SRS hằng ngày**.
+> **TL;DR (tiếng Việt):** Dự án đang ở **v0.2** (đã xong, đã tag — ôn tập SRS hằng ngày).
+> Kế hoạch tổng thể nằm ở [docs/PLAN.md](docs/PLAN.md). Việc tiếp theo là **v0.3 — hệ chữ viết**
+> (nét chữ Hán + chữ Latin, bảng pinyin có âm thanh, bảng IPA).
 > Trên máy mới: `pnpm install` → `pnpm ingest seed:all` → `pnpm pack:build` → `pnpm ingest pack publish` → `pnpm dev`.
 
 Keep this file current: update the **Current state** and **Next up** sections at the end of every
@@ -10,6 +11,29 @@ working session, and commit it with the session's push. It is the single source 
 
 ## Current state (updated 2026-07-30)
 
+- **v0.2 shipped & tagged** — "Daily review loop":
+  - `user.db` (SRS state) lives in the browser's OPFS **beside** the content pack, in the same
+    `mls-pool` SAH pool, same worker — the pack-update path never touches it. Schema (cards /
+    append-only `review_log` / settings / daily_stats) + migrations live in
+    `packages/shared/src/srs/schema.ts`; `USER_SCHEMA_VERSION` derives from the migration list.
+  - `ts-fsrs@5.4.1` wrapper in `packages/shared/src/srs/fsrs.ts` (subpath `@mls/shared/srs`) —
+    pure functions, explicit `now`, cards cross as plain field objects = `cards` columns.
+  - Add-to-deck ＋ buttons on browse rows + word pages; cards key on **raw word IDs** and carry
+    a `snapshot` JSON (headword/reading/glosses/level) so they survive pack swaps.
+  - `/review`: per-language due/new counts, per-language new-card budget (default 5/day,
+    `settings.new_per_day.<lang>`), session with Again/Hard/Good/Easy + interval previews,
+    learning-step cards loop within the session, daily stats + streak, done screen.
+  - user.db export/import buttons on `/review`. Import validates on a scratch pool copy FIRST
+    (header, integrity, `user_version` ∈ [1..N] **before** migrating, 4 tables, Zod-checked
+    snapshots), keeps a persistent `/user-backup.db`, and restores on any failure.
+  - Debug clock for verification: `localStorage.setItem('mls_debug_clock_offset_ms', String(3*864e5))`
+    + reload = +3 days; a red ⏱ badge shows on `/review` while active.
+  - Verified end-to-end in headless Chrome: FSRS interval grew 2d → 16d under a +4d offset;
+    export → mutate → import rewound state; non-backup SQLite files rejected with progress intact.
+  - Hardening from the adversarial review: worker falls back to the installed pack when the
+    manifest fetch OR the pack download/verify fails offline; re-entrancy guards on rating /
+    add-to-deck / load-more; budget input commits on blur; back-link and double-URI-decode
+    bugs inherited from v0.1 fixed.
 - **v0.1 shipped & tagged** — "Three real dictionaries in the browser":
   147,261 words / 171,479 senses / 9 sources, pack `2026.07.29-2` at 27.7 MB gz.
   - ZH: full CC-CEDICT + HSK 2.0/3.0 levels (11,430 words) + OpenSubtitles freq ranks
@@ -21,13 +45,26 @@ working session, and commit it with the session's push. It is the single source 
 - Pack `2026.07.29-2` is published on [GitHub Releases (v0.1)](https://github.com/nhhandevops/multilingual-studies/releases/tag/v0.1) under CC BY-SA 4.0 — see "The database" below.
 - 2026-07-30: git history was rewritten (force-push) to purge 142 MB of accidentally committed pack duplicates; `.gitignore` now blanket-ignores `*.gz`. If an old clone exists somewhere, delete and re-clone instead of pulling.
 
-## Next up: v0.2 — "Daily review loop" (~2 weekends)
+## Next up: v0.3 — "Writing systems" (~3 weekends)
 
-Per [docs/PLAN.md](docs/PLAN.md): `user.db` on opfs-sahpool (separate from the content pack) +
-`ts-fsrs` wrapper in `packages/shared/src/srs/` + add-to-deck from word pages/level lists +
-review screen (Again/Hard/Good/Easy) + per-language new-card budget (default 5/day) +
-`daily_stats`/streak + user.db export/import button. Verify: FSRS intervals advance under a debug
-clock offset; export/import round-trips. Cards key on **word IDs** and carry a `snapshot` JSON.
+Per [docs/PLAN.md](docs/PLAN.md): hanzi-writer engine driving **both** hanzi (hanzi-writer-data,
+Arphic PL — ship ARPHICPL.TXT) and Latin letters (hand-authored from Relief SingleLine, SIL OFL,
+~62 glyphs — the one manual asset in the project) + pinyin chart with audio (hugolpz/audio-cmn) +
+tone drills + IPA chart + sagittal diagrams (drammock CC0) + a tracing quiz, all feeding
+**grapheme cards** through the same SRS loop v0.2 just shipped. New ingest seeds land in
+`apps/ingest/src/sources/{zh,shared}/`; graphemes already have a schema table. Verify: every
+HSK-1 character has stroke data (build check), ARPHICPL.TXT visible on the Licenses screen.
+
+Known v0.2 follow-ups, deliberately deferred (none block v0.3):
+
+- Multi-tab: opfs-sahpool takes exclusive OPFS handles, so a second tab fails init with an opaque
+  error and cannot record reviews. Needs a Web-Locks/BroadcastChannel takeover story + UI.
+- No automated test framework yet — verification is still ad-hoc Playwright scripts (see
+  "Testing recipe"). A real harness is worth its own slice before the surface grows further.
+- Suspend/bury, undo-last-rating, and per-card notes are unimplemented (`cards.suspended` exists
+  and is honored by every query, but nothing sets it).
+- Startup recovery: if `user.db` migration throws at init the whole app shows the error screen;
+  a "export raw bytes / reset user.db" escape hatch would be kinder than a code fix.
 
 ## Fresh-machine setup
 
@@ -97,6 +134,14 @@ now blanket-ignores `*.gz`. If you see such files: they are redundant browser do
 3. **Pack file extension** — the published pack is `content.pack` (gzip inside). Do not rename to `*.gz`: servers (incl. Vite dev) special-case `.gz` with `Content-Encoding` and corrupt the stream. The worker sniffs gzip magic bytes either way.
 4. **Schema changes** — edit [packages/content-pack/src/schema.sql](packages/content-pack/src/schema.sql), bump `SCHEMA_VERSION` in build.ts if breaking, delete `build/staging.db` and re-run `seed:all` (cached downloads make this fast). FTS tables are contentless (`content=''`) — clear with `INSERT INTO x(x) VALUES('delete-all')`, never `DELETE`.
 5. **Git flow** — commit + push at the end of every session; each finished version gets an annotated tag (`git tag -a v0.x`) pushed with `--follow-tags`. Update this HANDOFF before the final push.
+6. **user.db is sacred and separate** (from v0.2) — the learner's SRS state lives in OPFS at
+   `/user.db`, never inside the content pack, never in git. Rules: the pack-update path may only
+   ever touch `/content.db`; never call `poolUtil.wipeFiles()`/`removeVfs()` as a recovery tactic
+   (it destroys progress); `user.db` migrations in
+   [packages/shared/src/srs/schema.ts](packages/shared/src/srs/schema.ts) are **append-only** —
+   add a batch, never edit a shipped one, and let `USER_SCHEMA_VERSION` derive from the array
+   length. Cards key on raw word IDs (never URL-encoded) and must render from their `snapshot`
+   JSON, never by joining `content.db` — words may legitimately vanish between packs.
 
 ## Repo map
 
@@ -105,16 +150,32 @@ now blanket-ignores `*.gz`. If you see such files: they are redundant browser do
 | `docs/PLAN.md` | Master plan: architecture + versioned roadmap 0.1→2.0 (the "what's next" oracle) |
 | `docs/RESEARCH-SOURCES.md` | Verified free-source & license ledger (2026-07-29 deep research) |
 | `apps/ingest` | CLI: `pnpm ingest seed:…` / `pack build` / `pack verify` / `pack publish` |
-| `apps/web` | React 19 + Vite PWA; sqlite-wasm worker in `src/db/sqlite.worker.ts` |
-| `packages/shared` | ID derivation (contract!), Zod types |
+| `apps/web` | React 19 + Vite PWA; sqlite-wasm worker in `src/db/sqlite.worker.ts` (owns content.db **and** user.db); `src/db/user-queries.ts` = all SRS SQL; `src/routes/review.tsx`; `src/srs/clock.ts` = debug clock |
+| `packages/shared` | ID derivation (contract!), Zod types, `src/srs/` = user.db schema + ts-fsrs wrapper (`@mls/shared/srs`) |
 | `packages/content-pack` | schema.sql (contract!), pack builder/verifier |
 | `sources.lock.json` | sha256 + license of every raw download (auto-maintained) |
 | `.claude/skills/` | (from v0.6) `/daily-pull` and `/curate-pack` Claude Code skills |
 
 ## Testing recipe (browser verification)
 
-No test framework yet (deliberate — 0.1). End-to-end checks are ad-hoc Playwright scripts driving
+No test framework yet (deliberate — 0.1/0.2). End-to-end checks are ad-hoc Playwright scripts driving
 installed Chrome: `npm i playwright-core` in a scratch dir, launch with
 `executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe'` (adjust per machine),
 navigate to the dev server, wait for `input.searchbox` (pack install can take ~1 min first run),
 assert search results. See PLAN's per-version "Verify" bullets for what to check each release.
+
+Gotchas learned the hard way (they cost real debugging time):
+
+- **Don't assert on `ul.words li` alone after typing a query** — the previous query's rows linger
+  through the 150 ms debounce in [home.tsx](apps/web/src/routes/home.tsx), so you read stale rows.
+  Wait for the expected headword (`waitForFunction`) instead.
+- Same class of trap on `/review`: the done screen flips phase before its stats refresh lands, so
+  poll for the final numbers rather than reading once.
+- The backup file input is `display:none` — Playwright needs `{ state: 'attached' }`, and
+  `setInputFiles` works fine on it (no need to click the visible button).
+- A fresh `browser.newContext()` gets an empty OPFS, so every run re-downloads and re-installs the
+  pack (~2 s from localhost) and starts with an empty `user.db` — that is what makes SRS runs
+  repeatable.
+- To fast-forward the scheduler:
+  `page.evaluate(ms => localStorage.setItem('mls_debug_clock_offset_ms', String(ms)), 4*864e5)`
+  then reload. v0.2's acceptance run saw the "Good" interval grow 2 d → 16 d this way.

@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@mls/shared": "workspace:*",
     "@sqlite.org/sqlite-wasm": "^3.50.4-build1",
     "i18next": "^24.0.0",
     "react": "^19.0.0",
