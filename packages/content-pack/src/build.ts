@@ -13,7 +13,7 @@ export const SCHEMA_VERSION = 1;
 export const MIN_APP_VERSION = '0.1.0';
 
 const COUNTED_TABLES = [
-  'words', 'senses', 'sentences', 'word_sentences', 'graphemes',
+  'words', 'senses', 'sentences', 'word_sentences', 'graphemes', 'hanzi_info',
   'grammar_topics', 'tech_terms', 'daily_items', 'tips', 'audio', 'sources',
 ] as const;
 

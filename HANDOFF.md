@@ -11,6 +11,28 @@ working session, and commit it with the session's push. It is the single source 
 
 ## Current state (updated 2026-07-30)
 
+- **v0.3 IN PROGRESS — not tagged.** Landing phase by phase; each phase is its own commit and
+  this section is updated with it, so a stop anywhere leaves an accurate handoff.
+  - **P1 done — hanzi stroke data in the pack.** `seed:zh-strokes`
+    ([apps/ingest/src/sources/zh/strokes.ts](apps/ingest/src/sources/zh/strokes.ts)) ingests
+    makemeahanzi `graphics.txt` (Arphic PL) → `graphemes.stroke_json` for **9,432 characters**
+    and `dictionary.txt` (LGPL-3.0+) → a **separate `hanzi_info` table** (definition, pinyin,
+    IDS decomposition, radical, etymology). Two licenses ⇒ two `sources` rows ⇒ two tables;
+    never merge them. `graphemes.reading` is filled from CC-CEDICT single-char entries (already
+    bundled) so the APL table carries no LGPL data. `graphemes.ord` = stroke count.
+  - Coverage: **HSK 1 through 7-9 have 0 characters missing stroke data.** 4,959 of the 14,391
+    distinct characters in CEDICT content have no upstream stroke data (rare glyphs) — expected,
+    not a bug. Only characters present in our words are ingested (142 upstream glyphs dropped).
+  - `pack verify` gained the v0.3 gates: no `kind='hanzi'` row without `stroke_json`, every HSK1
+    character present, no orphan `hanzi_info`, and **ARPHICPL.TXT must exist** in
+    `apps/web/public/licenses/` whenever Arphic data is bundled. The seed writes that file; it
+    is committed, and shipping it unaltered is a condition of the license.
+  - **Pack grew 27.7 MB → 41.2 MB gz** (76 MB → 117 MB raw) — stroke JSON is 30.2 MB of it.
+    Accepted deliberately: strokes for every lookup-able word beat a smaller download. Lever if
+    it ever needs trimming: restrict the seed to HSK + top-N frequency (~3k chars, ≈ −9 MB gz),
+    or split strokes into an optional second pack.
+  - The **ID-churn gate ran for real for the first time** (two pack dirs now exist in
+    `build/packs/`) and reported **0 vanished word IDs** across the schema change.
 - **v0.2 shipped & tagged** — "Daily review loop":
   - `user.db` (SRS state) lives in the browser's OPFS **beside** the content pack, in the same
     `mls-pool` SAH pool, same worker — the pack-update path never touches it. Schema (cards /

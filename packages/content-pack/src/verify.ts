@@ -59,7 +59,7 @@ export function verifyPack(packDir: string, packsDir?: string): VerifyIssue[] {
     for (const [table, col] of [
       ['words', 'source_id'], ['senses', 'source_id'], ['sentences', 'source_id'],
       ['graphemes', 'source_id'], ['grammar_topics', 'source_id'], ['tech_terms', 'source_id'],
-      ['daily_items', 'source_id'], ['audio', 'source_id'],
+      ['daily_items', 'source_id'], ['audio', 'source_id'], ['hanzi_info', 'source_id'],
     ] as const) {
       const n = one(`SELECT COUNT(*) AS n FROM ${table} t
                      WHERE NOT EXISTS (SELECT 1 FROM sources s WHERE s.id = t.${col})`);
@@ -85,6 +85,33 @@ export function verifyPack(packDir: string, packsDir?: string): VerifyIssue[] {
       `SELECT id, license FROM sources WHERE license_mode != 'link-only' AND (license LIKE '%NC%' OR license LIKE '%NonCommercial%')`,
     ).all() as { id: string; license: string }[]);
     for (const s of ncSources) err('license', `source ${s.id} is NC (${s.license}) but not link-only`);
+
+    // writing systems (v0.3) — the acceptance gate from docs/PLAN.md
+    const strokeless = one(`SELECT COUNT(*) AS n FROM graphemes
+      WHERE kind = 'hanzi' AND (stroke_json IS NULL OR stroke_json = '')`);
+    if (strokeless > 0) err('strokes', `${strokeless} hanzi graphemes have no stroke_json`);
+    const hsk1Missing = db.prepare(`
+      WITH RECURSIVE chars(c, rest) AS (
+        SELECT '', (SELECT group_concat(headword, '') FROM words WHERE lang = 'zh' AND level = 'HSK1')
+        UNION ALL SELECT substr(rest, 1, 1), substr(rest, 2) FROM chars WHERE rest != ''
+      )
+      SELECT DISTINCT c FROM chars
+       WHERE c != '' AND unicode(c) >= 19968 AND unicode(c) <= 40959
+         AND c NOT IN (SELECT glyph FROM graphemes WHERE lang = 'zh' AND kind = 'hanzi')`)
+      .all() as { c: string }[];
+    if (hsk1Missing.length > 0)
+      err('strokes', `${hsk1Missing.length} HSK1 characters lack stroke data: ${hsk1Missing.map((r) => r.c).join('')}`);
+    const orphanInfo = one(`SELECT COUNT(*) AS n FROM hanzi_info i
+      WHERE NOT EXISTS (SELECT 1 FROM graphemes g WHERE g.id = i.grapheme_id)`);
+    if (orphanInfo > 0) err('hanzi-info', `${orphanInfo} hanzi_info rows reference a missing grapheme`);
+    // The Arphic PL requires redistributing its text; the app links /licenses/ARPHICPL.TXT.
+    // packDir is <repo>/build/packs/<version>, so three levels up is the repo root.
+    const aplSources = one(`SELECT COUNT(*) AS n FROM sources WHERE license LIKE '%Arphic%'`);
+    if (aplSources > 0) {
+      const repoRoot = join(packsDir ?? join(packDir, '..'), '..', '..');
+      if (!existsSync(join(repoRoot, 'apps', 'web', 'public', 'licenses', 'ARPHICPL.TXT')))
+        err('license', 'Arphic-licensed data is bundled but apps/web/public/licenses/ARPHICPL.TXT is missing');
+    }
 
     // FTS coverage
     const words = one('SELECT COUNT(*) AS n FROM words');

@@ -19,6 +19,7 @@ type SeedFn = (db: ReturnType<typeof openStaging>) => Promise<void>;
 const SEEDS: Record<string, () => Promise<{ run: SeedFn }>> = {
   'zh-cedict': () => import('./sources/zh/cedict'),
   'zh-hsk': () => import('./sources/zh/hsk'), //          needs zh-cedict
+  'zh-strokes': () => import('./sources/zh/strokes'), //  needs zh-cedict (readings + coverage set)
   'en-cefrj': () => import('./sources/en/cefrj'),
   'en-oewn': () => import('./sources/en/oewn'), //        needs en-cefrj
   'fr-lexique': () => import('./sources/fr/lexique'),

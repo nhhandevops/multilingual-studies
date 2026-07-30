@@ -66,6 +66,29 @@
       "license": "CC BY-SA 4.0",
       "notes": "New & Pallier, Lexique 3.83 — mirror: github.com/chrplr/openlexicon"
     },
+    "mmah:ARPHICPL.TXT": {
+      "url": "https://raw.githubusercontent.com/chanind/hanzi-writer-data/master/ARPHICPL.TXT",
+      "sha256": "5590533436c70f10f2f524ee61456238c290175c6662fbe1c700b5f038a6d328",
+      "bytes": 6900,
+      "retrievedAt": "2026-07-30T13:09:32.147Z",
+      "license": "Arphic Public License (the license text itself — redistribution is required by it)"
+    },
+    "mmah:dictionary.txt": {
+      "url": "https://raw.githubusercontent.com/skishore/makemeahanzi/master/dictionary.txt",
+      "sha256": "744bb05d5b0742e9ee35c37791f94d56a173349b3367569e7ca11e510364d203",
+      "bytes": 2570140,
+      "retrievedAt": "2026-07-30T13:09:31.871Z",
+      "license": "LGPL-3.0-or-later (derived from Unihan + CJKlib)",
+      "notes": "decomposition / radical / etymology; kept in its own table to stay LGPL-separable"
+    },
+    "mmah:graphics.txt": {
+      "url": "https://raw.githubusercontent.com/skishore/makemeahanzi/master/graphics.txt",
+      "sha256": "a28c478b5178e98f67f510b2d52fde08a69dc664654ef43498253b9b764d46ee",
+      "bytes": 30778076,
+      "retrievedAt": "2026-07-30T13:09:31.480Z",
+      "license": "Arphic Public License (derived from Arphic PL KaitiM GB / PL UKai fonts)",
+      "notes": "stroke outlines + medians, one JSON object per line"
+    },
     "octanove:vocabulary-profile-c1c2-1.0.csv": {
       "url": "https://raw.githubusercontent.com/openlanguageprofiles/olp-en-cefrj/master/octanove-vocabulary-profile-c1c2-1.0.csv",
       "sha256": "18c33a407f2f89f7b8de9671c6d45fe3ea0bce45e7d2d7dcaab48d73e0f7b380",

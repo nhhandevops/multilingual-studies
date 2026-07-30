@@ -111,6 +111,21 @@ CREATE TABLE IF NOT EXISTS graphemes (
 );
 CREATE INDEX IF NOT EXISTS idx_graphemes_lang ON graphemes(lang, kind, ord);
 
+-- makemeahanzi's dictionary.txt is LGPL-3.0-or-later while its graphics.txt is Arphic PL.
+-- They live in separate tables on purpose: the LGPL half stays a separate, replaceable
+-- component (see docs/RESEARCH-SOURCES.md) and `graphemes` keeps only bundle-clean data.
+CREATE TABLE IF NOT EXISTS hanzi_info (
+  grapheme_id   TEXT PRIMARY KEY REFERENCES graphemes(id),
+  character     TEXT NOT NULL,
+  definition    TEXT,
+  pinyin        TEXT,                     -- JSON array, verbatim from upstream
+  decomposition TEXT,                     -- IDS, e.g. '⿰女子'
+  radical       TEXT,
+  etymology     TEXT,                     -- JSON {type,hint,phonetic,semantic}
+  source_id     TEXT NOT NULL REFERENCES sources(id)
+);
+CREATE INDEX IF NOT EXISTS idx_hanzi_info_radical ON hanzi_info(radical);
+
 -- grammar / tips / tech / daily -------------------------------------------------
 CREATE TABLE IF NOT EXISTS grammar_topics (
   id             TEXT PRIMARY KEY,
