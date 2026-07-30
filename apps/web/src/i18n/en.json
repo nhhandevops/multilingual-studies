@@ -127,7 +127,8 @@
     "error": "Database error",
     "packVersion": "Content pack {{version}}",
     "locked": "The database is held by another tab or page of this app. Reload this page to continue.",
-    "reload": "Reload page"
+    "reload": "Reload page",
+    "packTooOld": "The installed data pack predates this feature. Reconnect and reload to update the pack."
   },
   "search": {
     "placeholder": "Search: 你好 · hello · bonjour · ni hao…",

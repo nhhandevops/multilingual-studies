@@ -185,6 +185,16 @@ working session, and commit it with the session's push. It is the single source 
 v0.3 is complete and tagged. See [docs/PLAN.md](docs/PLAN.md) for the 0.4 row and pick it up from
 there; the roadmap is the "what's next" oracle, this file is the "where were we" one.
 
+**The v0.2 → v0.3 in-place upgrade is verified**, not assumed: an existing install on the
+pre-v0.3 pack with real SRS state (cards, a review, a streak) upgrades on reload — pack version
+advances, `user.db` is untouched, streak/daily stats/deck survive, v0.2-era cards still render
+from their own snapshots, and every v0.3 feature works afterwards.
+Script: `scratchpad/e2e/verify-upgrade-v02-to-v03.mjs`.
+
+If the pack update is unreachable (offline) the worker keeps the installed pack, which may
+predate v0.3. `graphemes` has existed since v0.1, so those pages get **empty results, not
+errors** — they now say so explicitly (`db.packTooOld`) instead of showing a bare empty grid.
+
 Known follow-ups from v0.3, none blocking:
 
 - **Tone drills are not SRS-backed.** `/tones` scores in memory only. Making a tone card a real
@@ -318,6 +328,11 @@ Gotchas learned the hard way (they cost real debugging time):
 - A fresh `browser.newContext()` gets an empty OPFS, so every run re-downloads and re-installs the
   pack (~2 s from localhost) and starts with an empty `user.db` — that is what makes SRS runs
   repeatable.
+- **To test a pack UPGRADE, serve the built app statically, not through `pnpm dev`** — Vite's
+  watcher dies when `content.pack` is swapped. `scratchpad/e2e/static-server.mjs` serves
+  `apps/web/dist` with no watcher, which is what makes the upgrade test possible.
+- `page.reload()` re-requests the *current* URL. After in-app navigation you are no longer on
+  `/`, so don't wait for `input.searchbox` after a reload — wait for `footer.pack`.
 - **Stop `pnpm dev` before `pnpm ingest pack publish`.** On Windows, overwriting
   `apps/web/public/packs/content.pack` while Vite watches it kills the dev server with `EBUSY`.
 - To fast-forward the scheduler:

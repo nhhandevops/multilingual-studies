@@ -20,14 +20,20 @@ export function IpaChart() {
   const [phones, setPhones] = useState<PhoneRow[] | null>(null);
   const [selected, setSelected] = useState<PhoneRow | null>(null);
   const [svg, setSvg] = useState<string | null>(null);
+  const [tooOld, setTooOld] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    void listIpaPhones(db).then((p) => {
-      if (cancelled) return;
-      setPhones(p);
-      setSelected((s) => s ?? p[0] ?? null);
-    });
+    void listIpaPhones(db)
+      .then((p) => {
+        if (cancelled) return;
+        setPhones(p);
+        setSelected((s) => s ?? p[0] ?? null);
+        if (p.length === 0) setTooOld(true); //  pre-v0.3 pack: graphemes exists but is empty
+      })
+      .catch(() => {
+        if (!cancelled) { setPhones([]); setTooOld(true); }
+      });
     return () => {
       cancelled = true;
     };
@@ -57,7 +63,13 @@ export function IpaChart() {
   }, [phones]);
 
   if (!phones) return <p className="status">…</p>;
-  if (phones.length === 0) return <p className="status">{t('ipa.empty')}</p>;
+  if (phones.length === 0)
+    return (
+      <main className="ipa-chart">
+        <h2>{t('ipa.title')}</h2>
+        <p className={tooOld ? 'error' : 'status'}>{tooOld ? t('db.packTooOld') : t('ipa.empty')}</p>
+      </main>
+    );
 
   return (
     <main className="ipa-chart">

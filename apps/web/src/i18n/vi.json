@@ -127,7 +127,8 @@
     "error": "Lỗi cơ sở dữ liệu",
     "packVersion": "Gói dữ liệu {{version}}",
     "locked": "Dữ liệu đang được một tab hoặc trang khác của ứng dụng sử dụng. Hãy tải lại trang này để tiếp tục.",
-    "reload": "Tải lại trang"
+    "reload": "Tải lại trang",
+    "packTooOld": "Gói dữ liệu đang cài đặt cũ hơn phiên bản ứng dụng nên chưa có phần này. Hãy kết nối mạng và tải lại trang để cập nhật gói dữ liệu."
   },
   "search": {
     "placeholder": "Tra từ: 你好 · hello · bonjour · ni hao…",

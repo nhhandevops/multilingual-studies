@@ -19,19 +19,33 @@ export function WriteIndex() {
   const [rows, setRows] = useState<HanziListRow[]>([]);
   const [letters, setLetters] = useState<GraphemeRow[]>([]);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [tooOld, setTooOld] = useState(false);
   const epoch = useRef(''); // identifies the filter the current list belongs to
 
   useEffect(() => {
-    void hanziStrokeCounts(db).then(setCounts);
-    void browseLetters(db).then(setLetters);
+    // An installed pack from before v0.3 has no grapheme tables — the worker falls back to it
+    // when an update can't be fetched, so say so instead of rendering an empty grid.
+    // A pack built before v0.3 still HAS the `graphemes` table (it dates to v0.1) — it is
+    // simply empty. So the signal is emptiness, not a failed query.
+    void hanziStrokeCounts(db).then(setCounts).catch(() => setTooOld(true));
+    void browseLetters(db)
+      .then((l) => {
+        setLetters(l);
+        if (l.length === 0) setTooOld(true);
+      })
+      .catch(() => setTooOld(true));
   }, [db]);
 
   useEffect(() => {
     let cancelled = false;
     epoch.current = `${filter.level ?? ''}|${filter.strokes ?? ''}`;
-    void browseHanzi(db, filter, 0, PAGE).then((r) => {
-      if (!cancelled) setRows(r);
-    });
+    void browseHanzi(db, filter, 0, PAGE)
+      .then((r) => {
+        if (!cancelled) setRows(r);
+      })
+      .catch(() => {
+        if (!cancelled) setTooOld(true);
+      });
     return () => {
       cancelled = true;
     };
@@ -53,6 +67,7 @@ export function WriteIndex() {
   return (
     <main>
       <h2>{t('write.title')}</h2>
+      {tooOld && <p className="error">{t('db.packTooOld')}</p>}
       <p className="hint">{t('write.intro')}</p>
       <div className="chips script">
         <button className={script === 'hanzi' ? 'active' : ''} onClick={() => setScript('hanzi')}>

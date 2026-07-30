@@ -26,9 +26,13 @@ export function ToneDrill() {
 
   useEffect(() => {
     let cancelled = false;
-    void listPinyinSyllables(db).then((r) => {
-      if (!cancelled) setRows(r);
-    });
+    void listPinyinSyllables(db)
+      .then((r) => {
+        if (!cancelled) setRows(r);
+      })
+      .catch(() => {
+        if (!cancelled) setRows([]); //  pre-v0.3 pack: falls through to the no-audio notice
+      });
     return () => {
       cancelled = true;
     };

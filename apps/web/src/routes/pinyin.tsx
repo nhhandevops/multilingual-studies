@@ -31,12 +31,19 @@ export function PinyinChart() {
   const [rows, setRows] = useState<SyllableRow[] | null>(null);
   const [tone, setTone] = useState<number>(1);
   const [playing, setPlaying] = useState<string | null>(null);
+  const [tooOld, setTooOld] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    void listPinyinSyllables(db).then((r) => {
-      if (!cancelled) setRows(r);
-    });
+    void listPinyinSyllables(db)
+      .then((r) => {
+        if (cancelled) return;
+        setRows(r);
+        if (r.length === 0) setTooOld(true); //  pre-v0.3 pack: graphemes exists but is empty
+      })
+      .catch(() => {
+        if (!cancelled) { setRows([]); setTooOld(true); }
+      });
     return () => {
       cancelled = true;
     };
@@ -76,6 +83,7 @@ export function PinyinChart() {
   return (
     <main>
       <h2>{t('pinyin.title')}</h2>
+      {tooOld && <p className="error">{t('db.packTooOld')}</p>}
       <p className="hint">{t('pinyin.intro', { n: rows.length })}</p>
       <div className="chips">
         {TONES.map((n) => (
