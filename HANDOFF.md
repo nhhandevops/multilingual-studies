@@ -8,7 +8,7 @@ Keep this file current: update the **Current state** and **Next up** sections at
 working session, and commit it with the session's push. It is the single source of truth for
 "where were we?" on a fresh clone.
 
-## Current state (updated 2026-07-29)
+## Current state (updated 2026-07-30)
 
 - **v0.1 shipped & tagged** — "Three real dictionaries in the browser":
   147,261 words / 171,479 senses / 9 sources, pack `2026.07.29-2` at 27.7 MB gz.
@@ -18,6 +18,8 @@ working session, and commit it with the session's push. It is the single source 
   - Web app: Vietnamese-first UI (EN toggle), FTS + pinyin + CJK-substring search, browse by level, word detail, licenses screen. Verified end-to-end in headless Chrome.
 - Versions/roadmap: [docs/PLAN.md](docs/PLAN.md) · Source/license verdicts: [docs/RESEARCH-SOURCES.md](docs/RESEARCH-SOURCES.md)
 - Deviation from plan: NGSL skipped in 0.1 (download URL 404s; CEFR-J + freq cover the need).
+- Pack `2026.07.29-2` is published on [GitHub Releases (v0.1)](https://github.com/nhhandevops/multilingual-studies/releases/tag/v0.1) under CC BY-SA 4.0 — see "The database" below.
+- 2026-07-30: git history was rewritten (force-push) to purge 142 MB of accidentally committed pack duplicates; `.gitignore` now blanket-ignores `*.gz`. If an old clone exists somewhere, delete and re-clone instead of pulling.
 
 ## Next up: v0.2 — "Daily review loop" (~2 weekends)
 
@@ -41,10 +43,52 @@ pnpm dev                      # http://localhost:5173
 ```
 
 Notes:
+
 - `seed:all` is idempotent and resumable; re-runs skip unchanged inputs (hash check).
   If a downloaded file's hash differs from `sources.lock.json`, you get a warning, not a failure — upstream moved; that's expected for CC-CEDICT (updated daily).
 - The pack in `apps/web/public/packs/` is **gitignored** — every machine builds its own from sources (same stable IDs ⇒ same user progress compatibility).
 - `gh` CLI is optional: plain `git push` works with stored credentials; repo creation was done via API.
+
+## The database (content pack) — what it is and how to use it
+
+> **Tiếng Việt:** `content.db` là từ điển SQLite (147k từ EN/ZH/FR) được build tự động từ các
+> nguồn miễn phí. KHÔNG sửa file .db bằng tay — muốn thêm dữ liệu thì viết/chạy module trong
+> `apps/ingest` rồi build lại pack. File này không nằm trong git; máy khác lấy nó bằng cách
+> tự build (cách A) hoặc tải từ GitHub Releases (cách B).
+
+**What it is.** `content.db` is a read-only SQLite database holding all study content
+(tables: `words`, `senses`, `sources`, `meta`, FTS index `words_fts`; later: sentences, graphemes,
+grammar…). It is **generated, never edited**: `apps/ingest` downloads vetted sources into
+`data-cache/`, normalizes them into `build/staging.db`, and `pack build` produces
+`build/packs/<version>/content.db` (+ `content.db.gz` + `manifest.json` with sha256).
+`pack publish` copies it to `apps/web/public/packs/content.pack`; the web app downloads that once,
+verifies the hash, and installs it into the browser's private OPFS storage. At runtime the app
+never reads from the repo folder. User progress will live in a **separate** `user.db` (from v0.2)
+— per-device, never in git, never inside the pack.
+
+**Getting the DB on another machine — two ways:**
+
+- **A. Rebuild from sources (canonical):** `pnpm ingest seed:all && pnpm pack:build && pnpm pack:verify && pnpm ingest pack publish`. ~110 MB of downloads, a few minutes. Deterministic IDs ⇒ the result is compatible with any machine's user progress.
+- **B. Download the ready-made pack:** grab `content.db.gz` + `manifest.json` from the [v0.1 release](https://github.com/nhhandevops/multilingual-studies/releases/tag/v0.1), rename `content.db.gz` → `content.pack`, put both files in `apps/web/public/packs/`. Done — `pnpm dev` serves it. (Keep the `.pack` name — see invariant 3.)
+
+**Adding/updating data — the only correct path:**
+
+1. Vet the source's license in [docs/RESEARCH-SOURCES.md](docs/RESEARCH-SOURCES.md) first (NC/ND/GPL = do not bundle).
+2. Write or extend an ingest module in `apps/ingest/src/sources/<lang>/` — it must call `registerSource()` and derive IDs via `@mls/shared` `ids.ts`. Register the command in `apps/ingest/src/cli.ts` SEEDS map.
+3. Run it (`pnpm ingest seed:<name>`), then `pnpm pack:build && pnpm pack:verify` (verify enforces attribution, license modes, and ID stability) and `pnpm ingest pack publish`.
+4. Commit the code + `sources.lock.json` change; publish the new pack to GitHub Releases when a version ships.
+
+Hand-editing a `.db` file is always wrong: it gets overwritten by the next build, bypasses license
+checks, and its changes exist on one machine only. The ingest modules ARE the database's source of truth.
+
+**Inspecting the data:** open `build/packs/<version>/content.db` (or `build/staging.db`) with any
+SQLite tool — [DB Browser for SQLite](https://sqlitebrowser.org/), `sqlite3` CLI, or DBeaver.
+Try: `SELECT headword, reading, level FROM words WHERE lang='zh' AND level='HSK1' LIMIT 20;`
+
+**About stray `content.db*.gz` files:** on 2026-07-29 the dev-server pack URL was downloaded
+several times in a browser, leaving 7 identical `content.db*.gz` copies in the repo root; 6 were
+accidentally committed and later purged from git history (force-push, 2026-07-30). `.gitignore`
+now blanket-ignores `*.gz`. If you see such files: they are redundant browser downloads — delete them.
 
 ## Invariants — do not break
 
@@ -60,7 +104,7 @@ Notes:
 |---|---|
 | `docs/PLAN.md` | Master plan: architecture + versioned roadmap 0.1→2.0 (the "what's next" oracle) |
 | `docs/RESEARCH-SOURCES.md` | Verified free-source & license ledger (2026-07-29 deep research) |
-| `apps/ingest` | CLI: `pnpm ingest <seed:*|pack build|pack verify|pack publish>` |
+| `apps/ingest` | CLI: `pnpm ingest seed:…` / `pack build` / `pack verify` / `pack publish` |
 | `apps/web` | React 19 + Vite PWA; sqlite-wasm worker in `src/db/sqlite.worker.ts` |
 | `packages/shared` | ID derivation (contract!), Zod types |
 | `packages/content-pack` | schema.sql (contract!), pack builder/verifier |
