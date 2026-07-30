@@ -4,7 +4,6 @@
 > Xem 好 tự viết rồi tự tô · tô chữ `é` · nghe đủ 1.707 âm tiết pinyin · luyện thanh điệu ·
 > bảng IPA có hình cắt dọc · thẻ tập viết chạy chung vòng ôn SRS của v0.2.
 > Việc tiếp theo là **v0.4** — xem [docs/PLAN.md](docs/PLAN.md).
-> Kế hoạch tổng thể: [docs/PLAN.md](docs/PLAN.md).
 > Trên máy mới: `pnpm install` → `pnpm ingest seed:all` → `pnpm pack:build` → `pnpm ingest pack publish` → `pnpm dev`.
 
 Keep this file current: update the **Current state** and **Next up** sections at the end of every
