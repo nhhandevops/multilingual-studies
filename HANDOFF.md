@@ -1,8 +1,10 @@
 # HANDOFF — continue the work from any machine
 
-> **TL;DR (tiếng Việt):** Dự án đang ở **v0.2** (đã xong, đã tag — ôn tập SRS hằng ngày).
-> Kế hoạch tổng thể nằm ở [docs/PLAN.md](docs/PLAN.md). Việc tiếp theo là **v0.3 — hệ chữ viết**
-> (nét chữ Hán + chữ Latin, bảng pinyin có âm thanh, bảng IPA).
+> **TL;DR (tiếng Việt):** **v0.2 đã xong và đã tag.** **v0.3 đang làm dở: P1–P3 đã xong**
+> (dữ liệu nét chữ Hán trong pack · trang `/write` xem chữ tự viết và tự tô · thẻ tập viết chạy
+> trong vòng ôn SRS). **Còn P4:** bảng pinyin + âm thanh, luyện thanh điệu, bảng IPA, hình
+> sagittal, và ~62 chữ Latin phải tự dựng. **Chưa tag v0.3** — chỉ tag khi P4 xong.
+> Kế hoạch tổng thể: [docs/PLAN.md](docs/PLAN.md).
 > Trên máy mới: `pnpm install` → `pnpm ingest seed:all` → `pnpm pack:build` → `pnpm ingest pack publish` → `pnpm dev`.
 
 Keep this file current: update the **Current state** and **Next up** sections at the end of every
@@ -98,15 +100,35 @@ working session, and commit it with the session's push. It is the single source 
 - Pack `2026.07.29-2` is published on [GitHub Releases (v0.1)](https://github.com/nhhandevops/multilingual-studies/releases/tag/v0.1) under CC BY-SA 4.0 — see "The database" below.
 - 2026-07-30: git history was rewritten (force-push) to purge 142 MB of accidentally committed pack duplicates; `.gitignore` now blanket-ignores `*.gz`. If an old clone exists somewhere, delete and re-clone instead of pulling.
 
-## Next up: v0.3 — "Writing systems" (~3 weekends)
+## Next up: v0.3 P4 — the rest of "Writing systems"
 
-Per [docs/PLAN.md](docs/PLAN.md): hanzi-writer engine driving **both** hanzi (hanzi-writer-data,
-Arphic PL — ship ARPHICPL.TXT) and Latin letters (hand-authored from Relief SingleLine, SIL OFL,
-~62 glyphs — the one manual asset in the project) + pinyin chart with audio (hugolpz/audio-cmn) +
-tone drills + IPA chart + sagittal diagrams (drammock CC0) + a tracing quiz, all feeding
-**grapheme cards** through the same SRS loop v0.2 just shipped. New ingest seeds land in
-`apps/ingest/src/sources/{zh,shared}/`; graphemes already have a schema table. Verify: every
-HSK-1 character has stroke data (build check), ARPHICPL.TXT visible on the Licenses screen.
+P1–P3 are done and pushed (see "Current state"). The 0.3 acceptance row in
+[docs/PLAN.md](docs/PLAN.md) is *"Watch 好 draw itself and trace it; trace é; hear every pinyin
+syllable"* — the first clause is shipped, the other two are P4. **Do not tag v0.3 until P4 lands.**
+
+Suggested order (each is independently shippable, so commit + update this file per step):
+
+1. **Pinyin chart + audio** — `hugolpz/audio-cmn` (CC BY-SA, 1,707 syllables + 8,596 HSK words).
+   First binary-asset path in the project: decide now whether audio ships **inside** the pack
+   (blobs in the `audio` table, which the schema already has) or as separate files fetched and
+   cached — the pack is already 41 MB, so lean toward a **second, optional audio pack**. Note
+   `pack verify` already fails on any `audio` row missing attribution/license, and on NC/ND audio.
+2. **Tone drills** — reuse the SRS loop; a tone card is a grapheme/syllable card with an audio
+   prompt. `graphemes.kind` already allows `'pinyin_syllable'`.
+3. **IPA chart + sagittal diagrams** — `drammock` SVGs (CC0, 51 files) into `graphemes.diagram_ref`
+   with `kind='ipa_phone'`, `lang='all'` (the ID helper already supports `all`).
+4. **Latin glyphs** — the one genuinely manual asset: extract per-glyph `d` attributes from Relief
+   SingleLine (SIL OFL) and **hand-order the strokes** for ~62 glyphs into the same
+   `{strokes,medians}` shape. The renderer needs no changes — `stroke_json` is format-agnostic and
+   `StrokeWriter` is already glyph-agnostic. That is what makes "trace é" cheap once the data exists.
+
+Watch out for: `graphemes.kind` is a CHECK constraint (`letter`/`hanzi`/`pinyin_syllable`/`ipa_phone`)
+— adding a kind means a schema edit, and per invariant 4 that means bumping `SCHEMA_VERSION` if
+breaking. Also add any new table to `COUNTED_TABLES` in `build.ts`, or the manifest silently omits it.
+
+**Session-cost note (measured 2026-07-30):** v0.2 was built with heavy multi-agent fan-out and
+consumed ~1.34 M subagent tokens across 37 agents. P1–P3 above were done **solo**, which is
+dramatically cheaper and was enough. Reserve fan-out for adversarial review, not for building.
 
 Known v0.2 follow-ups, deliberately deferred (none block v0.3):
 
@@ -160,9 +182,14 @@ Notes:
 > `apps/ingest` rồi build lại pack. File này không nằm trong git; máy khác lấy nó bằng cách
 > tự build (cách A) hoặc tải từ GitHub Releases (cách B).
 
+> **Size changed in v0.3:** the pack is now **41.2 MB gz** (was 27.7 MB) because it carries stroke
+> data for 9,432 characters. The published v0.1 release asset is still the old 27.7 MB pack — it
+> works, but has no `graphemes`/`hanzi_info`, so `/write` will be empty. Rebuild from sources
+> (way A) to get the writing features.
+
 **What it is.** `content.db` is a read-only SQLite database holding all study content
-(tables: `words`, `senses`, `sources`, `meta`, FTS index `words_fts`; later: sentences, graphemes,
-grammar…). It is **generated, never edited**: `apps/ingest` downloads vetted sources into
+(tables: `words`, `senses`, `graphemes`, `hanzi_info`, `sources`, `meta`, FTS index `words_fts`;
+later: sentences, grammar…). It is **generated, never edited**: `apps/ingest` downloads vetted sources into
 `data-cache/`, normalizes them into `build/staging.db`, and `pack build` produces
 `build/packs/<version>/content.db` (+ `content.db.gz` + `manifest.json` with sha256).
 `pack publish` copies it to `apps/web/public/packs/content.pack`; the web app downloads that once,
@@ -218,6 +245,9 @@ now blanket-ignores `*.gz`. If you see such files: they are redundant browser do
 | `docs/RESEARCH-SOURCES.md` | Verified free-source & license ledger (2026-07-29 deep research) |
 | `apps/ingest` | CLI: `pnpm ingest seed:…` / `pack build` / `pack verify` / `pack publish` |
 | `apps/web` | React 19 + Vite PWA; sqlite-wasm worker in `src/db/sqlite.worker.ts` (owns content.db **and** user.db); `src/db/user-queries.ts` = all SRS SQL; `src/routes/review.tsx`; `src/srs/clock.ts` = debug clock |
+| `apps/web/src/components/stroke-writer.tsx` | (v0.3) hanzi-writer wrapper — data comes from the pack, never the network; works for any glyph with `{strokes,medians}` |
+| `apps/web/src/routes/write.tsx`, `glyph.tsx` | (v0.3) `/write` browse-by-level/strokes, `/write/:glyph` animate · trace · decomposition · add writing card |
+| `apps/web/public/licenses/ARPHICPL.TXT` | (v0.3) **must stay committed** — the Arphic PL requires redistributing its text; `pack verify` fails if it goes missing |
 | `packages/shared` | ID derivation (contract!), Zod types, `src/srs/` = user.db schema + ts-fsrs wrapper (`@mls/shared/srs`) |
 | `packages/content-pack` | schema.sql (contract!), pack builder/verifier |
 | `sources.lock.json` | sha256 + license of every raw download (auto-maintained) |
@@ -245,4 +275,18 @@ Gotchas learned the hard way (they cost real debugging time):
   repeatable.
 - To fast-forward the scheduler:
   `page.evaluate(ms => localStorage.setItem('mls_debug_clock_offset_ms', String(ms)), 4*864e5)`
-  then reload. v0.2's acceptance run saw the "Good" interval grow 2 d → 16 d this way.
+  then reload. v0.2's acceptance run saw the "Good" interval grow 2 d → 16 d this way, and v0.3's
+  grapheme card reproduced exactly the same 2 d → 16 d.
+- **Navigate in-app (`page.click` on a nav `<a>`), not with `page.goto`, once the app is loaded.**
+  A fresh document load can lose the exclusive OPFS handles to a page Chrome froze in the
+  back/forward cache; you then get the (now friendly) "reload to continue" screen mid-test. This
+  cost real debugging time — see the storage-lock note above. `scratchpad/e2e/probe-locked.mjs`
+  reproduces it deliberately.
+- **To test the stroke quiz for real, replay the character's own medians as pointer events.**
+  Read `graphemes.stroke_json` straight from the built pack, then invert hanzi-writer's Positioner:
+  bounds are `(0,-124)..(1024,900)`, so with `width=height=260, padding=12`,
+  `scale = 236/1024`, `xOffset = 12`, `yOffset = 124*scale + 12`, and
+  `local = (cx*scale + xOffset, 260 - yOffset - cy*scale)`; add the SVG's `getBoundingClientRect()`
+  origin. That is what proves the packed stroke data is *usable*, not merely present.
+- `/review`'s done screen keeps `phase='done'` when you click the nav link to `/review` (same
+  route ⇒ no remount). Click the done screen's own back button instead.
