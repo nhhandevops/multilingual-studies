@@ -76,7 +76,9 @@
     "etymology": "Nguồn gốc chữ",
     "inWords": "Gặp trong các từ",
     "openGlyph": "Tập viết “{{glyph}}”",
-    "addCard": "Thêm thẻ tập viết"
+    "addCard": "Thêm thẻ tập viết",
+    "scriptHanzi": "Chữ Hán",
+    "scriptLatin": "Chữ Latin ({{n}})"
   },
   "pinyin": {
     "title": "Bảng pinyin có âm thanh",
@@ -158,7 +160,8 @@
   "lang": {
     "en": "Tiếng Anh",
     "zh": "Tiếng Trung",
-    "fr": "Tiếng Pháp"
+    "fr": "Tiếng Pháp",
+    "all": "Chữ viết chung"
   },
   "ui": {
     "language": "Ngôn ngữ giao diện"

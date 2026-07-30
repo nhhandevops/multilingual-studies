@@ -27,6 +27,7 @@ const SEEDS: Record<string, () => Promise<{ run: SeedFn }>> = {
   'fr-kaikki-en': () => import('./sources/fr/kaikki'), // needs fr-lexique
   ipa: () => import('./sources/shared/ipa'), //           fills readings still NULL — after kaikki
   'ipa-sagittal': () => import('./sources/shared/sagittal'),
+  'latin-letters': () => import('./sources/shared/latin'),
   freq: () => import('./sources/shared/freq'),
 };
 

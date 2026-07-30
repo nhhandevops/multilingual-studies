@@ -76,7 +76,9 @@
     "etymology": "Etymology",
     "inWords": "Seen in words",
     "openGlyph": "Practise writing “{{glyph}}”",
-    "addCard": "Add writing card"
+    "addCard": "Add writing card",
+    "scriptHanzi": "Hanzi",
+    "scriptLatin": "Latin letters ({{n}})"
   },
   "pinyin": {
     "title": "Pinyin chart with audio",
@@ -158,7 +160,8 @@
   "lang": {
     "en": "English",
     "zh": "Chinese",
-    "fr": "French"
+    "fr": "French",
+    "all": "Writing systems"
   },
   "ui": {
     "language": "UI language"

@@ -66,6 +66,16 @@ export function GlyphPage() {
     );
 
   const { grapheme, info, source, infoSource } = detail;
+  // `ord` is the stroke count for hanzi but the teaching order for letters, so never show it
+  // as a stroke count — count the strokes in the data itself.
+  let strokeCount = 0;
+  if (grapheme.stroke_json) {
+    try {
+      strokeCount = (JSON.parse(grapheme.stroke_json) as { strokes?: unknown[] }).strokes?.length ?? 0;
+    } catch {
+      strokeCount = 0;
+    }
+  }
 
   const toggleDeck = async () => {
     if (busy) return; //  re-entrancy guard, same as the word-card button
@@ -105,7 +115,7 @@ export function GlyphPage() {
         <div>
           <span className="hw">{grapheme.glyph}</span>
           {grapheme.reading && <span className="reading">{grapheme.reading}</span>}
-          <span className="badge">{t('write.strokeCount', { count: grapheme.ord ?? 0 })}</span>
+          <span className="badge">{t('write.strokeCount', { count: strokeCount })}</span>
           {info?.radical && (
             <span className="badge">
               {t('write.radical')}: {info.radical}

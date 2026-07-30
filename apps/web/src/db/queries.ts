@@ -179,8 +179,11 @@ export interface GraphemeDetail {
 }
 
 export async function getGrapheme(db: Db, glyph: string): Promise<GraphemeDetail | null> {
+  // Hanzi and Latin letters share the page; hanzi wins if a glyph somehow exists as both.
   const rows = await db.query<GraphemeRow>(
-    `SELECT ${GRAPHEME_COLS} FROM graphemes WHERE lang = 'zh' AND kind = 'hanzi' AND glyph = ?`,
+    `SELECT ${GRAPHEME_COLS} FROM graphemes
+      WHERE kind IN ('hanzi', 'letter') AND glyph = ?
+      ORDER BY CASE kind WHEN 'hanzi' THEN 0 ELSE 1 END LIMIT 1`,
     [glyph],
   );
   const grapheme = rows[0];
@@ -244,10 +247,17 @@ export async function haveStrokeData(db: Db, glyphs: string[]): Promise<Set<stri
   if (glyphs.length === 0) return new Set();
   const holes = glyphs.map(() => '?').join(',');
   const rows = await db.query<{ glyph: string }>(
-    `SELECT glyph FROM graphemes WHERE lang = 'zh' AND kind = 'hanzi' AND glyph IN (${holes})`,
+    `SELECT glyph FROM graphemes WHERE kind IN ('hanzi', 'letter') AND glyph IN (${holes})`,
     glyphs,
   );
   return new Set(rows.map((r) => r.glyph));
+}
+
+/** Latin letters (a–z, A–Z, French accented forms) in teaching order. */
+export async function browseLetters(db: Db): Promise<GraphemeRow[]> {
+  return db.query<GraphemeRow>(
+    `SELECT ${GRAPHEME_COLS} FROM graphemes WHERE kind = 'letter' ORDER BY ord`,
+  );
 }
 
 /** Words containing this character, most common first — the "where do I meet it" list. */

@@ -17,7 +17,10 @@ import {
 } from '../db/user-queries';
 import { clockOffsetMs, localDateStr, srsNow } from '../srs/clock';
 
-const LANGS = ['zh', 'en', 'fr'] as const;
+// 'all' is a real deck, not a placeholder: script graphemes that belong to no single language
+// (Latin letters, IPA phones) are stored with lang='all', and leaving it out of this list
+// would let a user add such a card that then never comes up for review.
+const LANGS = ['zh', 'en', 'fr', 'all'] as const;
 /** Cards whose next step lands within this window loop back into the running session. */
 const RELEARN_WINDOW_MS = 10 * 60_000;
 

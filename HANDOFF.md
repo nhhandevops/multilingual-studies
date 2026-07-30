@@ -1,10 +1,9 @@
 # HANDOFF — continue the work from any machine
 
-> **TL;DR (tiếng Việt):** **v0.2 đã xong và đã tag.** **v0.3 đang làm dở: P1–P3 + P4a/P4b/P4c đã xong**
-> (dữ liệu nét chữ Hán trong pack · trang `/write` xem chữ tự viết và tự tô · thẻ tập viết chạy
-> trong vòng ôn SRS · `/pinyin` nghe đủ 1.707 âm tiết offline · `/tones` luyện thanh điệu · `/ipa` bảng IPA).
-> **Còn lại:** ~62 chữ Latin phải tự dựng (để "tô chữ é") — xong là tag được v0.3.
-> **Chưa tag v0.3** — chỉ tag khi phần còn lại xong.
+> **TL;DR (tiếng Việt):** Dự án đang ở **v0.3** (đã xong, đã tag — **hệ chữ viết**).
+> Xem 好 tự viết rồi tự tô · tô chữ `é` · nghe đủ 1.707 âm tiết pinyin · luyện thanh điệu ·
+> bảng IPA có hình cắt dọc · thẻ tập viết chạy chung vòng ôn SRS của v0.2.
+> Việc tiếp theo là **v0.4** — xem [docs/PLAN.md](docs/PLAN.md).
 > Kế hoạch tổng thể: [docs/PLAN.md](docs/PLAN.md).
 > Trên máy mới: `pnpm install` → `pnpm ingest seed:all` → `pnpm pack:build` → `pnpm ingest pack publish` → `pnpm dev`.
 
@@ -14,8 +13,12 @@ working session, and commit it with the session's push. It is the single source 
 
 ## Current state (updated 2026-07-30)
 
-- **v0.3 IN PROGRESS — not tagged.** Landing phase by phase; each phase is its own commit and
-  this section is updated with it, so a stop anywhere leaves an accurate handoff.
+- **v0.3 shipped & tagged** — "Writing systems". Built in seven committed phases (P1–P4d), each
+  verified in headless Chrome before the next started. Pack `2026.07.30-5`: 147,261 words,
+  **11,254 graphemes** (9,432 hanzi + 1,707 pinyin syllables + 51 IPA phones + 64 Latin letters),
+  1,707 audio clips, 51 sagittal diagrams, 14 sources, **47.5 MB gz**.
+  Every roadmap clause for 0.3 is met: *watch 好 draw itself and trace it · trace é · hear every
+  pinyin syllable*.
   - **P1 done — hanzi stroke data in the pack.** `seed:zh-strokes`
     ([apps/ingest/src/sources/zh/strokes.ts](apps/ingest/src/sources/zh/strokes.ts)) ingests
     makemeahanzi `graphics.txt` (Arphic PL) → `graphemes.stroke_json` for **9,432 characters**
@@ -113,6 +116,34 @@ working session, and commit it with the session's push. It is the single source 
     654×925 from `data:` URLs, no inline `<svg>` in the DOM, CC0 authors credited on the Licenses
     screen, 0 off-origin requests, 0 console errors. Script: `scratchpad/e2e/verify-v03-p4c.mjs`.
   - Pack: 47.4 → **47.5 MB gz** (13 sources, 11,190 graphemes).
+  - **P4d done — trace é.** The last clause of the 0.3 roadmap row. **64 Latin glyphs**
+    (a–z, A–Z, and é è ê ë à â ù û ô î ï ç) authored in
+    [latin.ts](apps/ingest/src/sources/shared/latin.ts) as parametric stroke skeletons, then
+    converted to hanzi-writer records: each centreline is offset by ±46 units into a **closed
+    outline** with rounded caps, and the authored centreline *is* the median, so tracing follows
+    exactly the path the animation draws.
+  - **Why authored rather than derived from Relief SingleLine**, contradicting the original plan:
+    hanzi-writer clips a thick animated line against the `strokes` paths, so a single-line font's
+    centrelines would clip to nothing — an offsetting step was unavoidable either way. Once you
+    are offsetting anyway, authoring is both simpler and better: stroke *order and direction* are
+    the entire point of a tracing drill, and a font encodes neither. Result: original work under
+    the pack's own CC BY-SA 4.0, and no OFL obligations enter the pack. Accented forms compose
+    (base strokes then the mark; i/j drop their tittle first), so 26 letter definitions plus five
+    marks yield all 38 lowercase forms.
+  - `/write` gained a script toggle (Hán tự / Chữ Latin). Chip rows now carry stable classes
+    (`.chips.script`, `.chips.levels`, `.chips.strokes`) — positional selectors broke a test when
+    a row was inserted above them.
+  - Verified: all 64 glyphs listed, é is 2 strokes (e body then acute, acute above the body),
+    **traced end to end with 0 mistakes** through the same component that draws hanzi, and added
+    to the SRS deck. Script: `scratchpad/e2e/verify-v03-p4d.mjs`.
+  - **Two real bugs this phase surfaced**, both fixed:
+    - `graphemes.ord` means stroke count for hanzi but teaching order for letters, so the glyph
+      page showed "é — 26 nét". Stroke count is now counted from `stroke_json` itself; never
+      display `ord` as a stroke count.
+    - Letters and IPA phones are `lang='all'`, but `/review` only queued `zh|en|fr` — a Latin
+      writing card could be added and would then **never come up for review**. `'all'` is now a
+      first-class deck ("Chữ viết chung" / "Writing systems"). Any future `lang='all'` content
+      inherits this; adding a new content lang means adding it to `LANGS` in `review.tsx` too.
   - Small UX wart noticed, not fixed: clicking "Ôn tập" in the nav while the done screen is up
     leaves `phase='done'` (the route doesn't change, so nothing remounts). The done screen's own
     back button works. Worth a `useEffect` on location if it annoys.
@@ -150,55 +181,24 @@ working session, and commit it with the session's push. It is the single source 
 - Pack `2026.07.29-2` is published on [GitHub Releases (v0.1)](https://github.com/nhhandevops/multilingual-studies/releases/tag/v0.1) under CC BY-SA 4.0 — see "The database" below.
 - 2026-07-30: git history was rewritten (force-push) to purge 142 MB of accidentally committed pack duplicates; `.gitignore` now blanket-ignores `*.gz`. If an old clone exists somewhere, delete and re-clone instead of pulling.
 
-## Next up: v0.3 P4 — the rest of "Writing systems"
+## Next up: v0.4
 
-P1–P3 are done and pushed (see "Current state"). The 0.3 acceptance row in
-[docs/PLAN.md](docs/PLAN.md) is *"Watch 好 draw itself and trace it; trace é; hear every pinyin
-syllable"* — the first clause is shipped, the other two are P4. **Do not tag v0.3 until P4 lands.**
+v0.3 is complete and tagged. See [docs/PLAN.md](docs/PLAN.md) for the 0.4 row and pick it up from
+there; the roadmap is the "what's next" oracle, this file is the "where were we" one.
 
-**P4a (pinyin + audio), P4b (tone drills) and P4c (IPA chart) are done** — see "Current state".
-**One item remains, and it is the last thing blocking the v0.3 tag:**
+Known follow-ups from v0.3, none blocking:
 
-1. **Latin glyphs** — the one genuinely manual asset, and the last piece of "trace é".
-   **Design note from P2 that changes the plan:** hanzi-writer does *not* stroke the paths in
-   `strokes` — it animates by stroking a thick line **clipped** to them, so a stroke entry must be
-   a **closed outline**, not a centerline. Relief SingleLine (SIL OFL) is a *single-line* font, so
-   its glyph `d` attributes are centerlines and cannot be fed in directly: they need an offsetting
-   step (sample each path to a polyline, offset by ±½ pen width, close it) which then also gives
-   the `medians` for free. Budget for that converter, not just for stroke ordering.
-
-Watch out for: `graphemes.kind` is a CHECK constraint (`letter`/`hanzi`/`pinyin_syllable`/`ipa_phone`)
-— adding a kind means a schema edit, and per invariant 4 that means bumping `SCHEMA_VERSION` if
-breaking. Also add any new table to `COUNTED_TABLES` in `build.ts`, or the manifest silently omits it.
-
-**Session-cost note (measured 2026-07-30):** v0.2 was built with heavy multi-agent fan-out and
-consumed ~1.34 M subagent tokens across 37 agents. P1–P3 above were done **solo**, which is
-dramatically cheaper and was enough. Reserve fan-out for adversarial review, not for building.
-
-Known v0.2 follow-ups, deliberately deferred (none block v0.3):
-
-- **Storage lock (sharpened in v0.3 P2 — measured, no longer just "multi-tab").** opfs-sahpool
-  holds *exclusive* OPFS sync access handles, one holder per origin. The failure is wider than a
-  second tab: **Chrome can put the page you navigate away from into the back/forward cache**, and
-  a frozen page keeps its worker — and the handles — alive. The next full document load then dies
-  with "Access Handles cannot be created…". Measured: held >20 s, and a frozen page cannot run
-  code, so it can neither be asked to release them (a `postMessage` is queued and never
-  processed) nor time out. `pagehide`/`pageshow` suspend hooks are wired via `pauseVfs()` and do
-  fire when the worker still gets a slice, but they cannot be relied on.
-  - What v0.3 P2 did about it: `installPool()` retries ~8 s (wins the genuine reload race), and
-    on final failure the worker throws `storage-locked:…` which the UI renders as a plain-language
-    message plus a **Reload** button — reloading demonstrably recovers. Regression script:
-    `scratchpad/e2e/probe-locked.mjs`.
-  - What is still owed: a real takeover protocol (Web Locks + `pauseVfs()`/`unpauseVfs()`, which
-    sqlite-wasm 3.50 exposes) so the newest document wins automatically instead of asking the
-    user to reload. Until then, **prefer in-app SPA navigation in tests** — a bare `page.goto`
-    between two app pages can trip the lock, which is exactly how this was found.
-- No automated test framework yet — verification is still ad-hoc Playwright scripts (see
-  "Testing recipe"). A real harness is worth its own slice before the surface grows further.
-- Suspend/bury, undo-last-rating, and per-card notes are unimplemented (`cards.suspended` exists
-  and is honored by every query, but nothing sets it).
-- Startup recovery: if `user.db` migration throws at init the whole app shows the error screen;
-  a "export raw bytes / reset user.db" escape hatch would be kinder than a code fix.
+- **Tone drills are not SRS-backed.** `/tones` scores in memory only. Making a tone card a real
+  card is now cheap: syllable graphemes carry `audio_id`, `playAudio()` exists, and
+  `CardSnapshot.kind` is an optional enum that can take a third value (keep it optional — v0.2
+  cards must still validate).
+- **Uppercase letterforms are geometric**, not handwriting models: A–Z are straight-line
+  skeletons. Fine for tracing, but a cursive/print teaching model would be better.
+- **The pack is 47.5 MB gz.** Levers if that becomes a problem: restrict stroke data to HSK +
+  top-N frequency (~−9 MB), drop to `18k-abr` audio (~−2.5 MB), or split media into an optional
+  second pack. Nothing needs this yet.
+- **`/write` browses hanzi by HSK level or stroke count only** — no search box on that page.
+- The **storage-lock takeover protocol** is still owed (see below); it is the oldest real debt.
 
 ## Fresh-machine setup
 
@@ -319,6 +319,8 @@ Gotchas learned the hard way (they cost real debugging time):
 - A fresh `browser.newContext()` gets an empty OPFS, so every run re-downloads and re-installs the
   pack (~2 s from localhost) and starts with an empty `user.db` — that is what makes SRS runs
   repeatable.
+- **Stop `pnpm dev` before `pnpm ingest pack publish`.** On Windows, overwriting
+  `apps/web/public/packs/content.pack` while Vite watches it kills the dev server with `EBUSY`.
 - To fast-forward the scheduler:
   `page.evaluate(ms => localStorage.setItem('mls_debug_clock_offset_ms', String(ms)), 4*864e5)`
   then reload. v0.2's acceptance run saw the "Good" interval grow 2 d → 16 d this way, and v0.3's
