@@ -282,6 +282,34 @@ export async function getAudioBytes(db: Db, id: string): Promise<Uint8Array | nu
   return rows[0]?.bytes ?? null;
 }
 
+export interface PhoneRow {
+  id: string;
+  glyph: string;
+  ipa: string | null;
+  diagram_ref: string | null;
+  ord: number | null;
+  notes_md: string | null; //  '<description> · <category>'
+}
+
+/** Language-neutral IPA phones with a sagittal diagram (lang='all'). */
+export async function listIpaPhones(db: Db): Promise<PhoneRow[]> {
+  return db.query<PhoneRow>(
+    `SELECT id, glyph, ipa, diagram_ref, ord, notes_md FROM graphemes
+      WHERE lang = 'all' AND kind = 'ipa_phone' ORDER BY ord`,
+  );
+}
+
+/** SVG source for a diagram. Assets are text, so decode rather than making an object URL. */
+export async function getAssetSvg(db: Db, id: string): Promise<string | null> {
+  const rows = await db.query<{ bytes: Uint8Array; mime: string }>(
+    `SELECT bytes, mime FROM asset_blobs WHERE id = ?`,
+    [id],
+  );
+  const row = rows[0];
+  if (!row || !row.mime.startsWith('image/svg')) return null;
+  return new TextDecoder().decode(row.bytes);
+}
+
 export async function hanziStrokeCounts(db: Db): Promise<{ ord: number; n: number }[]> {
   return db.query(
     `SELECT ord, COUNT(*) AS n FROM graphemes

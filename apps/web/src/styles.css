@@ -162,3 +162,19 @@ button.tone-btn:disabled { opacity: 1; } /* answered buttons must stay readable,
 /* Character-level links in a headword shouldn't look like body links until hovered. */
 .word-detail .hw a { color: inherit; }
 .word-detail .hw a:hover { color: var(--accent); }
+
+/* --- IPA chart (v0.3 P4c) -------------------------------------------------- */
+ul.phone-grid { grid-template-columns: repeat(auto-fill, minmax(58px, 1fr)); }
+button.phone-btn { width: 100%; display: flex; justify-content: center; padding: 0.45rem 0.2rem;
+  border: 1px solid var(--border); border-radius: 8px; background: var(--bg-soft); color: var(--fg);
+  cursor: pointer; }
+button.phone-btn:hover { border-color: var(--accent); }
+button.phone-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+button.phone-btn .glyph { font-size: 1.35rem; line-height: 1.2; }
+.ipa-chart section { margin-bottom: 1.2rem; }
+.ipa-chart .diagram-pane h3 .hint { font-weight: 400; font-size: 0.85rem; }
+/* Line art on transparency: it needs a light surface in BOTH themes — inverting it in dark
+   mode would flip the anatomical shading and mislead. */
+.diagram { background: #fff; border: 1px solid var(--border); border-radius: 10px;
+  padding: 0.8rem; display: flex; justify-content: center; color: #555; }
+.diagram img { max-width: 100%; max-height: 62vh; height: auto; }

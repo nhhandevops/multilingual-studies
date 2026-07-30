@@ -119,6 +119,15 @@ CREATE TABLE IF NOT EXISTS audio_blobs (
   bytes    BLOB NOT NULL
 ) WITHOUT ROWID;
 
+-- Non-audio binary/text assets (sagittal SVGs today, images later). Same split rationale as
+-- audio_blobs: `graphemes.diagram_ref` points here, and nothing scans the payloads in bulk.
+CREATE TABLE IF NOT EXISTS asset_blobs (
+  id        TEXT PRIMARY KEY,
+  mime      TEXT NOT NULL,
+  bytes     BLOB NOT NULL,
+  source_id TEXT NOT NULL REFERENCES sources(id)
+) WITHOUT ROWID;
+
 -- makemeahanzi's dictionary.txt is LGPL-3.0-or-later while its graphics.txt is Arphic PL.
 -- They live in separate tables on purpose: the LGPL half stays a separate, replaceable
 -- component (see docs/RESEARCH-SOURCES.md) and `graphemes` keeps only bundle-clean data.

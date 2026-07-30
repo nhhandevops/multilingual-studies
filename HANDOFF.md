@@ -1,9 +1,9 @@
 # HANDOFF — continue the work from any machine
 
-> **TL;DR (tiếng Việt):** **v0.2 đã xong và đã tag.** **v0.3 đang làm dở: P1–P3 + P4a/P4b đã xong**
+> **TL;DR (tiếng Việt):** **v0.2 đã xong và đã tag.** **v0.3 đang làm dở: P1–P3 + P4a/P4b/P4c đã xong**
 > (dữ liệu nét chữ Hán trong pack · trang `/write` xem chữ tự viết và tự tô · thẻ tập viết chạy
-> trong vòng ôn SRS · `/pinyin` nghe đủ 1.707 âm tiết offline · `/tones` luyện nghe thanh điệu).
-> **Còn lại:** bảng IPA + hình sagittal, và ~62 chữ Latin phải tự dựng.
+> trong vòng ôn SRS · `/pinyin` nghe đủ 1.707 âm tiết offline · `/tones` luyện thanh điệu · `/ipa` bảng IPA).
+> **Còn lại:** ~62 chữ Latin phải tự dựng (để "tô chữ é") — xong là tag được v0.3.
 > **Chưa tag v0.3** — chỉ tag khi phần còn lại xong.
 > Kế hoạch tổng thể: [docs/PLAN.md](docs/PLAN.md).
 > Trên máy mới: `pnpm install` → `pnpm ingest seed:all` → `pnpm pack:build` → `pnpm ingest pack publish` → `pnpm dev`.
@@ -94,6 +94,25 @@ working session, and commit it with the session's push. It is the single source 
   - Verified: prompt hidden until answered, right/wrong both scored, exactly one button marked
     correct, four distinct contrast variants, answering twice cannot re-score, 0 off-origin
     requests, 0 console errors. Script: `scratchpad/e2e/verify-v03-p4b.mjs`.
+  - **P4c done — IPA chart + sagittal diagrams.** `seed:ipa-sagittal` ingests all **51** CC0
+    vocal-tract SVGs from `drammock/phonetics-teaching-assets` (Richard Wright & Dan McCloy) as
+    `lang='all'`, `kind='ipa_phone'` graphemes whose `diagram_ref` points into a new generic
+    **`asset_blobs`** table. The filename→phone map in the seed is **explicit on purpose**:
+    upstream encodes variants (`s_apical` vs `s_laminal`, the 3-frame click `kǃ_1..3`) that no
+    rule recovers, and a silently wrong IPA symbol is worse than a missing one. IDs key on the
+    filename stem, since apical/laminal variants share one symbol and would otherwise collide.
+    (Upstream ships no `ʒ_laminal` — ʃ/s/z have both variants, ʒ only apical.)
+  - `/ipa` groups the phones into consonants / vowels / glottis states / airstream and shows the
+    selected diagram. Diagrams render as **`<img src="data:image/svg+xml,…">`, never injected as
+    markup** — an SVG inside `<img>` cannot execute scripts, so no sanitiser is needed even if
+    upstream art changes. They sit on a white surface in **both** themes: inverting line art
+    would flip the anatomical shading and mislead.
+  - `pack verify` now also fails on **dangling media**: a grapheme pointing at an `audio_id` with
+    no blob, or at a missing `diagram_ref` asset.
+  - Verified: 51 buttons in 4 categories, apical/laminal kept distinct, four diagrams decoded at
+    654×925 from `data:` URLs, no inline `<svg>` in the DOM, CC0 authors credited on the Licenses
+    screen, 0 off-origin requests, 0 console errors. Script: `scratchpad/e2e/verify-v03-p4c.mjs`.
+  - Pack: 47.4 → **47.5 MB gz** (13 sources, 11,190 graphemes).
   - Small UX wart noticed, not fixed: clicking "Ôn tập" in the nav while the done screen is up
     leaves `phase='done'` (the route doesn't change, so nothing remounts). The done screen's own
     back button works. Worth a `useEffect` on location if it annoys.
@@ -137,12 +156,10 @@ P1–P3 are done and pushed (see "Current state"). The 0.3 acceptance row in
 [docs/PLAN.md](docs/PLAN.md) is *"Watch 好 draw itself and trace it; trace é; hear every pinyin
 syllable"* — the first clause is shipped, the other two are P4. **Do not tag v0.3 until P4 lands.**
 
-**P4a (pinyin chart + audio) and P4b (tone drills) are done** — see "Current state". What remains:
+**P4a (pinyin + audio), P4b (tone drills) and P4c (IPA chart) are done** — see "Current state".
+**One item remains, and it is the last thing blocking the v0.3 tag:**
 
-1. **IPA chart + sagittal diagrams** — `drammock/phonetics-teaching-assets` (CC0, 51 SVGs) into
-   `graphemes.diagram_ref` with `kind='ipa_phone'`, `lang='all'` (the ID helper supports `all`).
-   SVGs are text, so they can go in a blob table like `audio_blobs` or straight into a column.
-2. **Latin glyphs** — the one genuinely manual asset, and the last piece of "trace é".
+1. **Latin glyphs** — the one genuinely manual asset, and the last piece of "trace é".
    **Design note from P2 that changes the plan:** hanzi-writer does *not* stroke the paths in
    `strokes` — it animates by stroking a thick line **clipped** to them, so a stroke entry must be
    a **closed outline**, not a centerline. Relief SingleLine (SIL OFL) is a *single-line* font, so

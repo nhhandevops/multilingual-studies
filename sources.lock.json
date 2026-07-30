@@ -110,6 +110,14 @@
       "bytes": 12912118,
       "retrievedAt": "2026-07-29T16:48:47.451Z",
       "license": "CC BY 4.0"
+    },
+    "sagittal:svg": {
+      "url": "https://github.com/drammock/phonetics-teaching-assets",
+      "sha256": "ebc465a9bd4a0b63d066c9b1ab9670be89457c4451e4ad4cbb2bec4418379376",
+      "bytes": 822672,
+      "retrievedAt": "2026-07-30T14:26:22.133Z",
+      "license": "CC0 1.0 (Richard Wright & Dan McCloy, University of Washington)",
+      "notes": "51 vocal-tract SVGs, aggregate hash over sorted (stem, bytes)"
     }
   }
 }

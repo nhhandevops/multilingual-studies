@@ -10,7 +10,8 @@
     "licenses": "Sources & licenses",
     "write": "Writing",
     "pinyin": "Pinyin",
-    "tones": "Tones"
+    "tones": "Tones",
+    "ipa": "IPA"
   },
   "deck": {
     "add": "Add to deck",
@@ -97,6 +98,18 @@
     "compare": "Hear all four for comparison:",
     "next": "Next",
     "noAudio": "This pack has no audio data."
+  },
+  "ipa": {
+    "title": "IPA chart & sagittal diagrams",
+    "intro": "{{n}} midsagittal vocal-tract diagrams. Click a sound to see where the tongue and lips go.",
+    "loading": "Loading diagram…",
+    "empty": "This pack has no IPA diagrams.",
+    "category": {
+      "consonant": "Consonants",
+      "vowel": "Vowels",
+      "glottis": "Glottis states",
+      "airstream": "Airstream"
+    }
   },
   "db": {
     "loading": "Starting…",

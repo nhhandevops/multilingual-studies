@@ -10,7 +10,8 @@
     "licenses": "Nguồn & giấy phép",
     "write": "Tập viết",
     "pinyin": "Bảng pinyin",
-    "tones": "Thanh điệu"
+    "tones": "Thanh điệu",
+    "ipa": "Bảng IPA"
   },
   "deck": {
     "add": "Thêm vào bộ thẻ",
@@ -97,6 +98,18 @@
     "compare": "Nghe lại cả bốn thanh để so sánh:",
     "next": "Câu tiếp theo",
     "noAudio": "Chưa có dữ liệu âm thanh trong gói dữ liệu này."
+  },
+  "ipa": {
+    "title": "Bảng IPA & hình cắt dọc",
+    "intro": "{{n}} hình cắt dọc khoang miệng. Bấm một âm để xem lưỡi và môi đặt ở đâu.",
+    "loading": "Đang tải hình…",
+    "empty": "Gói dữ liệu này chưa có hình IPA.",
+    "category": {
+      "consonant": "Phụ âm",
+      "vowel": "Nguyên âm",
+      "glottis": "Thanh môn",
+      "airstream": "Luồng hơi"
+    }
   },
   "db": {
     "loading": "Đang khởi động…",

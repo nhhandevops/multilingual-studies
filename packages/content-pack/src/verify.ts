@@ -60,6 +60,7 @@ export function verifyPack(packDir: string, packsDir?: string): VerifyIssue[] {
       ['words', 'source_id'], ['senses', 'source_id'], ['sentences', 'source_id'],
       ['graphemes', 'source_id'], ['grammar_topics', 'source_id'], ['tech_terms', 'source_id'],
       ['daily_items', 'source_id'], ['audio', 'source_id'], ['hanzi_info', 'source_id'],
+      ['asset_blobs', 'source_id'],
     ] as const) {
       const n = one(`SELECT COUNT(*) AS n FROM ${table} t
                      WHERE NOT EXISTS (SELECT 1 FROM sources s WHERE s.id = t.${col})`);
@@ -104,6 +105,13 @@ export function verifyPack(packDir: string, packsDir?: string): VerifyIssue[] {
     const orphanInfo = one(`SELECT COUNT(*) AS n FROM hanzi_info i
       WHERE NOT EXISTS (SELECT 1 FROM graphemes g WHERE g.id = i.grapheme_id)`);
     if (orphanInfo > 0) err('hanzi-info', `${orphanInfo} hanzi_info rows reference a missing grapheme`);
+    // Dangling media references render as a broken pane, so fail the build instead.
+    const danglingAudio = one(`SELECT COUNT(*) AS n FROM graphemes g WHERE g.audio_id IS NOT NULL
+      AND NOT EXISTS (SELECT 1 FROM audio_blobs b WHERE b.audio_id = g.audio_id)`);
+    if (danglingAudio > 0) err('media', `${danglingAudio} graphemes point at audio with no blob`);
+    const danglingDiagram = one(`SELECT COUNT(*) AS n FROM graphemes g WHERE g.diagram_ref IS NOT NULL
+      AND NOT EXISTS (SELECT 1 FROM asset_blobs a WHERE a.id = g.diagram_ref)`);
+    if (danglingDiagram > 0) err('media', `${danglingDiagram} graphemes point at a missing diagram asset`);
     // The Arphic PL requires redistributing its text; the app links /licenses/ARPHICPL.TXT.
     // packDir is <repo>/build/packs/<version>, so three levels up is the repo root.
     const aplSources = one(`SELECT COUNT(*) AS n FROM sources WHERE license LIKE '%Arphic%'`);

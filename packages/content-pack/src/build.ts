@@ -14,7 +14,7 @@ export const MIN_APP_VERSION = '0.1.0';
 
 const COUNTED_TABLES = [
   'words', 'senses', 'sentences', 'word_sentences', 'graphemes', 'hanzi_info',
-  'grammar_topics', 'tech_terms', 'daily_items', 'tips', 'audio', 'audio_blobs', 'sources',
+  'grammar_topics', 'tech_terms', 'daily_items', 'tips', 'audio', 'audio_blobs', 'asset_blobs', 'sources',
 ] as const;
 
 /** '2026.07.29-1', bumping -N if the same date already exists in packsDir. */
