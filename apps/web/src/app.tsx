@@ -9,6 +9,7 @@ import { Review } from './routes/review';
 import { WriteIndex } from './routes/write';
 import { GlyphPage } from './routes/glyph';
 import { PinyinChart } from './routes/pinyin';
+import { ToneDrill } from './routes/tones';
 import { Licenses } from './routes/licenses';
 
 export function App() {
@@ -27,6 +28,7 @@ export function App() {
           <Link to="/review">{t('nav.review')}</Link>
           <Link to="/write">{t('nav.write')}</Link>
           <Link to="/pinyin">{t('nav.pinyin')}</Link>
+          <Link to="/tones">{t('nav.tones')}</Link>
           <Link to="/licenses">{t('nav.licenses')}</Link>
         </nav>
         <div className="ui-lang" title={t('ui.language')}>
@@ -65,6 +67,7 @@ export function App() {
             <Route path="/write" element={<WriteIndex />} />
             <Route path="/write/:glyph" element={<GlyphPage />} />
             <Route path="/pinyin" element={<PinyinChart />} />
+            <Route path="/tones" element={<ToneDrill />} />
             <Route path="/licenses" element={<Licenses />} />
           </Routes>
           <footer className="pack">{t('db.packVersion', { version: db.status.packVersion })}</footer>

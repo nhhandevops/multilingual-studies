@@ -150,6 +150,15 @@ button.syl { border: 1px solid transparent; background: none; color: var(--fg); 
 button.syl:hover { background: var(--bg-soft); border-color: var(--border); }
 button.syl.playing { background: var(--accent); color: #fff; border-color: var(--accent); }
 
+.tone-drill .review-hw { font-size: 3.4rem; }
+button.tone-btn.tone-right { border-color: var(--accent); background: var(--accent); color: #fff; }
+button.tone-btn.tone-right .iv { color: #e8f5ef; }
+button.tone-btn.tone-wrong { border-color: #c0392b; color: #c0392b; }
+button.tone-btn:disabled { opacity: 1; } /* answered buttons must stay readable, not fade out */
+.tone-verdict { font-weight: 600; text-align: center; }
+.tone-verdict.right { color: var(--accent); }
+.tone-verdict.wrong { color: #c0392b; }
+
 /* Character-level links in a headword shouldn't look like body links until hovered. */
 .word-detail .hw a { color: inherit; }
 .word-detail .hw a:hover { color: var(--accent); }

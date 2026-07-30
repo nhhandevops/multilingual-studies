@@ -9,7 +9,8 @@
     "review": "Ôn tập",
     "licenses": "Nguồn & giấy phép",
     "write": "Tập viết",
-    "pinyin": "Bảng pinyin"
+    "pinyin": "Bảng pinyin",
+    "tones": "Thanh điệu"
   },
   "deck": {
     "add": "Thêm vào bộ thẻ",
@@ -84,6 +85,18 @@
     "tone3": "Thanh 3 ˇ",
     "tone4": "Thanh 4 ˋ",
     "tone5": "Thanh nhẹ ·"
+  },
+  "tones": {
+    "title": "Luyện nghe thanh điệu",
+    "intro": "Nghe âm tiết rồi chọn thanh điệu. {{n}} âm tiết có đủ 4 thanh để so sánh.",
+    "score": "Đúng {{right}}/{{asked}}",
+    "streak": "chuỗi {{n}} 🔥",
+    "replay": "Nghe lại",
+    "right": "Chính xác!",
+    "wrong": "Chưa đúng — đây là thanh {{tone}}.",
+    "compare": "Nghe lại cả bốn thanh để so sánh:",
+    "next": "Câu tiếp theo",
+    "noAudio": "Chưa có dữ liệu âm thanh trong gói dữ liệu này."
   },
   "db": {
     "loading": "Đang khởi động…",

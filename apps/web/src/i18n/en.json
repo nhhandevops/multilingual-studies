@@ -9,7 +9,8 @@
     "review": "Review",
     "licenses": "Sources & licenses",
     "write": "Writing",
-    "pinyin": "Pinyin"
+    "pinyin": "Pinyin",
+    "tones": "Tones"
   },
   "deck": {
     "add": "Add to deck",
@@ -84,6 +85,18 @@
     "tone3": "Tone 3 ˇ",
     "tone4": "Tone 4 ˋ",
     "tone5": "Neutral ·"
+  },
+  "tones": {
+    "title": "Tone listening drill",
+    "intro": "Listen, then pick the tone. {{n}} syllables have all four tones to contrast.",
+    "score": "{{right}}/{{asked}} correct",
+    "streak": "streak {{n}} 🔥",
+    "replay": "Play again",
+    "right": "Correct!",
+    "wrong": "Not quite — that was tone {{tone}}.",
+    "compare": "Hear all four for comparison:",
+    "next": "Next",
+    "noAudio": "This pack has no audio data."
   },
   "db": {
     "loading": "Starting…",

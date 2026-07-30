@@ -1,9 +1,9 @@
 # HANDOFF — continue the work from any machine
 
-> **TL;DR (tiếng Việt):** **v0.2 đã xong và đã tag.** **v0.3 đang làm dở: P1–P3 + P4a đã xong**
+> **TL;DR (tiếng Việt):** **v0.2 đã xong và đã tag.** **v0.3 đang làm dở: P1–P3 + P4a/P4b đã xong**
 > (dữ liệu nét chữ Hán trong pack · trang `/write` xem chữ tự viết và tự tô · thẻ tập viết chạy
-> trong vòng ôn SRS · trang `/pinyin` nghe đủ 1.707 âm tiết, phát offline từ trong pack).
-> **Còn lại:** luyện thanh điệu, bảng IPA + hình sagittal, và ~62 chữ Latin phải tự dựng.
+> trong vòng ôn SRS · `/pinyin` nghe đủ 1.707 âm tiết offline · `/tones` luyện nghe thanh điệu).
+> **Còn lại:** bảng IPA + hình sagittal, và ~62 chữ Latin phải tự dựng.
 > **Chưa tag v0.3** — chỉ tag khi phần còn lại xong.
 > Kế hoạch tổng thể: [docs/PLAN.md](docs/PLAN.md).
 > Trên máy mới: `pnpm install` → `pnpm ingest seed:all` → `pnpm pack:build` → `pnpm ingest pack publish` → `pnpm dev`.
@@ -86,6 +86,14 @@ working session, and commit it with the session's push. It is the single source 
       stale — the seed just skips. `zh-pinyin-audio` folds a `PARSER_VERSION` into the ingest
       hash (but *not* into the lock hash, which must only move when upstream moves). Any seed
       whose parsing is non-trivial should do the same.
+  - **P4b done — tone listening drill.** `/tones` plays a syllable, hides it, and asks which of
+    the four tones it was; after answering it reveals the tone-marked form, marks the right and
+    wrong buttons, and offers all four variants side by side to hear the contrast. Only the
+    **421 bases that carry all four tones** are drilled — a partial set would give the answer
+    away. Score + streak are in-memory only (deliberately: this is a warm-up, not SRS).
+  - Verified: prompt hidden until answered, right/wrong both scored, exactly one button marked
+    correct, four distinct contrast variants, answering twice cannot re-score, 0 off-origin
+    requests, 0 console errors. Script: `scratchpad/e2e/verify-v03-p4b.mjs`.
   - Small UX wart noticed, not fixed: clicking "Ôn tập" in the nav while the done screen is up
     leaves `phase='done'` (the route doesn't change, so nothing remounts). The done screen's own
     back button works. Worth a `useEffect` on location if it annoys.
@@ -129,16 +137,12 @@ P1–P3 are done and pushed (see "Current state"). The 0.3 acceptance row in
 [docs/PLAN.md](docs/PLAN.md) is *"Watch 好 draw itself and trace it; trace é; hear every pinyin
 syllable"* — the first clause is shipped, the other two are P4. **Do not tag v0.3 until P4 lands.**
 
-**P4a (pinyin chart + audio) is done** — see "Current state". What remains:
+**P4a (pinyin chart + audio) and P4b (tone drills) are done** — see "Current state". What remains:
 
-1. **Tone drills** — reuse the SRS loop; a tone card is a syllable card with an audio prompt and
-   the four tones as answers. The pieces all exist now: `graphemes.kind='pinyin_syllable'` rows
-   carry `audio_id`, `playAudio()` handles playback, and `CardSnapshot.kind` is already an enum
-   that can take a third value (keep it optional — v0.2 cards must still validate).
-2. **IPA chart + sagittal diagrams** — `drammock/phonetics-teaching-assets` (CC0, 51 SVGs) into
+1. **IPA chart + sagittal diagrams** — `drammock/phonetics-teaching-assets` (CC0, 51 SVGs) into
    `graphemes.diagram_ref` with `kind='ipa_phone'`, `lang='all'` (the ID helper supports `all`).
    SVGs are text, so they can go in a blob table like `audio_blobs` or straight into a column.
-3. **Latin glyphs** — the one genuinely manual asset, and the last piece of "trace é".
+2. **Latin glyphs** — the one genuinely manual asset, and the last piece of "trace é".
    **Design note from P2 that changes the plan:** hanzi-writer does *not* stroke the paths in
    `strokes` — it animates by stroking a thick line **clipped** to them, so a stroke entry must be
    a **closed outline**, not a centerline. Relief SingleLine (SIL OFL) is a *single-line* font, so
