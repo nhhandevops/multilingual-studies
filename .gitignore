@@ -5,10 +5,11 @@ build/
 *.tsbuildinfo
 
 # databases & packs (distributed via GitHub Releases, never git history)
+# blanket *.gz: pack files and browser-download duplicates (content.db_2.gz etc.) must never be committed
 *.db
 *.db-wal
 *.db-shm
-*.db.gz
+*.gz
 apps/web/public/packs/
 
 # raw source dumps (mirrored locally; provenance recorded in sources.lock.json)
