@@ -1,0 +1,12 @@
+import { chromium } from 'playwright-core';
+import { CHROME } from './paths.mjs';
+const browser = await chromium.launch({ executablePath: CHROME, headless: true });
+const page = await (await browser.newContext()).newPage();
+page.on('pageerror', e => console.log('PAGEERROR:', String(e).slice(0,400)));
+page.on('console', m => { if (m.type()==='error') console.log('CONSOLE:', m.text().slice(0,300)); });
+await page.goto('http://localhost:5173/licenses', { waitUntil: 'domcontentloaded' });
+await page.waitForTimeout(240000/4);
+console.log('--- main text (first 600) ---');
+console.log((await page.$eval('#root', el => el.textContent.replace(/\s+/g,' ')).catch(e=>'no #root: '+e)).slice(0,600));
+console.log('--- cards:', (await page.$$('main .card')).length);
+await browser.close();

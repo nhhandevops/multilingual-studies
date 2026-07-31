@@ -53,7 +53,7 @@ working session, and commit it with the session's push. It is the single source 
     voices arriving late light the button up, a recorded word never flashes as TTS, a repeat press
     speaks again after exactly one `cancel()`, and with no voice *and* no recording exactly 0
     buttons render. **0 off-origin requests, 0 console errors.**
-    Script: `scratchpad/e2e/verify-v04-p3-p4.mjs`.
+    Script: `tools/e2e/verify-v04-p3-p4.mjs`.
 
 - **v0.4 P3/P4 hardened after a second adversarial review** (4 lenses; 15 findings raised,
   **9 refuted, 6 confirmed**). Two of the nine refutations were themselves wrong and were
@@ -134,7 +134,7 @@ working session, and commit it with the session's push. It is the single source 
     validate). A review renders it from the snapshot — never by joining content.db (invariant 6).
   - Verified: word pages show reading + translation + credit; the review answer shows the frozen
     example with its credit; export → import round-trips a card carrying one.
-    Script: `scratchpad/e2e/verify-v04-p1.mjs`.
+    Script: `tools/e2e/verify-v04-p1.mjs`.
   - Pack: 47.5 → **57.7 MB gz** (sentences + their FTS index).
   - **P2 done — most words speak with a human voice.** `seed:zh-word-audio` ingests **7,211**
     HSK word recordings from `hugolpz/audio-cmn` — same repo as the syllable chart but a
@@ -150,7 +150,7 @@ working session, and commit it with the session's push. It is the single source 
     Freezing megabytes of mp3 into `user.db` would be far worse. Documented at `getWordAudioId`.
   - Verified: 🔊 on the word page and on the review answer both play a decodable clip from a
     `blob:` URL, **0 off-origin requests**, and the PLAN's v0.4 gate holds — **0 audio rows with
-    NULL attribution, 0 NC/ND clips**. Script: `scratchpad/e2e/verify-v04-p2.mjs`.
+    NULL attribution, 0 NC/ND clips**. Script: `tools/e2e/verify-v04-p2.mjs`.
   - **Pack: 57.7 → 88.3 MB gz.** This is now the project's biggest open question. Levers, in
     order of how little they cost: drop word audio to `18k-abr` (−8 MB), restrict word audio to
     HSK1–6 (−12 MB), restrict stroke data to HSK + top-N frequency (−9 MB), or — the real answer —
@@ -191,7 +191,7 @@ working session, and commit it with the session's push. It is the single source 
   - Cost of the filtering: zh coverage of levelled words **71.2% → 63.4%** (HSK1 99% → 98%),
     en 92.6%, fr 94.0%. Pack 88.3 → **87.6 MB gz**. Worth it — a smaller set that is simplified,
     clean and correctly transcribed beats a larger one that is not.
-  - Audit script: `scratchpad/e2e/audit-v04-fixes.cjs`. It checks polyphones **character-aligned**,
+  - Audit script: `tools/e2e/audit-v04-fixes.cjs`. It checks polyphones **character-aligned**,
     not by substring — a naive search flags 门 "mén", 儿子 "ér" and 德语 "dé" as errors when they
     are correct. Three of my own audit checks were wrong that way before being tightened.
   - **Seeds must delete before they insert.** Re-running with stricter filters left 77k rejected
@@ -236,7 +236,7 @@ working session, and commit it with the session's push. It is the single source 
     along the character's own medians** and completed 6/6 with zero mistakes, proving the
     packed stroke data is usable and not just present. Licenses screen lists Arphic PL + LGPL
     and `/licenses/ARPHICPL.TXT` serves the 6,900-byte text. 0 console errors.
-    Script: `scratchpad/e2e/verify-v03-p2.mjs` (it reads medians from the built pack itself and
+    Script: `tools/e2e/verify-v03-p2.mjs` (it reads medians from the built pack itself and
     inverts hanzi-writer's Positioner — bounds `(0,-124)..(1024,900)` — to hit real coordinates).
   - **Fixed a real navigation bug found on the way** (see the storage-lock note below).
   - **P3 done — writing cards go through the v0.2 SRS loop.** ＋ on `/write/:glyph` creates a
@@ -252,7 +252,7 @@ working session, and commit it with the session's push. It is the single source 
   - Verified: mixed deck of one word card + one grapheme card in a single session; the writer
     appears only on the grapheme card; FSRS advanced it **2 d → 16 d** under a +4 d debug clock
     (the same growth v0.2 measured for words); export → import round-tripped a user.db
-    containing a grapheme card. 0 console errors. Script: `scratchpad/e2e/verify-v03-p3.mjs`.
+    containing a grapheme card. 0 console errors. Script: `tools/e2e/verify-v03-p3.mjs`.
   - **P4a done — hear every pinyin syllable.** `seed:zh-pinyin-audio` ingests all **1,707**
     Mandarin syllable recordings from `hugolpz/audio-cmn` (CC BY-SA, Chen Wang, via the dead
     Shtooka project's mirror). At the `24k-abr` encoding the whole chart is **7.5 MB**, so it
@@ -265,7 +265,7 @@ working session, and commit it with the session's push. It is the single source 
     per click leaks them.
   - Verified: all **1,707** syllables are reachable across the five tone tabs, hǎo decoded to a
     1.28 s clip from a `blob:` URL, and **zero off-origin requests** were made (the whole feature
-    is offline). Script: `scratchpad/e2e/verify-v03-p4.mjs`.
+    is offline). Script: `tools/e2e/verify-v03-p4.mjs`.
   - Pack: 41.2 → **47.4 MB gz** (mp3 is already compressed, so it adds close to its raw size).
   - Two ingest traps fixed here, both worth remembering:
     - GitHub's **contents** API silently caps a directory listing at 1,000 entries *and* ignores
@@ -282,7 +282,7 @@ working session, and commit it with the session's push. It is the single source 
     away. Score + streak are in-memory only (deliberately: this is a warm-up, not SRS).
   - Verified: prompt hidden until answered, right/wrong both scored, exactly one button marked
     correct, four distinct contrast variants, answering twice cannot re-score, 0 off-origin
-    requests, 0 console errors. Script: `scratchpad/e2e/verify-v03-p4b.mjs`.
+    requests, 0 console errors. Script: `tools/e2e/verify-v03-p4b.mjs`.
   - **P4c done — IPA chart + sagittal diagrams.** `seed:ipa-sagittal` ingests all **51** CC0
     vocal-tract SVGs from `drammock/phonetics-teaching-assets` (Richard Wright & Dan McCloy) as
     `lang='all'`, `kind='ipa_phone'` graphemes whose `diagram_ref` points into a new generic
@@ -300,7 +300,7 @@ working session, and commit it with the session's push. It is the single source 
     no blob, or at a missing `diagram_ref` asset.
   - Verified: 51 buttons in 4 categories, apical/laminal kept distinct, four diagrams decoded at
     654×925 from `data:` URLs, no inline `<svg>` in the DOM, CC0 authors credited on the Licenses
-    screen, 0 off-origin requests, 0 console errors. Script: `scratchpad/e2e/verify-v03-p4c.mjs`.
+    screen, 0 off-origin requests, 0 console errors. Script: `tools/e2e/verify-v03-p4c.mjs`.
   - Pack: 47.4 → **47.5 MB gz** (13 sources, 11,190 graphemes).
   - **P4d done — trace é.** The last clause of the 0.3 roadmap row. **64 Latin glyphs**
     (a–z, A–Z, and é è ê ë à â ù û ô î ï ç) authored in
@@ -321,7 +321,7 @@ working session, and commit it with the session's push. It is the single source 
     a row was inserted above them.
   - Verified: all 64 glyphs listed, é is 2 strokes (e body then acute, acute above the body),
     **traced end to end with 0 mistakes** through the same component that draws hanzi, and added
-    to the SRS deck. Script: `scratchpad/e2e/verify-v03-p4d.mjs`.
+    to the SRS deck. Script: `tools/e2e/verify-v03-p4d.mjs`.
   - **Two real bugs this phase surfaced**, both fixed:
     - `graphemes.ord` means stroke count for hanzi but teaching order for letters, so the glyph
       page showed "é — 26 nét". Stroke count is now counted from `stroke_json` itself; never
@@ -385,7 +385,7 @@ Two things to settle before or during 0.5:
 pre-v0.3 pack with real SRS state (cards, a review, a streak) upgrades on reload — pack version
 advances, `user.db` is untouched, streak/daily stats/deck survive, v0.2-era cards still render
 from their own snapshots, and every v0.3 feature works afterwards.
-Script: `scratchpad/e2e/verify-upgrade-v02-to-v03.mjs`.
+Script: `tools/e2e/verify-upgrade-v02-to-v03.mjs`.
 
 If the pack update is unreachable (offline) the worker keeps the installed pack, which may
 predate v0.3. `graphemes` has existed since v0.1, so those pages get **empty results, not
@@ -412,17 +412,33 @@ Requirements: Node ≥ 20, pnpm ≥ 9, git. (Python 3.12 not needed until 0.4+.)
 ```sh
 git clone https://github.com/nhhandevops/multilingual-studies && cd multilingual-studies
 pnpm install                  # build approvals for better-sqlite3/esbuild are committed in pnpm-workspace.yaml
-pnpm ingest seed:all          # downloads ~110 MB of sources into apps/ingest/data-cache/ (gitignored), builds build/staging.db
+pnpm ingest seed:all          # ~170 MB of downloads → apps/ingest/data-cache/ (gitignored), builds build/staging.db
 pnpm pack:build && pnpm pack:verify
 pnpm ingest pack publish      # copies pack into apps/web/public/packs/
 pnpm dev                      # http://localhost:5173
 ```
 
+**Budget ~2.5 hours for a first `seed:all`, almost all of it in one seed.**
+`seed:fr-word-audio` fetches 2,782 individual files from Wikimedia Commons, which throttles to
+roughly 2 concurrent requests — about 2 hours on its own. Everything else together is minutes.
+It is checkpointed per file and caches its license lookups, so an interrupted run resumes
+where it stopped; leave it running and come back. To skip it for a first look, run the other
+seeds individually (`pnpm ingest seed:zh-cedict`, …) — French words then simply fall back to TTS,
+and nothing else is affected. To bundle *less* French audio, narrow `LEVELS` in
+[fr/word-audio.ts](apps/ingest/src/sources/fr/word-audio.ts) before the first run.
+
 Notes:
 
 - `seed:all` is idempotent and resumable; re-runs skip unchanged inputs (hash check).
   If a downloaded file's hash differs from `sources.lock.json`, you get a warning, not a failure — upstream moved; that's expected for CC-CEDICT (updated daily).
+- **Fixing a parser is not enough to re-ingest** — the skip is keyed on the input hash, so bump
+  the seed's `PARSER_VERSION` (it folds into the ingest hash, never the lock hash) or the corrected
+  run is skipped as "unchanged". This has bitten twice; `zh-pinyin-audio` and `fr-word-audio` both
+  carry one.
 - The pack in `apps/web/public/packs/` is **gitignored** — every machine builds its own from sources (same stable IDs ⇒ same user progress compatibility).
+- Acceptance scripts live in [tools/e2e/](tools/e2e/) (`cd tools/e2e && npm install`, then
+  `node verify-v04-p3-p4.mjs` with `pnpm dev` running). They need an installed Chrome; set
+  `CHROME=/path/to/chrome` if it is not in a standard location. All 11 pass on v0.4.
 - `gh` CLI is optional: plain `git push` works with stored credentials; repo creation was done via API.
 
 ## The database (content pack) — what it is and how to use it
@@ -499,6 +515,7 @@ now blanket-ignores `*.gz`. If you see such files: they are redundant browser do
 | `apps/web` | React 19 + Vite PWA; sqlite-wasm worker in `src/db/sqlite.worker.ts` (owns content.db **and** user.db); `src/db/user-queries.ts` = all SRS SQL; `src/routes/review.tsx`; `src/srs/clock.ts` = debug clock |
 | `apps/web/src/components/stroke-writer.tsx` | (v0.3) hanzi-writer wrapper — data comes from the pack, never the network; works for any glyph with `{strokes,medians}` |
 | `apps/ingest/src/sources/fr/word-audio.ts` | (v0.4) Lingua Libre FR audio via Commons — mp3 transcodes found in the cached kaikki file; **license verified per file, never assumed**; `LEVELS` is the pack-size lever |
+| `tools/e2e/` | (v0.4) the acceptance scripts every "Verified: …" line below refers to, plus a README of what each proves. No machine-specific paths — repo root is derived, Chrome comes from `$CHROME` |
 | `apps/web/src/audio/tts.ts`, `components/speak-button.tsx` | (v0.4) speech-synthesis fallback + the one button both routes use: recording → synthesis → nothing. Synthetic playback is always labelled |
 | `apps/web/src/routes/write.tsx`, `glyph.tsx` | (v0.3) `/write` browse-by-level/strokes, `/write/:glyph` animate · trace · decomposition · add writing card |
 | `apps/web/public/licenses/ARPHICPL.TXT` | (v0.3) **must stay committed** — the Arphic PL requires redistributing its text; `pack verify` fails if it goes missing |
@@ -509,11 +526,22 @@ now blanket-ignores `*.gz`. If you see such files: they are redundant browser do
 
 ## Testing recipe (browser verification)
 
-No test framework yet (deliberate — 0.1/0.2). End-to-end checks are ad-hoc Playwright scripts driving
-installed Chrome: `npm i playwright-core` in a scratch dir, launch with
-`executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe'` (adjust per machine),
-navigate to the dev server, wait for `input.searchbox` (pack install can take ~1 min first run),
-assert search results. See PLAN's per-version "Verify" bullets for what to check each release.
+No test framework yet (deliberate — 0.1/0.2). End-to-end checks are ad-hoc Playwright scripts
+driving an installed Chrome, and they live in **[tools/e2e/](tools/e2e/)** — see its
+[README](tools/e2e/README.md) for what each one proves.
+
+```sh
+cd tools/e2e && npm install     # playwright-core only; it drives your own Chrome
+pnpm dev                        # in another terminal, from the repo root
+node verify-v04-p3-p4.mjs       # CHROME=/path/to/chrome if it is not in a standard location
+```
+
+They were kept in a scratch directory until v0.4, which meant every "Script: …" line in this file
+was a dangling reference on any other machine. Nothing in there may be machine-specific now: the
+repo root is derived from the script's own location and Chrome is discovered or taken from
+`$CHROME`. New scripts should navigate to the dev server and wait for `input.searchbox` (pack
+install can take ~1 min on the first run). See PLAN's per-version "Verify" bullets for what each
+release must demonstrate.
 
 Gotchas learned the hard way (they cost real debugging time):
 
@@ -528,7 +556,7 @@ Gotchas learned the hard way (they cost real debugging time):
   pack (~2 s from localhost) and starts with an empty `user.db` — that is what makes SRS runs
   repeatable.
 - **To test a pack UPGRADE, serve the built app statically, not through `pnpm dev`** — Vite's
-  watcher dies when `content.pack` is swapped. `scratchpad/e2e/static-server.mjs` serves
+  watcher dies when `content.pack` is swapped. `tools/e2e/static-server.mjs` serves
   `apps/web/dist` with no watcher, which is what makes the upgrade test possible.
 - `page.reload()` re-requests the *current* URL. After in-app navigation you are no longer on
   `/`, so don't wait for `input.searchbox` after a reload — wait for `footer.pack`.
@@ -541,7 +569,7 @@ Gotchas learned the hard way (they cost real debugging time):
 - **Navigate in-app (`page.click` on a nav `<a>`), not with `page.goto`, once the app is loaded.**
   A fresh document load can lose the exclusive OPFS handles to a page Chrome froze in the
   back/forward cache; you then get the (now friendly) "reload to continue" screen mid-test. This
-  cost real debugging time — see the storage-lock note above. `scratchpad/e2e/probe-locked.mjs`
+  cost real debugging time — see the storage-lock note above. `tools/e2e/probe-locked.mjs`
   reproduces it deliberately.
 - **To test the stroke quiz for real, replay the character's own medians as pointer events.**
   Read `graphemes.stroke_json` straight from the built pack, then invert hanzi-writer's Positioner:
