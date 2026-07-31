@@ -162,6 +162,9 @@ export function Review() {
             <div className="review-answer">
               {snap.reading && <div className="reading">{snap.reading}</div>}
               {snap.altForm && snap.altForm !== snap.headword && <div className="hw">{snap.altForm}</div>}
+              {/* The Sino-Vietnamese anchor (v0.8), from the snapshot. For a Vietnamese learner
+                  this is the answer's strongest memory hook, so it renders before the glosses. */}
+              {snap.svCognate && <div className="sv-cognate">{snap.svCognate}</div>}
               {/* Tech cards: the answer IS the term in the other languages, from the snapshot.
                   Vietnamese leads — it is the gloss language a Vietnamese learner anchors to. */}
               {isTech && snap.labels && (

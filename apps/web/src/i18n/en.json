@@ -14,7 +14,8 @@
     "ipa": "IPA",
     "grammar": "Grammar",
     "today": "Today",
-    "tech": "Tech vocab"
+    "tech": "Tech vocab",
+    "stats": "Stats"
   },
   "deck": {
     "add": "Add to deck",
@@ -156,7 +157,8 @@
     "back": "← Back",
     "examples": "Example sentences",
     "listen": "Listen",
-    "listenTts": "Listen (synthetic voice)"
+    "listenTts": "Listen (synthetic voice)",
+    "svCognate": "Sino-Vietnamese"
   },
   "licenses": {
     "title": "Data sources & licenses",
@@ -215,5 +217,25 @@
     "noLabel": "no name recorded in this language",
     "notFound": "Term not found.",
     "back": "← Back to tech vocabulary"
+  },
+  "stats": {
+    "title": "Stats & forecast",
+    "progressTitle": "Vocabulary vs the level tables",
+    "progressHint": "Light bar: words in your deck. Dark bar: words reviewed at least once. The denominator is that level’s word count in the pack.",
+    "otherCards": "{{n}} other cards (unlevelled words, or words no longer in the current pack)",
+    "forecastTitle": "Review-load simulator",
+    "forecastHint": "Drag to choose new words per day. The load is SIMULATED by running FSRS-6 itself — the same engine that schedules your reviews — not a rule of thumb.",
+    "newPerDay": "new/day",
+    "loadLine": "At steady state (~1 year in): about {{reviews}} reviews/day ≈ {{minutes}} min/day.",
+    "secsMeasured": "({{s}} s/card — measured from your own review history)",
+    "secsDefault": "({{s}} s/card — default; your own history takes over after 50 reviews)",
+    "reach": "{{level}} vocabulary covered ~{{date}}",
+    "simNote": "This forecasts VOCABULARY COVERAGE (words in your deck), not proficiency. Listening, speaking and grammar take their own time.",
+    "anchorsTitle": "Reference hour anchors",
+    "anchorsHint": "These anchors assume an ENGLISH-speaking learner. For a Vietnamese speaker Mandarin is substantially cheaper: tones are native equipment and ~60% of Vietnamese vocabulary is Sino-Vietnamese (the 大学→đại học pairs on your cards). Read 2,200 h as a CEILING, not a price.",
+    "anchorCefr": "CEFR (Cambridge guided learning hours): A2 ≈ 180–200h · B1 ≈ 350–400h · B2 ≈ 500–600h · C1 ≈ 700–800h · C2 ≈ 1,000–1,200h",
+    "anchorFsiFr": "FSI — French: ~600–750 class hours to professional working proficiency",
+    "anchorFsiZh": "FSI — Mandarin: ~2,200 hours for an English speaker — for a Vietnamese speaker this is an upper bound",
+    "anchorsCredit": "Sources: Cambridge English (guided learning hours) · FSI, US State Department (public domain)."
   }
 }

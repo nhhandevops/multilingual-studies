@@ -61,6 +61,9 @@ function buildSnapshot(
     packVersion,
     kind: 'word',
     ...(example ? { example } : {}),
+    // The attested Sino-Vietnamese cognate rides the snapshot like every display field: the
+    // review answer must render it without joining content.db (invariant 6).
+    ...(word.sv_cognate ? { svCognate: word.sv_cognate } : {}),
   };
 }
 
@@ -236,6 +239,32 @@ export async function streak(db: Db, now: Date): Promise<number> {
     cursor.setDate(cursor.getDate() - 1);
   }
   return n;
+}
+
+// ---------------------------------------------------------------------------
+// stats (v0.8)
+
+export interface DeckCard {
+  id: string;
+  state: number; //  FSRS State: 0 new, 1 learning, 2 review, 3 relearning
+}
+
+/** Every card in one language's deck — ids + states only, for the dashboard's joins. */
+export async function deckCards(db: Db, lang: string): Promise<DeckCard[]> {
+  return db.userQuery<DeckCard>(`SELECT id, state FROM cards WHERE lang = ? AND suspended = 0`, [lang]);
+}
+
+/**
+ * The learner's own measured pace: seconds per rated card, from their whole history.
+ * Null until there is enough history to mean anything — the simulator falls back to a default
+ * and SAYS it is a default, rather than presenting ten samples as a measurement.
+ */
+export async function measuredSecondsPerCard(db: Db): Promise<number | null> {
+  const [row] = await db.userQuery<{ secs: number; n: number }>(
+    `SELECT COALESCE(SUM(seconds),0) AS secs, COALESCE(SUM(new_count + review_count),0) AS n FROM daily_stats`,
+  );
+  if (!row || row.n < 50) return null;
+  return row.secs / row.n;
 }
 
 // ---------------------------------------------------------------------------

@@ -35,7 +35,7 @@ pnpm --filter @mls/web build && node static-server.mjs &
 MLS_BASE=http://localhost:5199 node ./verify-upgrade-v02-to-v03.mjs
 ```
 
-All 15 pass on v0.7.
+All 16 pass on v0.8.
 
 ## What each one proves
 
@@ -55,6 +55,7 @@ All 15 pass on v0.7.
 | `verify-v05-p1-p2.mjs` | 0.5 | the grammar reader: HSK-2 得 offline, Tex with audio, and every "learn more" link fetched to prove it resolves |
 | `verify-v06.mjs` | 0.6 | the daily pull: pulling twice does not duplicate, a dying source degrades to a partial report, and the word of the day reaches the SRS deck |
 | `verify-v07.mjs` | 0.7 | the tech module: zh labels all simplified, no English-as-Vietnamese, no disambiguation QIDs (live-sampled), 固件 finds Firmware, and the tech card reviews with its labels |
+| `verify-v08.mjs` | 0.8 | stats+forecast: attested cognates (大学=đại học, 手机 has NONE), dashboard denominators equal the pack, the FSRS simulator is deterministic and lands in the 8-12× band, and the reach date matches the arithmetic |
 | `verify-upgrade-v02-to-v03.mjs` | 0.3 | an in-place pack upgrade preserves all SRS state (needs `static-server.mjs`, not `pnpm dev`) |
 | `audit-v04-fixes.cjs` | 0.4 | data-level audit of the sentence corpus (no browser; reads `build/staging.db`) |
 

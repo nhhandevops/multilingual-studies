@@ -711,6 +711,26 @@ export function labelAliases(row: { aliases: string | null }): string[] {
   }
 }
 
+// --- stats (v0.8) -----------------------------------------------------------
+
+/**
+ * Level of each given word id, from the CURRENT pack — the dashboard's join between the deck
+ * (user.db ids) and the level tables. Words that vanished from the pack simply do not come
+ * back, which the dashboard shows as "other" rather than losing them.
+ */
+export async function levelsOf(db: Db, ids: string[]): Promise<Map<string, string | null>> {
+  const out = new Map<string, string | null>();
+  for (let i = 0; i < ids.length; i += 500) {
+    const batch = ids.slice(i, i + 500);
+    const rows = await db.query<{ id: string; level: string | null }>(
+      `SELECT id, level FROM words WHERE id IN (${batch.map(() => '?').join(',')})`,
+      batch,
+    );
+    for (const r of rows) out.set(r.id, r.level);
+  }
+  return out;
+}
+
 export async function listSources(db: Db): Promise<SourceRow[]> {
   return db.query<SourceRow>(`SELECT * FROM sources ORDER BY id`);
 }

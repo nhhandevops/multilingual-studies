@@ -98,6 +98,15 @@ export function WordPage() {
             <dd className="hw" style={{ fontSize: '1.3rem' }}>{word.alt_form}</dd>
           </>
         )}
+        {/* The ATTESTED Sino-Vietnamese cognate (v0.8) — a real Vietnamese word whose own
+            dictionary entry records descent from this word. Absent for ~60% of zh words, and
+            that absence is data: no attested cognate exists, so nothing is composed or guessed. */}
+        {word.sv_cognate && (
+          <>
+            <dt>{t('word.svCognate')}</dt>
+            <dd className="sv-cognate">{word.sv_cognate}</dd>
+          </>
+        )}
         {word.freq_rank && (
           <>
             <dt>{t('word.freqRank')}</dt>

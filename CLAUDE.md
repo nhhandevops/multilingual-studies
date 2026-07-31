@@ -19,7 +19,7 @@ Commands: `pnpm dev` (web), `pnpm ingest seed:all`, `pnpm pack:build`, `pnpm pac
 `pnpm ingest pack publish`, `pnpm -r typecheck`.
 Daily (v0.6, driven by the `/daily-pull` skill): `pnpm ingest daily:all`, `daily:candidates`,
 `daily:select --file f.json`, `tips:add --file t.json`.
-Acceptance: `cd tools/e2e && npm install`, then `node verify-v06.mjs` with `pnpm dev` running.
+Acceptance: `cd tools/e2e && npm install`, then `node verify-v08.mjs` with `pnpm dev` running.
 `verify-upgrade-v02-to-v03.mjs` is the exception — it swaps the pack file, so it needs
 `static-server.mjs` and `MLS_BASE=http://localhost:5199`, never `pnpm dev`.
 

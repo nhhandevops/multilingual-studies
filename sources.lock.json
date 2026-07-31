@@ -82,6 +82,13 @@
       "retrievedAt": "2026-07-29T16:49:25.278Z",
       "license": "CC BY-SA 4.0 + GFDL (Wiktionary content, wiktextract by Tatu Ylonen)"
     },
+    "kaikki:dictionary-Vietnamese.jsonl.gz": {
+      "url": "https://kaikki.org/dictionary/Vietnamese/kaikki.org-dictionary-Vietnamese.jsonl.gz",
+      "sha256": "3ae073fa3113b640e26e36f1d544e1c053003949d5cacd1ae4f50461e4d18683",
+      "bytes": 11883247,
+      "retrievedAt": "2026-07-31T17:27:11.152Z",
+      "license": "CC BY-SA 4.0 + GFDL (Wiktionary content, wiktextract by Tatu Ylonen)"
+    },
     "lexique:Lexique383.tsv": {
       "url": "http://www.lexique.org/databases/Lexique383/Lexique383.tsv",
       "sha256": "637ba37a767a66679c48371d673ece50cbf541b49a4e40e598963d4f3fbce52b",

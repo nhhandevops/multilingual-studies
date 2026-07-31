@@ -48,6 +48,10 @@ export const CardSnapshot = z.object({
   // The whole point of a tech card is seeing firmware / 固件 / micrologiciel / phần mềm cơ sở
   // together, and a review renders from the snapshot alone (invariant 6).
   labels: z.object({ zh: z.string(), fr: z.string(), vi: z.string() }).partial().optional(),
+  // v0.8 — zh cards: the ATTESTED Sino-Vietnamese cognate (đại học for 大学), frozen at
+  // add-time like every other display field. Optional: cards added before v0.8, non-zh cards,
+  // and the ~60% of zh words with no attested cognate all simply lack it.
+  svCognate: z.string().optional(),
 });
 export type CardSnapshot = z.infer<typeof CardSnapshot>;
 

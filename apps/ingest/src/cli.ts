@@ -24,6 +24,7 @@ const SEEDS: Record<string, () => Promise<{ run: SeedFn }>> = {
   'zh-pinyin-audio': () => import('./sources/zh/pinyin-audio'),
   'zh-word-audio': () => import('./sources/zh/word-audio'), //  needs zh-hsk (levels drive the filter)
   'zh-grammar': () => import('./sources/zh/grammar'), //         official HSK grammar syllabus
+  'sv-cognates': () => import('./sources/zh/sv-cognates'), //    needs zh-cedict (joins on alt_form)
   'en-cefrj': () => import('./sources/en/cefrj'),
   'en-oewn': () => import('./sources/en/oewn'), //        needs en-cefrj
   'en-grammar': () => import('./sources/en/grammar'), //  Wikibooks English Grammar (CC BY-SA)

@@ -247,3 +247,28 @@ button.speak.tts sup { font-size: 0.55em; letter-spacing: 0.03em; margin-left: 0
 .tech-labels { margin: 0.5rem 0; }
 .tech-label { font-size: 1.15rem; margin: 0.25rem 0; }
 .tech-label .badge { margin-right: 0.4rem; }
+
+/* stats & forecast (v0.8) */
+.stats { max-width: 48rem; }
+.stats-block { border-top: 1px solid var(--border); margin-top: 1.5rem; padding-top: 0.6rem; }
+.stats-block h3 { margin: 0.2rem 0 0.4rem; font-size: 1.05rem; }
+.lang-progress h4 { margin: 0.8rem 0 0.3rem; }
+.level-row { display: flex; align-items: center; gap: 0.6rem; margin: 0.25rem 0; }
+.level-name { min-width: 4.2rem; color: var(--fg-soft); font-size: 0.85rem; }
+.level-bar { flex: 1; position: relative; height: 0.9rem; background: var(--bg-soft);
+  border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
+/* studied (opaque) paints over in-deck (translucent): three strata, one truth per pixel */
+.bar-indeck { position: absolute; inset: 0 auto 0 0; background: var(--accent); opacity: 0.35; }
+.bar-studied { position: absolute; inset: 0 auto 0 0; background: var(--accent); }
+.level-nums { min-width: 5.5rem; text-align: right; font-size: 0.8rem; color: var(--fg-soft);
+  font-variant-numeric: tabular-nums; }
+.rate-row { display: flex; align-items: center; gap: 0.7rem; margin: 0.4rem 0; }
+.rate-row span { min-width: 6.5rem; }
+.rate-row input[type='range'] { flex: 1; accent-color: var(--accent); }
+.forecast-out { margin-top: 0.8rem; }
+.reach-list { padding-left: 1.1rem; }
+.reach-list li { margin: 0.3rem 0; }
+.anchor-list { padding-left: 1.1rem; }
+.anchor-list li { margin: 0.3rem 0; line-height: 1.5; }
+/* the Sino-Vietnamese cognate — the memory hook, so it reads as a headline not a footnote */
+.sv-cognate { color: var(--accent); font-size: 1.15rem; }

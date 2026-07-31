@@ -1,6 +1,16 @@
 # HANDOFF — continue the work from any machine
 
-> **TL;DR (tiếng Việt):** Dự án đang ở **v0.7** (đã xong — **từ vựng nghề IoT**).
+> **TL;DR (tiếng Việt):** Dự án đang ở **v0.8** (đã xong — **thống kê & dự báo**).
+> Mục `/stats`: vốn từ của bạn so với **thang HSK/CEFR** (thanh tiến độ theo từng cấp), và **mô
+> phỏng tải ôn tập** chạy bằng chính FSRS-6 — kéo thanh trượt "7 từ mới/ngày" là thấy ngay:
+> ~68 lượt ôn/ngày ≈ 15 phút, phủ hết từ vựng HSK1–3 khoảng **tháng 6 2027**. Kèm mốc giờ
+> Cambridge/FSI với ghi chú cho người Việt (2.200 giờ tiếng Trung là TRẦN — thanh điệu đã có sẵn,
+> ~60% từ vựng Việt gốc Hán). Và chính các cặp gốc Hán đó giờ nằm trên thẻ: **8.342 từ tiếng
+> Trung** hiện **từ Hán Việt có kiểm chứng** (大学 → đại học, 注意 → chú ý) — chỉ những cặp
+> từ điển Wiktionary xác nhận là từ Việt thật, không ghép âm bừa (手机 KHÔNG có, vì "thủ cơ"
+> không phải tiếng Việt).
+>
+> Trước đó, v0.7 — **từ vựng nghề IoT**:
 > Mục `/tech`: **161 thuật ngữ** IoT/nhúng/mạng/bảo mật, mỗi khái niệm hiện tên ở **bốn thứ
 > tiếng** — firmware / 固件 / firmware (micrologiciel) / Phần sụn — kèm định nghĩa tiếng Anh
 > (Wikipedia hoặc NIST) và nút ＋ đưa thẳng vào bộ thẻ ôn tập (bộ thẻ "Nghề" riêng, không ăn vào
@@ -37,7 +47,67 @@ Keep this file current: update the **Current state** and **Next up** sections at
 working session, and commit it with the session's push. It is the single source of truth for
 "where were we?" on a fresh clone.
 
-## Current state (updated 2026-07-31)
+## Current state (updated 2026-08-01)
+
+- **v0.8 shipped — "Stats + forecast".** A `/stats` screen (dashboard · simulator · anchors) and
+  **8,342 attested Sino-Vietnamese cognates** on the zh vocabulary — the `sv_cognate` column that
+  had been NULL since v0.1. The roadmap clause renders for real: *at 7 zh words/day you cover
+  HSK1–3 vocabulary ~Jun 2027, ~15 min/day* (68 reviews/day, measured by simulation, not quoted
+  from a rule). Pack `2026.07.31-11`: +0.2 MB, 30 sources.
+  - **The cognates are ATTESTED, not composed — the version's defining decision.** A cognate is
+    stored only when the Vietnamese word's own Wiktionary entry records "Sino-Vietnamese word
+    from X" (the `vi-etym-sino` template in the kaikki.org Vietnamese extract, CC BY-SA). Both
+    facts matter: the Vietnamese word EXISTS, and its descent from that exact Chinese word is on
+    record. The tempting alternative — composing per-character Hán-Việt readings — was measured
+    and rejected: 手机 composes to "thủ cơ" and 老师 to "lão sư", but Vietnamese says điện thoại
+    and giáo viên. A reading that composes is not a word that exists. Result: 大学→đại học,
+    注意→chú ý, 银行→ngân hàng… and 手机 correctly gets NOTHING.
+  - **Unihan's kVietnamese was disqualified by measurement** before the design settled: 68%
+    coverage of our 3,034 levelled characters with 電 (điện!), 学, 愛 simply absent, and Nôm
+    readings mixed in unmarked. The ledger's [RECOMMENDED] for Unihan stands — for radicals and
+    strokes; its Vietnamese field does not survive contact with the data. Ledger updated.
+  - **Two traps in the chosen source, both measured** ([zh/sv-cognates.ts](apps/ingest/src/sources/zh/sv-cognates.ts)):
+    the `vi-etym-sino` template's numbered args may be COMPONENTS (ngân hàng is {1:銀,2:行}), so
+    the source word is the concatenation of all Han-carrying args — reading arg 1 alone both
+    missed ngân hàng/chính phủ/công ti AND mis-attached điện thoại *viên* to 电话. And the match
+    must be on the template, never the etymology text: the corpus contains "NON-Sino-Vietnamese
+    reading of…" sentences that a text regex happily matches. Coverage: HSK1 196/508 · HSK2
+    321/753 · HSK3 524/964 (the SV stratum is the abstract/formal vocabulary, so coverage RISES
+    into the literary levels — consistent with the linguistics, not a bug).
+  - The cognate rides `CardSnapshot.svCognate` (optional, additive — every earlier card still
+    validates) and renders on the zh word page and the review answer, from the snapshot
+    (invariant 6). For a Vietnamese learner it is the answer's strongest memory hook, so it
+    renders above the glosses.
+  - **The simulator RUNS FSRS-6, it does not quote the 10× rule** ([simulate.ts](packages/shared/src/srs/simulate.ts)):
+    the same `rate()` wrapper, weights and 0.9 retention target that schedule real reviews,
+    day by day over 365 simulated days, grades drawn from a seeded LCG so the same inputs give
+    the same curve on every reload — a forecast that changes when you refresh is a mood. The
+    simulation independently lands at **9.2–9.8× steady-state reviews per new card**, inside the
+    research's 8–12× band: the rule of thumb is confirmed by the engine rather than assumed.
+    ~350 ms per 365-day run, cached per slider value.
+  - **Three kinds of number, labelled as what they are.** MEASURED: deck-vs-level-table bars
+    (light = in deck, dark = reviewed at least once; denominators are the pack's own level
+    counts) and the learner's seconds-per-card from their own history — used only past 50
+    reviews, before that a default that SAYS it is a default. SIMULATED: the review load.
+    ANCHORS: Cambridge GLH and FSI hours, quoted with the caveat that they assume an English
+    speaker — for a Vietnamese learner the Mandarin 2,200 h is framed as a CEILING (tones are
+    native equipment; ~60% of Vietnamese vocabulary is Sino-Vietnamese — the very pairs this
+    version puts on the cards). The reach forecast is explicitly labelled VOCABULARY COVERAGE,
+    not proficiency.
+  - **The first e2e run failed its own test honestly**: the "set sliders to zh=7" assertion
+    accepted any positive number, which the INITIAL 5/5/5 render already satisfies — it read 138
+    (3×46) as if it were the zh=7 figure. The wait now requires the line to CHANGE from its
+    captured initial state, in both the load check and the determinism check. A predicate the
+    starting state already satisfies is a stub kinder than the real API.
+  - Also fixed while building: the seed's first join ran a per-pair SELECT against the unindexed
+    `alt_form` column — 147k-row scan × 13,866 pairs, killed at the ten-minute timeout — and was
+    rewritten as one full-table read into maps (seconds).
+  - Verified against pack `2026.07.31-11`: 大学 shows đại học on the word page, freezes it into
+    a new card, and the review answer renders it from the snapshot; dashboard denominators equal
+    the pack's level table and the just-added card is counted; the simulator is deterministic
+    across reloads, its 7/day figure is 68 reviews ≈ 15 min/day, and the HSK-reach year matches
+    the arithmetic; anchors carry the Vietnamese-adjustment framing. **0 off-origin requests,
+    0 console errors. All 16 acceptance scripts pass.** Script: `tools/e2e/verify-v08.mjs`.
 
 - **v0.7 shipped — "IoT vocabulary".** A `/tech` module over **161 curated concepts** in six
   domains (hardware 24 · electronics 28 · firmware 29 · networking 35 · security 20 · cloud 25),
@@ -640,13 +710,30 @@ working session, and commit it with the session's push. It is the single source 
 - Pack `2026.07.29-2` is published on [GitHub Releases (v0.1)](https://github.com/nhhandevops/multilingual-studies/releases/tag/v0.1) under CC BY-SA 4.0 — see "The database" below.
 - 2026-07-30: git history was rewritten (force-push) to purge 142 MB of accidentally committed pack duplicates; `.gitignore` now blanket-ignores `*.gz`. If an old clone exists somewhere, delete and re-clone instead of pulling.
 
-## Next up: v0.8 — Stats + forecast
+## Next up: v0.9 — Real PWA
 
-v0.7 is complete. See [docs/PLAN.md](docs/PLAN.md) for the 0.8 row (dashboard of known words vs
-HSK/CEFR tables + the load simulator with GLH/FSI anchors and a Vietnamese adjustment + SV cognate
-hints on zh cards — "at 7 zh words/day you hit HSK-3 vocab ~Mar 2027, ~35 min/day"). The roadmap
-is the "what's next" oracle; this file is the "where were we" one. Note `words.sv_cognate` has
-existed since v0.1 and is still NULL everywhere — 0.8's cognate hints need a seed to fill it.
+v0.8 is complete. See [docs/PLAN.md](docs/PLAN.md) for the 0.9 row (service worker + full offline
++ storage.persist() + pack update UI + backup nag + deploy to Cloudflare/GitHub Pages + iOS
+Add-to-Home tested — "install on phone; study on the bus offline"). Its verify clauses in PLAN:
+Lighthouse installable; a full airplane-mode session; pack N-1→N preserves all cards. **This is
+also the version that forces the pack-size decision** deferred since v0.4: 130 MB is a heavy
+first paint for a phone install, and splitting media into an optional second pack has been "the
+real answer" in this file for four versions.
+
+Carried forward from 0.8, none blocking:
+
+1. **Cognates are word-level only.** The glyph pages (`/write/:glyph`) show no per-character
+   Hán-Việt reading, deliberately: a character reading without an attested word invites exactly
+   the composition trap the seed refuses. If ever added, keep it visually distinct from the
+   attested cognates and label it "âm", not "từ".
+2. **The simulator models one grade mix** (8/12/70/10 ≈ 92% pass). A learner with much lower
+   retention will see more reviews than forecast. The mix is a named constant in
+   [simulate.ts](packages/shared/src/srs/simulate.ts); parameterising it is cheap if wanted.
+3. **`measuredSecondsPerCard` is global**, not per-language — zh cards plausibly take longer
+   than en. Split when there is enough history for the split to mean something.
+4. **The reach forecast ignores the daily budget cap** vs the slider: it divides by the slider
+   value even if the learner's actual budget is lower. The slider defaults to the real budgets,
+   so the mismatch only appears while experimenting — acceptable, but worth a label if noticed.
 
 Carried forward from 0.7, none blocking:
 
@@ -763,7 +850,7 @@ Notes:
 - The pack in `apps/web/public/packs/` is **gitignored** — every machine builds its own from sources (same stable IDs ⇒ same user progress compatibility).
 - Acceptance scripts live in [tools/e2e/](tools/e2e/) (`cd tools/e2e && npm install`, then
   `node verify-v06.mjs` with `pnpm dev` running). They need an installed Chrome; set
-  `CHROME=/path/to/chrome` if it is not in a standard location. **All 15 pass on v0.7.** One of
+  `CHROME=/path/to/chrome` if it is not in a standard location. **All 16 pass on v0.8.** One of
   them, `verify-upgrade-v02-to-v03.mjs`, must run against `static-server.mjs` rather than
   `pnpm dev` — see [tools/e2e/README.md](tools/e2e/README.md); running it in a blanket loop
   always "fails", which is how a real v0.4 bug stayed hidden until v0.6.
@@ -776,7 +863,7 @@ Notes:
 > `apps/ingest` rồi build lại pack. File này không nằm trong git; máy khác lấy nó bằng cách
 > tự build (cách A) hoặc tải từ GitHub Releases (cách B).
 
-> **Size as of v0.7: 130.4 MB gz** (27.7 → 47.5 in v0.3 → 128.9 in v0.4 → 130.1 in v0.5 → 130.4 in v0.6; v0.7 added +0.05 — text is cheap).
+> **Size as of v0.8: 130.6 MB gz** (…128.9 in v0.4 → 130.1 in v0.5 → 130.4 in v0.6/v0.7 → 130.6). v0.9 forces the split-media decision.
 > Roughly 86 MB of that is audio blobs and 30 MB is stroke JSON. The published v0.1 release asset
 > is still the old 27.7 MB pack: it works, but has no `graphemes`/`hanzi_info`/`audio`/`sentences`,
 > so `/write`, `/pinyin`, examples and every 🔊 will be empty. Rebuild from sources (way A) to get

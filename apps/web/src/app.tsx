@@ -14,6 +14,7 @@ import { IpaChart } from './routes/ipa';
 import { GrammarIndex, GrammarPage } from './routes/grammar';
 import { Today, DailyItemPage } from './routes/today';
 import { TechIndex, TechTermPage } from './routes/tech';
+import { Stats } from './routes/stats';
 import { Licenses } from './routes/licenses';
 
 export function App() {
@@ -37,6 +38,7 @@ export function App() {
           <Link to="/ipa">{t('nav.ipa')}</Link>
           <Link to="/grammar">{t('nav.grammar')}</Link>
           <Link to="/tech">{t('nav.tech')}</Link>
+          <Link to="/stats">{t('nav.stats')}</Link>
           <Link to="/licenses">{t('nav.licenses')}</Link>
         </nav>
         <div className="ui-lang" title={t('ui.language')}>
@@ -83,6 +85,7 @@ export function App() {
             <Route path="/today/:id" element={<DailyItemPage />} />
             <Route path="/tech" element={<TechIndex />} />
             <Route path="/tech/:id" element={<TechTermPage />} />
+            <Route path="/stats" element={<Stats />} />
             <Route path="/licenses" element={<Licenses />} />
           </Routes>
           <footer className="pack">{t('db.packVersion', { version: db.status.packVersion })}</footer>

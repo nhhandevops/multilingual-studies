@@ -14,7 +14,8 @@
     "ipa": "Bảng IPA",
     "grammar": "Ngữ pháp",
     "today": "Hôm nay",
-    "tech": "Từ vựng nghề"
+    "tech": "Từ vựng nghề",
+    "stats": "Thống kê"
   },
   "deck": {
     "add": "Thêm vào bộ thẻ",
@@ -156,7 +157,8 @@
     "back": "← Quay lại",
     "examples": "Câu ví dụ",
     "listen": "Nghe phát âm",
-    "listenTts": "Nghe giọng máy"
+    "listenTts": "Nghe giọng máy",
+    "svCognate": "Hán Việt"
   },
   "licenses": {
     "title": "Nguồn dữ liệu & giấy phép",
@@ -215,5 +217,25 @@
     "noLabel": "chưa có tên trong tiếng này",
     "notFound": "Không tìm thấy thuật ngữ.",
     "back": "← Quay lại từ vựng nghề"
+  },
+  "stats": {
+    "title": "Thống kê & dự báo",
+    "progressTitle": "Vốn từ so với thang cấp độ",
+    "progressHint": "Thanh nhạt: số từ đã vào bộ thẻ. Thanh đậm: số từ đã ôn ít nhất một lần. Mẫu số là số từ của cấp đó trong gói dữ liệu.",
+    "otherCards": "{{n}} thẻ khác (từ không có cấp độ, hoặc không còn trong gói hiện tại)",
+    "forecastTitle": "Mô phỏng tải ôn tập",
+    "forecastHint": "Kéo thanh trượt để chọn số từ mới mỗi ngày. Tải ôn tập được MÔ PHỎNG bằng chính thuật toán FSRS-6 đang xếp lịch cho bạn — không phải quy tắc ước lượng.",
+    "newPerDay": "từ mới/ngày",
+    "loadLine": "Ở trạng thái ổn định (sau ~1 năm): khoảng {{reviews}} lượt ôn/ngày ≈ {{minutes}} phút/ngày.",
+    "secsMeasured": "({{s}} giây/thẻ — đo từ lịch sử ôn tập của chính bạn)",
+    "secsDefault": "({{s}} giây/thẻ — mặc định; sẽ đo từ lịch sử của bạn khi đủ 50 lượt ôn)",
+    "reach": "phủ hết từ vựng {{level}} ~{{date}}",
+    "simNote": "Dự báo này là về ĐỘ PHỦ TỪ VỰNG (số từ đã vào bộ thẻ), không phải trình độ. Nghe, nói, ngữ pháp cần thời gian riêng.",
+    "anchorsTitle": "Mốc giờ học tham khảo",
+    "anchorsHint": "Các mốc dưới đây tính cho người học NÓI TIẾNG ANH. Với người Việt, tiếng Trung rẻ hơn đáng kể: thanh điệu đã là trang bị sẵn có, và ~60% từ vựng tiếng Việt gốc Hán (chính là các cặp 大学→đại học trên thẻ). Xem 2.200 giờ là TRẦN, không phải giá.",
+    "anchorCefr": "CEFR (Cambridge, giờ học có hướng dẫn): A2 ≈ 180–200h · B1 ≈ 350–400h · B2 ≈ 500–600h · C1 ≈ 700–800h · C2 ≈ 1.000–1.200h",
+    "anchorFsiFr": "FSI — tiếng Pháp: ~600–750 giờ lớp học đến trình độ làm việc chuyên nghiệp",
+    "anchorFsiZh": "FSI — tiếng Trung: ~2.200 giờ cho người nói tiếng Anh — với người Việt đây là mức trần",
+    "anchorsCredit": "Nguồn: Cambridge English (guided learning hours) · FSI, Bộ Ngoại giao Hoa Kỳ (công vụ, miền công cộng)."
   }
 }

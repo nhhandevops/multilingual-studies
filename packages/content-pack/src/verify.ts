@@ -218,6 +218,24 @@ export function verifyPack(packDir: string, packsDir?: string): VerifyIssue[] {
       }
     }
 
+    // Sino-Vietnamese cognates (v0.8) --------------------------------------------------------
+    // The seed stores only ATTESTED cognates, so the gates are about integrity, not coverage:
+    // no empty strings, no cognates outside zh, and the pack must not silently lose the feature
+    // (a coverage collapse means the upstream template changed shape, not that Vietnamese
+    // stopped borrowing from Chinese).
+    const svEmpty = one(`SELECT COUNT(*) AS n FROM words WHERE sv_cognate IS NOT NULL AND TRIM(sv_cognate) = ''`);
+    if (svEmpty > 0) err('sv-cognate', `${svEmpty} words carry an empty sv_cognate`);
+    const svWrongLang = one(`SELECT COUNT(*) AS n FROM words WHERE sv_cognate IS NOT NULL AND lang != 'zh'`);
+    if (svWrongLang > 0) err('sv-cognate', `${svWrongLang} non-zh words carry an sv_cognate`);
+    const svCount = one(`SELECT COUNT(*) AS n FROM words WHERE sv_cognate IS NOT NULL`);
+    const svHsk123 = one(`SELECT COUNT(*) AS n FROM words
+      WHERE sv_cognate IS NOT NULL AND level IN ('HSK1','HSK2','HSK3')`);
+    if (svCount > 0 && svHsk123 < 500)
+      err('sv-cognate', `HSK1-3 cognate coverage collapsed to ${svHsk123} (was ~1,040) — upstream shape change?`);
+    // A cognate containing Han characters is a parse failure, not a Vietnamese word.
+    const svHan = one(`SELECT COUNT(*) AS n FROM words WHERE sv_cognate GLOB '*[一-鿿]*'`);
+    if (svHan > 0) err('sv-cognate', `${svHan} sv_cognate values contain Han characters`);
+
     // FTS coverage
     const words = one('SELECT COUNT(*) AS n FROM words');
     const fts = one('SELECT COUNT(*) AS n FROM words_fts');
