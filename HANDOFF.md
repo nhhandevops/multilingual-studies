@@ -1,11 +1,13 @@
 # HANDOFF — continue the work from any machine
 
-> **TL;DR (tiếng Việt):** Dự án đang ở **v0.3** (đã xong, đã tag — **hệ chữ viết**).
-> Xem 好 tự viết rồi tự tô · tô chữ `é` · nghe đủ 1.707 âm tiết pinyin · luyện thanh điệu ·
-> bảng IPA có hình cắt dọc · thẻ tập viết chạy chung vòng ôn SRS của v0.2.
-> **v0.4 đang làm dở (chưa tag): P1 xong** — mỗi thẻ đã có câu ví dụ thật (73.389 câu Tatoeba,
-> có pinyin và bản dịch tiếng Anh) **và P2 xong** — 7.211 từ HSK có giọng người thật (63% số từ
-> có cấp độ). Còn lại: âm thanh tiếng Pháp (Lingua Libre) và TTS dự phòng.
+> **TL;DR (tiếng Việt):** Dự án đang ở **v0.4** (đã xong — **câu ví dụ + âm thanh**).
+> Mỗi thẻ có câu ví dụ thật (68.683 câu Tatoeba, có pinyin và bản dịch tiếng Anh) ·
+> 7.211 từ HSK và 2.782 từ Pháp A1–B1 có giọng người thật · từ nào không có bản thu thì
+> đọc bằng giọng máy (TTS), kể cả câu ví dụ — nên **không từ nào là câm**.
+> v0.3 trước đó: xem 好 tự viết rồi tự tô · tô chữ `é` · nghe đủ 1.707 âm tiết pinyin ·
+> luyện thanh điệu · bảng IPA có hình cắt dọc.
+> ⚠️ Gói dữ liệu giờ **128,9 MB** (tải một lần). Muốn nhỏ lại: sửa hằng số `LEVELS` trong
+> [fr/word-audio.ts](apps/ingest/src/sources/fr/word-audio.ts) — xem "Pack size" bên dưới.
 > Trên máy mới: `pnpm install` → `pnpm ingest seed:all` → `pnpm pack:build` → `pnpm ingest pack publish` → `pnpm dev`.
 
 Keep this file current: update the **Current state** and **Next up** sections at the end of every
@@ -14,11 +16,109 @@ working session, and commit it with the session's push. It is the single source 
 
 ## Current state (updated 2026-07-31)
 
-- **v0.4 IN PROGRESS — not tagged.** Same phase-by-phase rhythm as v0.3.
+- **v0.4 shipped — "Sentences + sound".** Pack `2026.07.31-4`: 68,683 sentences, **11,700 audio
+  clips** (1,707 pinyin syllables + 7,211 HSK words + 2,782 French words), 9,993 word→audio links,
+  17 sources, **128.9 MB gz**. Both roadmap clauses are met: *every card has a real example* ·
+  *most words speak with a human voice* — and anything without a recording now speaks with a
+  synthetic one, so no word is silent.
+  - **P3 done — French words speak too.** `seed:fr-word-audio`
+    ([apps/ingest/src/sources/fr/word-audio.ts](apps/ingest/src/sources/fr/word-audio.ts))
+    ingests **2,782** Lingua Libre recordings from Wikimedia Commons — **93% of the A1–B1 words**
+    (2,782/3,000), 56% of all levelled French, from **17 different speakers**.
+  - **No Commons category crawl was needed.** `Category:Lingua Libre pronunciation-fra` holds
+    430,990 files (~860 paginated calls, and no word→file mapping). The kaikki French extract we
+    **already download** for `seed:fr-kaikki-en` carries `sounds[].audio` + `sounds[].mp3_url` per
+    entry, already joined to the headword. Re-reading that cached file replaces the whole crawl.
+  - **Commons' mp3 transcode, not the source WAV**: `bonjour` is 117 KB as WAV and 15 KB as the
+    transcode. Across thousands of clips that difference decides whether the feature ships at all.
+    There is no `.opus`/`.oga` transcode, and no local re-encode (a fresh machine has no ffmpeg).
+  - **Licenses are verified per file against the Commons API** (batched 50/call, cached to disk),
+    never inferred from the filename — and that is what caught the biggest bug of this version.
+  - **P4 done — TTS fallback, so no word is silent.** One shared `SpeakButton` picks a bundled
+    recording, else the platform speech synthesiser, else renders **nothing at all** (never a
+    button that cannot play). Synthetic playback is labelled `🔊TTS` and dashed-bordered: a
+    learner copying a robot's Mandarin tones is worse off than one who knows to find a native
+    model. Zero bundled bytes and zero licensing burden — nothing is downloaded or redistributed.
+  - **Example sentences get TTS too**, and always will: Tatoeba's own sentence recordings are
+    CC BY-NC-ND, so they can never be bundled. Synthesis is the only pronunciation they will have.
+  - Two real browser failure modes, both found by testing rather than reasoning: Chrome populates
+    `getVoices()` **asynchronously** (availability is read through `useSyncExternalStore` on
+    `voiceschanged`, else the first render decides "no voice" forever), and Chrome **silently
+    drops an utterance queued in the same task as `cancel()`** — which made every *repeat* press
+    do nothing. Yield before re-speaking.
+  - `pack verify` gained a gate: **every bundled clip must name its speaker.** Every clip is
+    CC0/CC BY/CC BY-SA, and for the BY family naming the author is the licence's one real
+    condition; a corpus-level credit cannot discharge it when Lingua Libre is hundreds of people.
+  - Verified: `être` plays a 1.04 s decodable clip from a `blob:` URL with its credit rendered,
+    voices arriving late light the button up, a recorded word never flashes as TTS, a repeat press
+    speaks again after exactly one `cancel()`, and with no voice *and* no recording exactly 0
+    buttons render. **0 off-origin requests, 0 console errors.**
+    Script: `scratchpad/e2e/verify-v04-p3-p4.mjs`.
+
+- **v0.4 P3/P4 hardened after a second adversarial review** (4 lenses; 15 findings raised,
+  **9 refuted, 6 confirmed**). Two of the nine refutations were themselves wrong and were
+  reinstated after checking the code by hand — a refuter that refutes nothing is broken, but so
+  is one trusted blindly. What was real:
+  - **Every French clip was stamped `CC BY-SA 4.0`.** The per-file license was fetched from
+    Commons, used as an accept/reject test, then thrown away while the INSERT hardcoded one
+    constant. The truth, measured over all 2,782 files: **CC0 ×1870, CC BY-SA 4.0 ×902,
+    CC BY 4.0 ×9, CC BY-SA 3.0 ×1** — so **68% of rows asserted ShareAlike obligations over
+    recordings whose authors had dedicated them to the public domain.**
+    [docs/RESEARCH-SOURCES.md](docs/RESEARCH-SOURCES.md) says "Lingua Libre uploads are
+    CC BY-SA 4.0"; that is **wrong for most of the corpus**, and only per-file verification
+    showed it. **No `pack verify` check could ever have caught this** — the license string was
+    well-formed, just untrue. Treat a vetted source's stated license as a starting hypothesis.
+  - **The speaker credit the new gate mandates was stored and never rendered.** `getWordAudioId`
+    is now `getWordAudio` and returns speaker + attribution, shown beside the button.
+  - **`audioId` conflated "lookup in flight" with "no recording exists"**, so a word we *do* have
+    a native recording of painted as a synthetic-voice button for a worker round-trip — and a
+    click in that window really did speak the robot. The three states are now distinct in the
+    type: `undefined` = loading, `null` = none, row = play it.
+  - **`await res.arrayBuffer()` sat outside the download try/catch.** undici resolves `fetch()`
+    on *headers*, so one reset socket mid-body would escape the 100-failure budget and abort the
+    whole seed — and under `seed:all`, the seeds after it too.
+  - **The "permanently missing" markers were inert**: written as zero-byte files, then filtered on
+    `size > 0`, so every known-404 was re-requested on every future run. They are a separate
+    `.missing` sentinel now — a zero-byte mp3 means an *interrupted write*, which must retry, and
+    the two must not look alike (`writeFileSync` is not atomic; `lib/download.ts` uses `.part`).
+  - **TTS and recorded playback could talk over each other**; each path now stops the other.
+  - **The test was wrong in the way that matters most.** Its `speechSynthesis` stub returned a
+    full voice list on the first `getVoices()` and never fired `voiceschanged`, so the
+    async-arrival path — one of the two failure modes P4 claims to handle — was never exercised.
+    It now starts empty and delivers voices the way Chrome does, which **failed until the code was
+    right**. A stub that is kinder than the real API is a test that passes for the wrong reason.
+
+- **Crawl politeness is measured, not guessed.** upload.wikimedia.org answers **429 above ~2
+  concurrent**: raising `polite()`'s budget to 8 made throughput *worse* (0.5 → 0.3 files/s) and
+  lost files to refusals. Wikimedia's documented "~15,000 files/hour" describes their bulk
+  tooling, not transcode URLs. The default (2 in flight, 250 ms apart) is right; the full crawl
+  takes ~2 hours and is checkpointed, so an interrupted run resumes from cache. The license
+  lookups are cached to disk too, so a resumed run re-asks Commons nothing.
+
+- **⚠️ Pack size is now the open decision: 87.6 → 128.9 MB gz.** French audio added ~41 MB.
+  Nothing is broken — it is a one-time download for a local-first app — but it should be a
+  choice. The lever is one constant, `LEVELS` in
+  [fr/word-audio.ts](apps/ingest/src/sources/fr/word-audio.ts); already-downloaded clips stay
+  cached, so trimming costs only a re-run:
+  `['A1','A2']` ≈ 1,977 clips (−14 MB) · `['A1']` ≈ 990 clips (−34 MB).
+  Other levers, unchanged: drop zh word audio to `18k-abr` (−8 MB), restrict stroke data to
+  HSK + top-N (−9 MB), or **split media into an optional second pack** — the real answer, which
+  v0.9 (PWA + deploy) forces anyway.
+
+- **Deliberately deferred: curated sentence audio** (the one 0.4 roadmap item not built). Filtered
+  to bundleable licenses, Tatoeba offers ~6,663 English and ~2,126 French clips and **zero
+  Mandarin** (all CK recordings are CC BY-NC-ND, the rest carry empty licenses). Sentence clips
+  are far larger than word clips, so it would add heavily to an already-128 MB pack to buy
+  coverage for two of three languages. TTS reads example sentences today. Revisit when media
+  splits into its own pack.
+
+- **v0.4 P1/P2 (built earlier in the version):**
   - **P1 done — every card has a real example.** `seed:sentences`
     ([apps/ingest/src/sources/shared/tatoeba.ts](apps/ingest/src/sources/shared/tatoeba.ts))
-    ingests Tatoeba (CC BY 2.0 FR) filtered to words we actually ship: **73,389 sentences,
-    96,202 word links**. Coverage of levelled words: **HSK1 99% · HSK2 97% · HSK3 94% ·
+    ingests Tatoeba (CC BY 2.0 FR) filtered to words we actually ship. First run: 73,389
+    sentences / 96,202 word links; **68,683 / 81,783 after the content and script filters
+    below** — that smaller number is what ships, and is the one to trust.
+    Coverage of levelled words at that first run: **HSK1 99% · HSK2 97% · HSK3 94% ·
     EN 93% · FR 94%**. ZH readings are generated with `pinyin-pro`, not taken from Tatoeba's
     patchy transcriptions export.
   - **Attribution is per sentence, not per corpus.** CC BY 2.0 FR requires crediting the
@@ -267,10 +367,19 @@ working session, and commit it with the session's push. It is the single source 
 - Pack `2026.07.29-2` is published on [GitHub Releases (v0.1)](https://github.com/nhhandevops/multilingual-studies/releases/tag/v0.1) under CC BY-SA 4.0 — see "The database" below.
 - 2026-07-30: git history was rewritten (force-push) to purge 142 MB of accidentally committed pack duplicates; `.gitignore` now blanket-ignores `*.gz`. If an old clone exists somewhere, delete and re-clone instead of pulling.
 
-## Next up: v0.4
+## Next up: v0.5 — Grammar
 
-v0.3 is complete and tagged. See [docs/PLAN.md](docs/PLAN.md) for the 0.4 row and pick it up from
-there; the roadmap is the "what's next" oracle, this file is the "where were we" one.
+v0.4 is complete. See [docs/PLAN.md](docs/PLAN.md) for the 0.5 row (Wikibooks EN sequenced by
+CEFR-J + HSK official grammar CSV + Chinese Grammar Wiki **deep links only** — it is CC BY-NC-SA,
+so link, never bundle — + Tex's French Grammar verbatim with audio + a reader UI). The roadmap is
+the "what's next" oracle; this file is the "where were we" one.
+
+Two things to settle before or during 0.5:
+
+1. **The pack size decision above.** 128.9 MB works but should be chosen, not inherited.
+2. **Whether grammar text needs a `license_mode='verbatim-only'` path** — Tex's French Grammar is
+   bundleable verbatim but not adaptable, which is a mode `pack verify` already knows about but
+   no source has exercised yet.
 
 **The v0.2 → v0.3 in-place upgrade is verified**, not assumed: an existing install on the
 pre-v0.3 pack with real SRS state (cards, a review, a streak) upgrades on reload — pack version
@@ -323,10 +432,11 @@ Notes:
 > `apps/ingest` rồi build lại pack. File này không nằm trong git; máy khác lấy nó bằng cách
 > tự build (cách A) hoặc tải từ GitHub Releases (cách B).
 
-> **Size changed in v0.3:** the pack is now **47.4 MB gz** (was 27.7 MB) — stroke data for 9,432
-> characters plus 7.5 MB of pinyin syllable audio. The published v0.1 release asset is still the
-> old 27.7 MB pack: it works, but has no `graphemes`/`hanzi_info`/`audio`, so `/write` and
-> `/pinyin` will be empty. Rebuild from sources (way A) to get the writing and audio features.
+> **Size changed again in v0.4:** the pack is now **128.9 MB gz** (27.7 → 47.5 in v0.3 → 128.9).
+> Roughly 86 MB of that is audio blobs and 30 MB is stroke JSON. The published v0.1 release asset
+> is still the old 27.7 MB pack: it works, but has no `graphemes`/`hanzi_info`/`audio`/`sentences`,
+> so `/write`, `/pinyin`, examples and every 🔊 will be empty. Rebuild from sources (way A) to get
+> the writing, sentence and audio features. See the pack-size levers under "Current state".
 
 **What it is.** `content.db` is a read-only SQLite database holding all study content
 (tables: `words`, `senses`, `graphemes`, `hanzi_info`, `audio`, `audio_blobs`, `sources`, `meta`,
@@ -388,6 +498,8 @@ now blanket-ignores `*.gz`. If you see such files: they are redundant browser do
 | `apps/ingest` | CLI: `pnpm ingest seed:…` / `pack build` / `pack verify` / `pack publish` |
 | `apps/web` | React 19 + Vite PWA; sqlite-wasm worker in `src/db/sqlite.worker.ts` (owns content.db **and** user.db); `src/db/user-queries.ts` = all SRS SQL; `src/routes/review.tsx`; `src/srs/clock.ts` = debug clock |
 | `apps/web/src/components/stroke-writer.tsx` | (v0.3) hanzi-writer wrapper — data comes from the pack, never the network; works for any glyph with `{strokes,medians}` |
+| `apps/ingest/src/sources/fr/word-audio.ts` | (v0.4) Lingua Libre FR audio via Commons — mp3 transcodes found in the cached kaikki file; **license verified per file, never assumed**; `LEVELS` is the pack-size lever |
+| `apps/web/src/audio/tts.ts`, `components/speak-button.tsx` | (v0.4) speech-synthesis fallback + the one button both routes use: recording → synthesis → nothing. Synthetic playback is always labelled |
 | `apps/web/src/routes/write.tsx`, `glyph.tsx` | (v0.3) `/write` browse-by-level/strokes, `/write/:glyph` animate · trace · decomposition · add writing card |
 | `apps/web/public/licenses/ARPHICPL.TXT` | (v0.3) **must stay committed** — the Arphic PL requires redistributing its text; `pack verify` fails if it goes missing |
 | `packages/shared` | ID derivation (contract!), Zod types, `src/srs/` = user.db schema + ts-fsrs wrapper (`@mls/shared/srs`) |
@@ -439,3 +551,13 @@ Gotchas learned the hard way (they cost real debugging time):
   origin. That is what proves the packed stroke data is *usable*, not merely present.
 - `/review`'s done screen keeps `phase='done'` when you click the nav link to `/review` (same
   route ⇒ no remount). Click the done screen's own back button instead.
+- **A stub kinder than the real API is a test that passes for the wrong reason.** Headless Chrome
+  ships no speech-synthesis voices, so `window.speechSynthesis` has to be stubbed — and the first
+  stub returned a full voice list from the very first `getVoices()` and never fired
+  `voiceschanged`. Every assertion passed while the entire async-arrival path went unexercised.
+  Model the API's *awkward* behaviour (empty first, event later), not its convenient one; the
+  corrected stub failed until the code was actually right.
+- **Assertions can encode the bug.** The same script asserted French credits matched
+  `/CC BY-SA 4.0/` — the exact false assumption that the seed was hardcoding. It "passed" until
+  real per-clip licenses arrived, then failed on correct data. When a test hardcodes a constant
+  the code also hardcodes, it proves only that the two agree.

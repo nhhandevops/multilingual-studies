@@ -82,6 +82,14 @@
       "license": "CC BY-SA 4.0",
       "notes": "New & Pallier, Lexique 3.83 — mirror: github.com/chrplr/openlexicon"
     },
+    "lingualibre:fra/A1+A2+B1": {
+      "url": "https://commons.wikimedia.org/wiki/Category:Lingua_Libre_pronunciation-fra",
+      "sha256": "abaab6b7c58c5de15b6cca5aad27198bd9fcd6f8ea84e2111902e042555efdcd",
+      "bytes": 50488596,
+      "retrievedAt": "2026-07-31T08:43:37.896Z",
+      "license": "CC0 / CC BY / CC BY-SA, per clip (Lingua Libre speakers, via Wikimedia Commons)",
+      "notes": "2782 French word mp3 transcodes for levels A1/A2/B1; license verified per file via the Commons API, never inferred from the filename"
+    },
     "mmah:ARPHICPL.TXT": {
       "url": "https://raw.githubusercontent.com/chanind/hanzi-writer-data/master/ARPHICPL.TXT",
       "sha256": "5590533436c70f10f2f524ee61456238c290175c6662fbe1c700b5f038a6d328",
