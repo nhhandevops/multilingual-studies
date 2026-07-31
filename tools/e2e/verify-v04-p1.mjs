@@ -10,7 +10,7 @@ import { readdirSync, mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { REPO, BASE, CHROME } from './paths.mjs';
+import { REPO, BASE, CHROME, newestPack } from './paths.mjs';
 const require=createRequire(`${REPO}/apps/ingest/package.json`);
 const Database=require('better-sqlite3');
 const packsDir=join(REPO,'build','packs');

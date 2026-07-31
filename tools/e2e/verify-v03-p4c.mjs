@@ -10,11 +10,11 @@ import { readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 
-import { REPO, BASE, CHROME } from './paths.mjs';
+import { REPO, BASE, CHROME, newestPack } from './paths.mjs';
 const require = createRequire(`${REPO}/apps/ingest/package.json`);
 const Database = require('better-sqlite3');
 const packsDir = join(REPO, 'build', 'packs');
-const newest = readdirSync(packsDir).sort().at(-1);
+const newest = newestPack(readdirSync(packsDir));
 const pdb = new Database(join(packsDir, newest, 'content.db'), { readonly: true });
 const phones = pdb.prepare(`SELECT glyph, notes_md, diagram_ref FROM graphemes WHERE lang='all' AND kind='ipa_phone' ORDER BY ord`).all();
 const assets = pdb.prepare(`SELECT COUNT(*) n, SUM(length(bytes)) b FROM asset_blobs`).get();

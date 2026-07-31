@@ -225,3 +225,25 @@ button.speak.tts sup { font-size: 0.55em; letter-spacing: 0.03em; margin-left: 0
 .daily-detail { max-width: 46rem; }
 .daily-detail .attribution { border-top: 1px dashed var(--border); padding-top: 0.5rem; }
 .today-block.tip h4 { margin: 0.4rem 0 0.2rem; }
+
+/* tech vocabulary (v0.7) */
+.tech-index { max-width: 52rem; }
+.tech-search { margin: 0.4rem 0; }
+.tech-list { list-style: none; padding: 0; margin: 0.5rem 0; }
+.tech-list li { display: flex; align-items: center; gap: 0.4rem; }
+.tech-list a { flex: 1; display: grid; grid-template-columns: 1.2fr 1fr 1fr 1fr; gap: 0.6rem;
+  align-items: baseline; text-decoration: none; color: inherit; padding: 0.3rem 0.2rem;
+  border-bottom: 1px solid var(--border); }
+.tech-list a:hover .hw { text-decoration: underline; }
+/* A missing label renders as an em-dash cell on purpose — the gap is data, not a rendering bug. */
+.tech-cell { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tech-cell.vi { color: var(--accent); }
+.tech-detail { max-width: 46rem; }
+.tech-langs { margin: 1rem 0; }
+.tech-lang-row { display: flex; gap: 0.8rem; margin: 0.4rem 0; align-items: baseline; }
+.tech-lang-row dt { color: var(--fg-soft); min-width: 7rem; }
+.tech-lang-row dd { margin: 0; }
+.tech-def { line-height: 1.6; }
+.tech-labels { margin: 0.5rem 0; }
+.tech-label { font-size: 1.15rem; margin: 0.25rem 0; }
+.tech-label .badge { margin-right: 0.4rem; }

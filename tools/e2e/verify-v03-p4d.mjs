@@ -11,13 +11,13 @@ import { readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 
-import { REPO, BASE, CHROME } from './paths.mjs';
+import { REPO, BASE, CHROME, newestPack } from './paths.mjs';
 const GLYPH = 'é';
 
 const require = createRequire(`${REPO}/apps/ingest/package.json`);
 const Database = require('better-sqlite3');
 const packsDir = join(REPO, 'build', 'packs');
-const newest = readdirSync(packsDir).sort().at(-1);
+const newest = newestPack(readdirSync(packsDir));
 const pdb = new Database(join(packsDir, newest, 'content.db'), { readonly: true });
 const letters = pdb.prepare(`SELECT glyph, stroke_json FROM graphemes WHERE kind='letter' ORDER BY ord`).all();
 const target = letters.find((l) => l.glyph === GLYPH);

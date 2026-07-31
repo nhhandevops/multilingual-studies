@@ -9,12 +9,12 @@ import { chromium } from 'playwright-core';
 import { createRequire } from 'node:module';
 import { readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { REPO, BASE, CHROME } from './paths.mjs';
+import { REPO, BASE, CHROME, newestPack } from './paths.mjs';
 
 const require = createRequire(`${REPO}/apps/ingest/package.json`);
 const Database = require('better-sqlite3');
 const packsDir = join(REPO, 'build', 'packs');
-const newest = readdirSync(packsDir).sort().at(-1);
+const newest = newestPack(readdirSync(packsDir));
 const pdb = new Database(join(packsDir, newest, 'content.db'), { readonly: true });
 
 const fail = m => { throw new Error(`ASSERT: ${m}`); };

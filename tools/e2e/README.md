@@ -35,7 +35,7 @@ pnpm --filter @mls/web build && node static-server.mjs &
 MLS_BASE=http://localhost:5199 node ./verify-upgrade-v02-to-v03.mjs
 ```
 
-All 14 pass on v0.6.
+All 15 pass on v0.7.
 
 ## What each one proves
 
@@ -54,6 +54,7 @@ All 14 pass on v0.6.
 | `verify-v04-p3-p4.mjs` | 0.4 | French Lingua Libre audio + the TTS fallback, incl. late-arriving voices and per-clip credit |
 | `verify-v05-p1-p2.mjs` | 0.5 | the grammar reader: HSK-2 得 offline, Tex with audio, and every "learn more" link fetched to prove it resolves |
 | `verify-v06.mjs` | 0.6 | the daily pull: pulling twice does not duplicate, a dying source degrades to a partial report, and the word of the day reaches the SRS deck |
+| `verify-v07.mjs` | 0.7 | the tech module: zh labels all simplified, no English-as-Vietnamese, no disambiguation QIDs (live-sampled), 固件 finds Firmware, and the tech card reviews with its labels |
 | `verify-upgrade-v02-to-v03.mjs` | 0.3 | an in-place pack upgrade preserves all SRS state (needs `static-server.mjs`, not `pnpm dev`) |
 | `audit-v04-fixes.cjs` | 0.4 | data-level audit of the sentence corpus (no browser; reads `build/staging.db`) |
 

@@ -121,6 +121,14 @@
       "license": "Arphic Public License (derived from Arphic PL KaitiM GB / PL UKai fonts)",
       "notes": "stroke outlines + medians, one JSON object per line"
     },
+    "nist-csrc:glossary-export.zip": {
+      "url": "https://csrc.nist.gov/csrc/media/glossary/glossary-export.zip",
+      "sha256": "3122634aa01b7f447333a2ad77be33eceeab2f80035967d8d267581a25864221",
+      "bytes": 831036,
+      "retrievedAt": "2026-07-31T16:12:31.961Z",
+      "license": "Public domain (US government work)",
+      "notes": "CSRC glossary bulk export, regenerated daily; sha256 of the inner JSON is published in glossary-export.meta"
+    },
     "octanove:vocabulary-profile-c1c2-1.0.csv": {
       "url": "https://raw.githubusercontent.com/openlanguageprofiles/olp-en-cefrj/master/octanove-vocabulary-profile-c1c2-1.0.csv",
       "sha256": "18c33a407f2f89f7b8de9671c6d45fe3ea0bce45e7d2d7dcaab48d73e0f7b380",
@@ -177,6 +185,14 @@
       "bytes": 2638413,
       "retrievedAt": "2026-07-30T16:12:33.813Z",
       "license": "CC BY 2.0 FR (translation links)"
+    },
+    "tech-vocab:compiled": {
+      "url": "https://www.wikidata.org/",
+      "sha256": "3870a78df33d90acb9b0d794b5fa31e90262392435f244a4e1bfda28a451c127",
+      "bytes": 37278,
+      "retrievedAt": "2026-07-31T16:18:28.083Z",
+      "license": "Definitions: CC BY-SA 4.0 (Wikipedia) / public domain (NIST) per row; labels: CC0 (Wikidata)",
+      "notes": "161 terms; glossary revids: 1355802679, 1365206191, 1364204325; entity payload sha d440b20e94ba; NIST sha 5f788d61097a"
     },
     "texs-french-grammar": {
       "url": "https://www.laits.utexas.edu/tex/gr/index.html",

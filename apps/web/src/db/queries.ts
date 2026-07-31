@@ -624,6 +624,93 @@ export function tipLinks(row: { links: string | null }): GrammarLink[] {
   }
 }
 
+// --- tech vocabulary (v0.7) -------------------------------------------------
+
+export interface TechTermRow {
+  id: string;
+  term: string;
+  definition: string;
+  domain: string | null;
+  source_id: string;
+  attribution: string; //      per-term credit — always render it
+  wikidata_qid: string | null;
+  source_name: string;
+  source_url: string;
+  license: string;
+}
+
+export interface TechLabelRow {
+  lang: string; //     'zh' | 'fr' | 'vi'
+  label: string;
+  aliases: string | null; //  JSON array
+}
+
+/**
+ * Terms with their labels in one round trip.
+ *
+ * The join is deliberately LEFT: a term whose Wikidata item lacks a Vietnamese label is still a
+ * term worth showing — the gap is displayed as a gap, not used to hide the row. (Both tables ship
+ * in the same pack, but `tolerant` still wraps the queries: an installed pack can predate v0.7,
+ * exactly the situation that threw `no such table: word_audio` for three versions.)
+ */
+export async function listTechTerms(db: Db, domain?: string): Promise<(TechTermRow & { labels: TechLabelRow[] })[]> {
+  const where = domain ? `WHERE t.domain = ?` : '';
+  const terms = await tolerant<TechTermRow>(() =>
+    db.query<TechTermRow>(
+      `SELECT t.*, s.name AS source_name, s.url AS source_url, s.license
+         FROM tech_terms t JOIN sources s ON s.id = t.source_id ${where}
+        ORDER BY t.term`,
+      domain ? [domain] : [],
+    ),
+  );
+  if (terms.length === 0) return [];
+  const labels = await tolerant<TechLabelRow & { term_id: string }>(() =>
+    db.query<TechLabelRow & { term_id: string }>(
+      `SELECT term_id, lang, label, aliases FROM tech_term_labels ORDER BY term_id, lang`,
+    ),
+  );
+  const byTerm = new Map<string, TechLabelRow[]>();
+  for (const l of labels) {
+    const list = byTerm.get(l.term_id) ?? [];
+    list.push(l);
+    byTerm.set(l.term_id, list);
+  }
+  return terms.map((t) => ({ ...t, labels: byTerm.get(t.id) ?? [] }));
+}
+
+export async function getTechTerm(db: Db, id: string): Promise<(TechTermRow & { labels: TechLabelRow[] }) | null> {
+  const rows = await tolerant<TechTermRow>(() =>
+    db.query<TechTermRow>(
+      `SELECT t.*, s.name AS source_name, s.url AS source_url, s.license
+         FROM tech_terms t JOIN sources s ON s.id = t.source_id WHERE t.id = ?`,
+      [id],
+    ),
+  );
+  const term = rows[0];
+  if (!term) return null;
+  const labels = await tolerant<TechLabelRow>(() =>
+    db.query<TechLabelRow>(`SELECT lang, label, aliases FROM tech_term_labels WHERE term_id = ? ORDER BY lang`, [id]),
+  );
+  return { ...term, labels };
+}
+
+export async function techDomains(db: Db): Promise<{ domain: string; n: number }[]> {
+  return tolerant(() =>
+    db.query(`SELECT domain, COUNT(*) AS n FROM tech_terms WHERE domain IS NOT NULL GROUP BY domain ORDER BY domain`),
+  );
+}
+
+/** Parse a label row's aliases; malformed JSON must not take the page down. */
+export function labelAliases(row: { aliases: string | null }): string[] {
+  if (!row.aliases) return [];
+  try {
+    const v: unknown = JSON.parse(row.aliases);
+    return Array.isArray(v) ? v.filter((a): a is string => typeof a === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
 export async function listSources(db: Db): Promise<SourceRow[]> {
   return db.query<SourceRow>(`SELECT * FROM sources ORDER BY id`);
 }

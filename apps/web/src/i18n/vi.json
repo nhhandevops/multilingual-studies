@@ -13,7 +13,8 @@
     "tones": "Thanh điệu",
     "ipa": "Bảng IPA",
     "grammar": "Ngữ pháp",
-    "today": "Hôm nay"
+    "today": "Hôm nay",
+    "tech": "Từ vựng nghề"
   },
   "deck": {
     "add": "Thêm vào bộ thẻ",
@@ -56,7 +57,8 @@
       "day": "{{n}} ngày",
       "month": "{{n}} tháng"
     },
-    "glyphDetail": "Xem chi tiết chữ →"
+    "glyphDetail": "Xem chi tiết chữ →",
+    "techDetail": "Xem thuật ngữ →"
   },
   "write": {
     "title": "Tập viết chữ Hán",
@@ -167,7 +169,9 @@
     "en": "Tiếng Anh",
     "zh": "Tiếng Trung",
     "fr": "Tiếng Pháp",
-    "all": "Chữ viết chung"
+    "all": "Chữ viết chung",
+    "tech": "Nghề (IoT)",
+    "vi": "Tiếng Việt"
   },
   "ui": {
     "language": "Ngôn ngữ giao diện"
@@ -200,5 +204,16 @@
     "noBody": "Mục này không có nội dung kèm theo.",
     "readOriginal": "Đọc bản gốc",
     "listenAtSource": "Nghe trên trang gốc"
+  },
+  "tech": {
+    "title": "Từ vựng nghề (IoT)",
+    "subtitle": "Mỗi khái niệm hiện tên ở cả bốn thứ tiếng. Ô nào trống nghĩa là Wikidata chưa có tên cho tiếng đó — đó là dữ liệu thật, không phải lỗi.",
+    "allDomains": "Tất cả lĩnh vực",
+    "searchPlaceholder": "Tìm theo bất kỳ thứ tiếng nào: firmware, 固件, micrologiciel…",
+    "count": "{{n}} thuật ngữ",
+    "definition": "Định nghĩa (tiếng Anh)",
+    "noLabel": "chưa có tên trong tiếng này",
+    "notFound": "Không tìm thấy thuật ngữ.",
+    "back": "← Quay lại từ vựng nghề"
   }
 }

@@ -13,7 +13,8 @@
     "tones": "Tones",
     "ipa": "IPA",
     "grammar": "Grammar",
-    "today": "Today"
+    "today": "Today",
+    "tech": "Tech vocab"
   },
   "deck": {
     "add": "Add to deck",
@@ -56,7 +57,8 @@
       "day": "{{n}}d",
       "month": "{{n}}mo"
     },
-    "glyphDetail": "Open character page →"
+    "glyphDetail": "Open character page →",
+    "techDetail": "Term page →"
   },
   "write": {
     "title": "Hanzi writing practice",
@@ -167,7 +169,9 @@
     "en": "English",
     "zh": "Chinese",
     "fr": "French",
-    "all": "Writing systems"
+    "all": "Writing systems",
+    "tech": "Tech (IoT)",
+    "vi": "Vietnamese"
   },
   "ui": {
     "language": "UI language"
@@ -200,5 +204,16 @@
     "noBody": "This item has no bundled text.",
     "readOriginal": "Read the original",
     "listenAtSource": "Listen at the source"
+  },
+  "tech": {
+    "title": "Professional vocabulary (IoT)",
+    "subtitle": "Each concept shows its name in all four languages. An empty cell means Wikidata has no name in that language — that is real data, not an error.",
+    "allDomains": "All domains",
+    "searchPlaceholder": "Search in any language: firmware, 固件, micrologiciel…",
+    "count": "{{n}} terms",
+    "definition": "Definition (English)",
+    "noLabel": "no name recorded in this language",
+    "notFound": "Term not found.",
+    "back": "← Back to tech vocabulary"
   }
 }

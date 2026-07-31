@@ -22,7 +22,10 @@ import { clockOffsetMs, localDateStr, srsNow } from '../srs/clock';
 // 'all' is a real deck, not a placeholder: script graphemes that belong to no single language
 // (Latin letters, IPA phones) are stored with lang='all', and leaving it out of this list
 // would let a user add such a card that then never comes up for review.
-const LANGS = ['zh', 'en', 'fr', 'all'] as const;
+// 'tech' (v0.7) is the professional-vocabulary deck, separate on purpose: it has its own daily
+// budget, so drilling job terms never eats the zh/en/fr new-card allowance — and this list is
+// exactly the place v0.3's note said a new content lang must be added, or its cards never surface.
+const LANGS = ['zh', 'en', 'fr', 'all', 'tech'] as const;
 /** Cards whose next step lands within this window loop back into the running session. */
 const RELEARN_WINDOW_MS = 10 * 60_000;
 
@@ -146,6 +149,7 @@ export function Review() {
     const card = queue[0]!;
     const snap = parseSnapshot(card);
     const isGrapheme = snap !== null && snapshotKind(snap) === 'grapheme';
+    const isTech = snap !== null && snapshotKind(snap) === 'tech';
     const preview = previewMinutes(card, srsNow());
     return (
       <main className="review">
@@ -158,11 +162,25 @@ export function Review() {
             <div className="review-answer">
               {snap.reading && <div className="reading">{snap.reading}</div>}
               {snap.altForm && snap.altForm !== snap.headword && <div className="hw">{snap.altForm}</div>}
+              {/* Tech cards: the answer IS the term in the other languages, from the snapshot.
+                  Vietnamese leads — it is the gloss language a Vietnamese learner anchors to. */}
+              {isTech && snap.labels && (
+                <div className="tech-labels">
+                  {(['vi', 'zh', 'fr'] as const).map(
+                    (l) =>
+                      snap.labels?.[l] && (
+                        <div key={l} className="tech-label">
+                          <span className="badge">{l.toUpperCase()}</span> {snap.labels[l]}
+                        </div>
+                      ),
+                  )}
+                </div>
+              )}
               <ol className="senses">
                 {snap.senses.map((s, i) => (
                   <li key={i}>
                     {s.pos && <em>{s.pos} </em>}
-                    {s.glossVi ?? s.glossEn}
+                    {isTech ? s.glossEn : s.glossVi ?? s.glossEn}
                   </li>
                 ))}
               </ol>
@@ -173,7 +191,9 @@ export function Review() {
                 db={db}
                 audio={cardAudio}
                 text={snap.headword}
-                lang={isGrapheme ? 'all' : card.lang}
+                // Tech terms are English words spoken in English contexts (the deck's lang is
+                // 'tech', which no speech voice matches) — say them with an English voice.
+                lang={isGrapheme ? 'all' : isTech ? 'en' : card.lang}
                 variant="block"
               />
               {/* Grapheme cards get the writer on the answer side: recall first, then practise
@@ -218,6 +238,8 @@ export function Review() {
         <p>
           {isGrapheme ? (
             <Link to={`/write/${encodeURIComponent(snap?.headword ?? '')}`}>{t('review.glyphDetail')}</Link>
+          ) : isTech ? (
+            <Link to={`/tech/${encodeURIComponent(card.id)}`}>{t('review.techDetail')}</Link>
           ) : (
             <Link to={`/word/${encodeURIComponent(card.id)}`}>{t('review.wordDetail')}</Link>
           )}

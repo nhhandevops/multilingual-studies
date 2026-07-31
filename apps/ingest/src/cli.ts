@@ -38,6 +38,7 @@ const SEEDS: Record<string, () => Promise<{ run: SeedFn }>> = {
   sentences: () => import('./sources/shared/tatoeba'), //  needs every word seed (filters to pack words)
   freq: () => import('./sources/shared/freq'),
   tips: () => import('./sources/shared/tips'), //          authored evergreen study tips
+  'tech-vocab': () => import('./sources/tech/vocab'), //   needs zh-cedict (traditional-char filter for labels)
 };
 
 for (const name of Object.keys(SEEDS)) {

@@ -1,6 +1,14 @@
 # HANDOFF — continue the work from any machine
 
-> **TL;DR (tiếng Việt):** Dự án đang ở **v0.6** (đã xong — **bản tin mỗi ngày**).
+> **TL;DR (tiếng Việt):** Dự án đang ở **v0.7** (đã xong — **từ vựng nghề IoT**).
+> Mục `/tech`: **161 thuật ngữ** IoT/nhúng/mạng/bảo mật, mỗi khái niệm hiện tên ở **bốn thứ
+> tiếng** — firmware / 固件 / firmware (micrologiciel) / Phần sụn — kèm định nghĩa tiếng Anh
+> (Wikipedia hoặc NIST) và nút ＋ đưa thẳng vào bộ thẻ ôn tập (bộ thẻ "Nghề" riêng, không ăn vào
+> hạn mức từ mới của ba thứ tiếng). Tên tiếng Trung **luôn là giản thể** (có cổng kiểm tra trong
+> `pack verify`); ô nào trống là Wikidata thật sự chưa có tên — hiện là khoảng trống, không bịa.
+> Phủ tiếng Việt: **134/161 (83%)**, trong đó 83 tên thuần Việt, còn lại là từ mượn (MQTT, GPIO…).
+>
+> Trước đó, v0.6 — **bản tin mỗi ngày**:
 > Mục `/today`: tin tức thật, mới trong ngày, ở cả ba thứ tiếng — **VOA tiếng Trung** (miền công
 > cộng), **Global Voices** tiếng Anh và tiếng Pháp (CC BY), và mục "tin vắn" của Wikipedia Pháp/Trung.
 > Kèm theo: **160 bài đọc tiếng Anh phân cấp** từ kho VOA Learning English, **từ của ngày** lấy từ
@@ -30,6 +38,79 @@ working session, and commit it with the session's push. It is the single source 
 "where were we?" on a fresh clone.
 
 ## Current state (updated 2026-07-31)
+
+- **v0.7 shipped — "IoT vocabulary".** A `/tech` module over **161 curated concepts** in six
+  domains (hardware 24 · electronics 28 · firmware 29 · networking 35 · security 20 · cloud 25),
+  each showing its name in **four languages** with an English definition, per-term provenance, and
+  a ＋ into its own SRS deck. The roadmap clause holds: *learn firmware/固件/micrologiciel with a
+  Vietnamese label; drill in SRS*. Pack `2026.07.31-10`: 130.4 → **130.4 MB gz** (+0.05 MB — text
+  is cheap), 29 sources.
+  - **The term list is CURATED, not crawled** ([tech/terms.ts](apps/ingest/src/sources/tech/terms.ts)).
+    NIST is 9,541 records of which 55% are acronym stubs and most of the rest is compliance
+    vocabulary; Wikipedia's glossaries are organised by academic field. 161 hand-picked concepts an
+    IoT engineer actually meets beat both — thin and correct, the v0.5 English-grammar call again.
+    **The slug is ours and is the ID key** (`tech:t:iot:firmware`): Wikipedia renamed I²C → I2C
+    live during recon, and an ID derived from the title would have forked and orphaned SRS state.
+  - **Labels come from Wikidata (CC0), and the obvious implementation ships wrong data three
+    ways** — all measured, all guarded now:
+    (1) **the `zh` label is often traditional** (韌體, 編譯器 — whatever script the last editor
+    typed). The seed requests `zh-hans` with `languagefallback=1`, which really converts and
+    reports `source-language`. (2) **zh-hans itself is not a guarantee**: telemetry's zh-hans
+    label is the mixed-script "遥測", typed into the simplified field by an editor. Labels AND
+    aliases both pass the same screen — the lexicon-derived traditional-only character set from
+    v0.4 — and a failing label is replaced by its first clean alias (遥测) or shipped as a gap
+    (HSM). `pack verify` re-checks every zh label/alias against the same construction, so this
+    cannot regress silently. (3) **`languagefallback` substitutes English silently**: a missing
+    vi label arrives as `{value:"edge computing", language:"en", "for-language":"vi"}` under the
+    `vi` key. The accept rule stores a label only when `language` is the requested one (or `mul`,
+    Wikidata's explicit "identical everywhere" — Wi-Fi). Well-formed and untrue, v0.4's licence
+    bug in a new field.
+  - **Vietnamese coverage, with its counting rule beside it**: 134/161 terms (83%) carry a genuine
+    vi-language label; 83 of those (52% of all terms) are Vietnamese prose (vi điều khiển, cảm
+    biến, điện toán đám mây), the rest loanwords the vi community records verbatim (MQTT, GPIO,
+    Raspberry Pi). **A gap ships as a gap** — the UI shows "chưa có tên trong tiếng này", never an
+    English placeholder, because the gap is the true state of the data.
+  - **The roadmap's own showcase was half wrong and ships honestly**: Wikidata's fr LABEL for
+    firmware is "firmware" — *micrologiciel* is the fourth alias. Aliases ship too (they carry the
+    everyday terms: 单片机 rides zh-hans, 传感器 rides aliases), so the quartet renders; the
+    acceptance script asserts micrologiciel among label+aliases, not as the label.
+  - **Definitions: glossary 60 · NIST 36 · article intro 65**, per-row provenance in a new
+    `tech_terms.attribution` column (Wikipedia page + revid, or the NIST source publication —
+    NIST asks for the citation; CC BY-SA wants the revision). Chain: Wikipedia's EEE/hardware/CS
+    glossaries (median 92-char plain-English definitions) → NIST CSRC (authoritative, public
+    domain, integrity-checked against its own `.meta` sha256 of the unzipped JSON) → the article's
+    intro extract (guaranteed present). Two NIST traps fixed after the first run shipped them:
+    a naive sentence-splitter broke on "(e.g.," and emitted a definition starting mid-phrase, and
+    indexing a record's definition under all its abbrSyn expansions filed a definition of the
+    Wireless Application Protocol under "wireless access point" — NIST's "WAP" record lists three
+    UNRELATED expansions. Expansion keys are now used only when there is exactly one.
+  - **Join hygiene** ([tech/vocab.ts](apps/ingest/src/sources/tech/vocab.ts)): batch 50,
+    `redirects=1` always, correlate by title through `normalized[]`+`redirects[]` (the response is
+    pageid-sorted, not request-ordered), and reject disambiguation pages by `ppprop` key presence —
+    a bare "Node" resolves to a VALID QID whose labels translate "list of things called node".
+    All 161 titles joined; risky ones are pre-qualified in the term list. The acceptance script
+    re-checks a live sample of shipped QIDs for P31=Q4167410.
+  - **Tech cards are the fifth deck.** `CardSnapshot.kind` gained `'tech'` and an optional
+    `labels {zh,fr,vi}` field — both optional, so every card from v0.2–v0.6 still validates
+    (the same additive pattern as v0.3's `kind` and v0.4's `example`). Cards store `lang='tech'`:
+    a separate deck with its own daily budget, so drilling job vocabulary never eats the zh/en/fr
+    allowance — and `review.tsx`'s LANGS list is exactly where v0.3's note said a new content lang
+    must be added. The review answer renders vi/zh/fr labels from the snapshot (invariant 6); the
+    prompt speaks with an English voice ('tech' matches no speech-synthesis voice).
+  - `/tech` searches ACROSS languages — typing 固件 or 单片机 finds the English row, which is what
+    an engineer who half-remembers a name actually does. Aliases are searchable for the same
+    reason they are displayed.
+  - **A latent v0.5-era bug in the whole suite surfaced**: every acceptance script picked the
+    newest pack with a lexical `sort().at(-1)`, and the day's TENTH build ('2026.07.31-10') sorts
+    before its ninth — verify-v07 validated a stale pack on its first run. All ten scripts now use
+    a shared numeric-suffix `newestPack()` in [paths.mjs](tools/e2e/paths.mjs). The bug was
+    harmless for fourteen versions because no day had ever reached ten builds; it fired the first
+    day one did.
+  - Verified against pack `2026.07.31-10`: 0 uncredited terms, 0 orphan labels, 0 traditional
+    characters in zh labels/aliases, 8 sampled QIDs live-checked as non-disambiguation; 固件
+    narrows the browse to exactly Firmware; the firmware card reaches the "Nghề (IoT)" deck and
+    its review answer shows 固件 from the snapshot. **0 off-origin requests from the app, 0
+    console errors. All 15 acceptance scripts pass.** Script: `tools/e2e/verify-v07.mjs`.
 
 - **v0.6 shipped — "The daily pull".** A `/today` screen over **186 daily items** (26 pulled today
   + a 160-article graded archive), **16 evergreen tips**, and a per-day word plan that feeds the
@@ -559,12 +640,27 @@ working session, and commit it with the session's push. It is the single source 
 - Pack `2026.07.29-2` is published on [GitHub Releases (v0.1)](https://github.com/nhhandevops/multilingual-studies/releases/tag/v0.1) under CC BY-SA 4.0 — see "The database" below.
 - 2026-07-30: git history was rewritten (force-push) to purge 142 MB of accidentally committed pack duplicates; `.gitignore` now blanket-ignores `*.gz`. If an old clone exists somewhere, delete and re-clone instead of pulling.
 
-## Next up: v0.7 — IoT vocabulary
+## Next up: v0.8 — Stats + forecast
 
-v0.6 is complete. See [docs/PLAN.md](docs/PLAN.md) for the 0.7 row (NIST + Wikipedia glossaries +
-Wikidata en/zh/fr/**vi** labels + a tech module UI + tech cards — "learn firmware/固件/micrologiciel
-with a Vietnamese label"). The roadmap is the "what's next" oracle; this file is the "where were
-we" one. `tech_terms` and `tech_term_labels` already exist in the schema and are still empty.
+v0.7 is complete. See [docs/PLAN.md](docs/PLAN.md) for the 0.8 row (dashboard of known words vs
+HSK/CEFR tables + the load simulator with GLH/FSI anchors and a Vietnamese adjustment + SV cognate
+hints on zh cards — "at 7 zh words/day you hit HSK-3 vocab ~Mar 2027, ~35 min/day"). The roadmap
+is the "what's next" oracle; this file is the "where were we" one. Note `words.sv_cognate` has
+existed since v0.1 and is still NULL everywhere — 0.8's cognate hints need a seed to fill it.
+
+Carried forward from 0.7, none blocking:
+
+1. **The term list is 161 concepts; growing it is editorial work, not code.** Add entries to
+   [tech/terms.ts](apps/ingest/src/sources/tech/terms.ts) (exact article title + our slug +
+   domain), re-run `seed:tech-vocab`, rebuild. The seed rejects disambiguation pages and missing
+   articles loudly, so a bad title costs a log line, not bad data. Slugs are the ID contract —
+   never rename one.
+2. **27 terms have no Vietnamese name and 2 no Chinese.** That is Wikidata's real coverage today.
+   If it matters, the fix is upstream (add the labels to Wikidata — they are CC0 and it takes a
+   minute each) and a re-run picks them up; do not hand-patch the pack.
+3. **Tech terms have no audio.** The term page and card offer English TTS only. Bundled
+   pronunciation would need per-term recordings from a source not yet vetted.
+4. **`domain` is a flat six-value tag.** Fine at 161 terms; revisit only if the list triples.
 
 Carried forward from 0.6, none blocking:
 
@@ -667,7 +763,7 @@ Notes:
 - The pack in `apps/web/public/packs/` is **gitignored** — every machine builds its own from sources (same stable IDs ⇒ same user progress compatibility).
 - Acceptance scripts live in [tools/e2e/](tools/e2e/) (`cd tools/e2e && npm install`, then
   `node verify-v06.mjs` with `pnpm dev` running). They need an installed Chrome; set
-  `CHROME=/path/to/chrome` if it is not in a standard location. **All 14 pass on v0.6.** One of
+  `CHROME=/path/to/chrome` if it is not in a standard location. **All 15 pass on v0.7.** One of
   them, `verify-upgrade-v02-to-v03.mjs`, must run against `static-server.mjs` rather than
   `pnpm dev` — see [tools/e2e/README.md](tools/e2e/README.md); running it in a blanket loop
   always "fails", which is how a real v0.4 bug stayed hidden until v0.6.
@@ -680,7 +776,7 @@ Notes:
 > `apps/ingest` rồi build lại pack. File này không nằm trong git; máy khác lấy nó bằng cách
 > tự build (cách A) hoặc tải từ GitHub Releases (cách B).
 
-> **Size as of v0.6: 130.4 MB gz** (27.7 → 47.5 in v0.3 → 128.9 in v0.4 → 130.1 in v0.5 → 130.4).
+> **Size as of v0.7: 130.4 MB gz** (27.7 → 47.5 in v0.3 → 128.9 in v0.4 → 130.1 in v0.5 → 130.4 in v0.6; v0.7 added +0.05 — text is cheap).
 > Roughly 86 MB of that is audio blobs and 30 MB is stroke JSON. The published v0.1 release asset
 > is still the old 27.7 MB pack: it works, but has no `graphemes`/`hanzi_info`/`audio`/`sentences`,
 > so `/write`, `/pinyin`, examples and every 🔊 will be empty. Rebuild from sources (way A) to get

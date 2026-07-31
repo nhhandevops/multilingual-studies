@@ -35,17 +35,24 @@ export const CardSnapshot = z.object({
   packVersion: z.string(),
   // v0.3 additions — OPTIONAL so every card written by v0.2 still validates on import.
   // Absent `kind` means 'word': that is the only thing v0.2 could create.
-  kind: z.enum(['word', 'grapheme']).optional(),
+  // v0.7 adds 'tech' to the enum — additive, so every earlier card still validates. (The reverse
+  // is not promised and never was: a user.db exported from a NEWER app can carry kinds an older
+  // app's import rejects, exactly as v0.3 grapheme cards would fail a v0.2 import.)
+  kind: z.enum(['word', 'grapheme', 'tech']).optional(),
   /** Graphemes only: hanzi-writer `{strokes,medians}`, frozen in so review never joins content.db. */
   strokeJson: z.string().optional(),
   // v0.4 — one example sentence, frozen at add-time for the same reason as every other field
   // here: a review must render from the snapshot alone (invariant 6). Also optional.
   example: SnapshotExample.optional(),
+  // v0.7 — tech cards: the term's labels in the other study languages, frozen at add-time.
+  // The whole point of a tech card is seeing firmware / 固件 / micrologiciel / phần mềm cơ sở
+  // together, and a review renders from the snapshot alone (invariant 6).
+  labels: z.object({ zh: z.string(), fr: z.string(), vi: z.string() }).partial().optional(),
 });
 export type CardSnapshot = z.infer<typeof CardSnapshot>;
 
 /** Cards created before v0.3 carry no `kind`; they are all word cards. */
-export const snapshotKind = (s: CardSnapshot): 'word' | 'grapheme' => s.kind ?? 'word';
+export const snapshotKind = (s: CardSnapshot): 'word' | 'grapheme' | 'tech' => s.kind ?? 'word';
 
 /** cards row, column-for-column (snake_case = SQL column names). */
 export interface UserCardRow {

@@ -41,6 +41,8 @@ function migrate(db: DB): void {
   for (const [table, col, decl] of [
     ['daily_items', 'attribution', `TEXT NOT NULL DEFAULT ''`],
     ['daily_items', 'published_at', 'TEXT'],
+    ['tech_terms', 'attribution', `TEXT NOT NULL DEFAULT ''`],
+    ['tech_terms', 'wikidata_qid', 'TEXT'],
   ] as const) {
     if (!has(table, col)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${decl}`);
   }

@@ -28,3 +28,16 @@ const CHROME_CANDIDATES = [
  */
 export const CHROME =
   process.env.CHROME ?? CHROME_CANDIDATES.find((p) => existsSync(p)) ?? CHROME_CANDIDATES[0];
+
+/**
+ * Newest pack version in a directory listing. NOT a plain .sort(): pack versions are
+ * `YYYY.MM.DD-N` and the tenth build of a day sorts lexically BEFORE the ninth
+ * ('2026.07.31-10' < '2026.07.31-9'), which made every script that used sort().at(-1) silently
+ * verify a stale pack the day a tenth build first existed. Same comparator as the ingest CLI.
+ */
+export const newestPack = (names) =>
+  [...names].sort((a, b) => {
+    const [da = '', na = '0'] = a.split('-');
+    const [db, nb = '0'] = b.split('-');
+    return da === db ? Number(na) - Number(nb) : da.localeCompare(db);
+  }).at(-1);

@@ -3,7 +3,14 @@
  * Every scheduling mutation goes through db.userExec — one message = one transaction.
  */
 import type { Db } from './provider';
-import { listExamples, type GraphemeRow, type SenseRow, type WordRow } from './queries';
+import {
+  listExamples,
+  type GraphemeRow,
+  type SenseRow,
+  type TechLabelRow,
+  type TechTermRow,
+  type WordRow,
+} from './queries';
 import {
   DEFAULT_NEW_PER_DAY,
   newSrsFields,
@@ -91,6 +98,53 @@ export async function addGraphemeCard(
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)`,
       params: [
         grapheme.id, grapheme.lang, f.due, f.stability, f.difficulty, f.elapsed_days, f.scheduled_days,
+        f.learning_steps, f.reps, f.lapses, f.state, f.last_review, snapshot, now.toISOString(),
+      ],
+    },
+  ]);
+}
+
+/**
+ * Tech cards: same table, same scheduler, `lang='tech'` — its own deck with its own daily budget,
+ * so drilling job vocabulary never eats the zh/en/fr new-card allowance. The prompt side shows
+ * the English term; the answer side shows the definition and the zh/fr/vi labels, all frozen in.
+ */
+function buildTechSnapshot(
+  term: TechTermRow,
+  labels: TechLabelRow[],
+  packVersion: string,
+): CardSnapshot {
+  const byLang = Object.fromEntries(labels.map((l) => [l.lang, l.label])) as Partial<
+    Record<'zh' | 'fr' | 'vi', string>
+  >;
+  return {
+    headword: term.term,
+    altForm: null,
+    reading: null,
+    level: null,
+    freqRank: null,
+    senses: [{ pos: term.domain, glossEn: term.definition, glossVi: byLang.vi ?? null }],
+    packVersion,
+    kind: 'tech',
+    labels: byLang,
+  };
+}
+
+export async function addTechCard(
+  db: Db,
+  term: TechTermRow,
+  labels: TechLabelRow[],
+  packVersion: string,
+  now: Date,
+): Promise<void> {
+  const f = newSrsFields(now);
+  const snapshot = JSON.stringify(buildTechSnapshot(term, labels, packVersion));
+  await db.userExec([
+    {
+      sql: `INSERT OR IGNORE INTO cards (${CARD_COLS})
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)`,
+      params: [
+        term.id, 'tech', f.due, f.stability, f.difficulty, f.elapsed_days, f.scheduled_days,
         f.learning_steps, f.reps, f.lapses, f.state, f.last_review, snapshot, now.toISOString(),
       ],
     },

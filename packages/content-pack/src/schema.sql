@@ -168,11 +168,17 @@ CREATE TABLE IF NOT EXISTS grammar_topics (
 CREATE INDEX IF NOT EXISTS idx_grammar_lang ON grammar_topics(lang, level, ord);
 
 CREATE TABLE IF NOT EXISTS tech_terms (
-  id         TEXT PRIMARY KEY,
-  term       TEXT NOT NULL,
-  definition TEXT NOT NULL,
-  domain     TEXT,
-  source_id  TEXT NOT NULL REFERENCES sources(id)
+  id           TEXT PRIMARY KEY,
+  term         TEXT NOT NULL,
+  definition   TEXT NOT NULL,
+  domain       TEXT,
+  source_id    TEXT NOT NULL REFERENCES sources(id),
+  -- Per-term credit (v0.7): which publication/page/revision the definition came from, and the
+  -- Wikidata item behind the labels. Same reasoning as daily_items.attribution — CC BY-SA wants
+  -- the revision citable, NIST asks for the source publication, and a sources-row credit cannot
+  -- say which page a given row used.
+  attribution  TEXT NOT NULL DEFAULT '',
+  wikidata_qid TEXT                      -- audit handle for the labels; NULL if labels failed
 );
 
 CREATE TABLE IF NOT EXISTS tech_term_labels ( -- Wikidata CC0 labels/aliases

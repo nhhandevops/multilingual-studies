@@ -183,6 +183,41 @@ export function verifyPack(packDir: string, packsDir?: string): VerifyIssue[] {
     }
     if (wireHits.length > 5) err('license', `…and ${wireHits.length - 5} more wire-derived daily_items`);
 
+    // tech vocabulary (v0.7) -----------------------------------------------------------------
+    const techNoCredit = one(
+      `SELECT COUNT(*) AS n FROM tech_terms WHERE attribution IS NULL OR TRIM(attribution) = ''`,
+    );
+    if (techNoCredit > 0) err('attribution', `tech_terms: ${techNoCredit} rows carry no per-term credit`);
+    const orphanLabels = one(`SELECT COUNT(*) AS n FROM tech_term_labels l
+      WHERE NOT EXISTS (SELECT 1 FROM tech_terms t WHERE t.id = l.term_id)`);
+    if (orphanLabels > 0) err('tech', `tech_term_labels: ${orphanLabels} rows point at a missing term`);
+    const emptyLabels = one(`SELECT COUNT(*) AS n FROM tech_term_labels WHERE TRIM(COALESCE(label,'')) = ''`);
+    if (emptyLabels > 0) err('tech', `tech_term_labels: ${emptyLabels} rows have an empty label`);
+    // The script gate. Wikidata's zh labels arrive in whichever script the last editor typed
+    // (韌體 beside 固件, measured), and the seed converts/filters — but a gate enforced only in
+    // the module that remembers it is not enforced. Traditional-only characters are derived from
+    // the pack's own lexicon (chars in alt_form but never in a headword), the same construction
+    // v0.4 used to filter Tatoeba, so no hardcoded list can go stale.
+    {
+      const simp = new Set<string>();
+      const trad = new Set<string>();
+      for (const row of db.prepare(`SELECT headword, alt_form FROM words WHERE lang = 'zh'`).iterate() as Iterable<{
+        headword: string;
+        alt_form: string | null;
+      }>) {
+        for (const ch of row.headword) simp.add(ch);
+        for (const ch of row.alt_form ?? '') trad.add(ch);
+      }
+      const tradOnly = new Set([...trad].filter((ch) => !simp.has(ch)));
+      const zhLabels = db.prepare(`SELECT term_id, label, COALESCE(aliases,'[]') AS aliases
+        FROM tech_term_labels WHERE lang = 'zh'`).all() as { term_id: string; label: string; aliases: string }[];
+      for (const l of zhLabels) {
+        const texts = [l.label, ...(JSON.parse(l.aliases) as string[])];
+        const bad = texts.find((s) => [...s].some((ch) => tradOnly.has(ch)));
+        if (bad) err('tech', `tech_term_labels: zh text "${bad}" for ${l.term_id} contains traditional-only characters`);
+      }
+    }
+
     // FTS coverage
     const words = one('SELECT COUNT(*) AS n FROM words');
     const fts = one('SELECT COUNT(*) AS n FROM words_fts');
@@ -201,8 +236,9 @@ export function verifyPack(packDir: string, packsDir?: string): VerifyIssue[] {
           // prevIds and passes vacuously — new content is not churn.
           // `daily_items` is deliberately absent: a pull replaces the day's items by design, and
           // an archive re-seed re-selects, so churn there is the feature rather than the bug.
-          // `tips` are authored and permanent, so they belong under the gate.
-          for (const table of ['words', 'grammar_topics', 'tips'] as const) {
+          // `tips` are authored and permanent, so they belong under the gate — and `tech_terms`
+          // (v0.7) more than anything: its ids are curated slugs that SRS cards key on.
+          for (const table of ['words', 'grammar_topics', 'tips', 'tech_terms'] as const) {
             let prevRows: { id: string }[] = [];
             try {
               prevRows = prevDb.prepare(`SELECT id FROM ${table}`).all() as { id: string }[];
