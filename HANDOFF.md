@@ -57,6 +57,43 @@ working session, and commit it with the session's push. It is the single source 
     **split media into an optional second pack**, which v0.9 (PWA + deploy) will force anyway.
     Nothing is broken at 88 MB; it is a one-time download for a local-first app. But it should be
     a decision, not a drift.
+  - **P1/P2 hardened after an adversarial review** (29 agents; 25 findings raised, 7 survived
+    refutation, 18 refuted). Four were real and are fixed:
+    - **No content filter.** Tatoeba is an open corpus and shortest-first selection actively
+      *favours* its worst sentences. The rank-0 example was 操你妈！for HSK1 妈 ("mum"),
+      殺了他/殺了她 for 他/她, and "I raped her." for A1 "her" — and `addCard` was freezing those
+      into `user.db` permanently. `isBlocked()` now screens the sentence **and** its translation
+      and rejects it outright; deranking would only make it example #2. **This is a denylist,
+      not a guarantee** — it catches the egregious cases; an open corpus always holds more.
+    - **Traditional-script sentences** (26.5% of zh) matched neither our simplified headwords,
+      stroke animations nor audio, *and* broke transcription. Now rejected, using a
+      traditional-only character set derived from our own lexicon (chars in `alt_form` but never
+      in `headword`) rather than a hardcoded list.
+    - **Wrong polyphones**: 嗎 read "má" in 307/307 sentences, 們 "mén" 590/590, 車 "jū" 125/125.
+      Root cause was the traditional text above; on simplified-only input pinyin-pro is correct.
+      Now 3 suspect syllables across 18,748 aligned sentences.
+    - **Substring matching without segmentation** linked words that only straddled a boundary
+      (有名 from 我没有名字, 人们 from 客人们, 大人 from 加拿大人). Replaced with greedy
+      longest-match segmentation against our own headword list.
+    - **Translations were uncredited.** The bundled English translation is a separate CC BY 2.0
+      FR work by a different contributor; 45,983 rows now carry `translation #<id> by <user>`.
+  - **A fix that looked right and was inert.** The blocklist was first written through a Python
+    heredoc where `` became **literal backspace bytes (0x08)**, so the regex required a control
+    character and matched nothing. Typecheck passed, the seed ran clean, counts looked plausible
+    — only re-auditing the rebuilt data caught it. Use the Edit tool for regex/escape-heavy code.
+  - **A fix that was worse than the bug.** Transcription was rebuilt on our own CC-CEDICT
+    readings; measured, that was *worse* (吗 "má", 行 "háng", a capitalised "Néng" from a
+    proper-noun entry) because one character's entries carry no sentence context. Reverted to
+    pinyin-pro plus two targeted corrections — erhua (哪儿 "nǎr", 一块儿 too; 儿子 untouched) and
+    the structural 得 (做得好 "zuò de hǎo"). **Known limitation:** 得 after a pronoun is left
+    alone, since it is genuinely ambiguous there between modal děi (您得小心) and the verb dé
+    (我得了金牌, which pinyin-pro reads correctly). Resolving it needs POS tagging.
+  - Cost of the filtering: zh coverage of levelled words **71.2% → 63.4%** (HSK1 99% → 98%),
+    en 92.6%, fr 94.0%. Pack 88.3 → **87.6 MB gz**. Worth it — a smaller set that is simplified,
+    clean and correctly transcribed beats a larger one that is not.
+  - Audit script: `scratchpad/e2e/audit-v04-fixes.cjs`. It checks polyphones **character-aligned**,
+    not by substring — a naive search flags 门 "mén", 儿子 "ér" and 德语 "dé" as errors when they
+    are correct. Three of my own audit checks were wrong that way before being tightened.
   - **Seeds must delete before they insert.** Re-running with stricter filters left 77k rejected
     rows behind, because `INSERT … ON CONFLICT` upserts and never removes. `seed:sentences` now
     clears its own rows (scoped by `source_id`) first. Any seed whose *selection* can change
