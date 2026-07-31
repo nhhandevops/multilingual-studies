@@ -53,6 +53,14 @@
       "retrievedAt": "2026-07-29T16:47:58.407Z",
       "license": "MIT (repo); HSK lists are PRC national standard data (GF0025-2021)"
     },
+    "hsk30:hsk30-grammar.csv": {
+      "url": "https://raw.githubusercontent.com/ivankra/hsk30/master/hsk30-grammar.csv",
+      "sha256": "9a546944af00976a3afb160fe70dd564a035d36eff82eb275b6aed7ed8a9ccf4",
+      "bytes": 38801,
+      "retrievedAt": "2026-07-31T11:40:57.461Z",
+      "license": "MIT (repository); the underlying list is the official HSK 3.0 grammar syllabus (PRC MOE)",
+      "notes": "official graded grammar points, OCR-cleaned by ivankra"
+    },
     "ipa-dict:shared/ipa-en_US.txt": {
       "url": "https://raw.githubusercontent.com/open-dict-data/ipa-dict/master/data/en_US.txt",
       "sha256": "2af6f154a5c363275f052d1f85acedef38ed185ca9745aa4314be77f6b70de67",
@@ -169,6 +177,22 @@
       "bytes": 2638413,
       "retrievedAt": "2026-07-30T16:12:33.813Z",
       "license": "CC BY 2.0 FR (translation links)"
+    },
+    "texs-french-grammar": {
+      "url": "https://www.laits.utexas.edu/tex/gr/index.html",
+      "sha256": "6b31eaba155648cb202088b97b5972e9263b41b28106333ad5882ffa4d344b6a",
+      "bytes": 1471818,
+      "retrievedAt": "2026-07-31T12:06:16.575Z",
+      "license": "CC BY 3.0 (COERLL / University of Texas at Austin)",
+      "notes": "130 grammar pages + 8 recorded examples (chapters: adj)"
+    },
+    "wikibooks:English Grammar": {
+      "url": "https://en.wikibooks.org/wiki/English%20Grammar",
+      "sha256": "1edac95f91a9820338c3d1d7f4432484aad5fffe0f47b18e281ddc78382ae4ca",
+      "bytes": 46958,
+      "retrievedAt": "2026-07-31T12:00:18.860Z",
+      "license": "CC BY-SA 4.0 (Wikibooks contributors)",
+      "notes": "17 chapters; \"English in Use\" deliberately excluded (native-speaker oriented, 1851 source prose)"
     }
   }
 }

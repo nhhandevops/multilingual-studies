@@ -154,13 +154,26 @@ export function verifyPack(packDir: string, packsDir?: string): VerifyIssue[] {
       if (prev) {
         const prevDb = new Database(join(packsDir, prev, 'content.db'), { readonly: true });
         try {
-          const prevIds = new Set((prevDb.prepare('SELECT id FROM words').all() as { id: string }[]).map((r) => r.id));
-          const curIds = new Set((db.prepare('SELECT id FROM words').all() as { id: string }[]).map((r) => r.id));
-          let vanished = 0;
-          for (const id of prevIds) if (!curIds.has(id)) vanished++;
-          const pct = prevIds.size === 0 ? 0 : (vanished / prevIds.size) * 100;
-          if (pct > 0.5) err('id-churn', `${vanished} word IDs (${pct.toFixed(2)}%) vanished vs pack ${prev}`);
-          else if (vanished > 0) warn('id-churn', `${vanished} word IDs vanished vs pack ${prev} (${pct.toFixed(2)}% ≤ 0.5%)`);
+          // Words carry SRS state, so their gate is the strict one. Grammar topics carry none
+          // yet, but their IDs are already user-visible (deep links, and future cards) — gate
+          // them too, so a slug-derivation change shows up here and not in a bug report. A table
+          // absent from the OLDER pack (grammar_topics predates its content) contributes zero
+          // prevIds and passes vacuously — new content is not churn.
+          for (const table of ['words', 'grammar_topics'] as const) {
+            let prevRows: { id: string }[] = [];
+            try {
+              prevRows = prevDb.prepare(`SELECT id FROM ${table}`).all() as { id: string }[];
+            } catch {
+              continue; //  table not in the older pack at all
+            }
+            const prevIds = new Set(prevRows.map((r) => r.id));
+            const curIds = new Set((db.prepare(`SELECT id FROM ${table}`).all() as { id: string }[]).map((r) => r.id));
+            let vanished = 0;
+            for (const id of prevIds) if (!curIds.has(id)) vanished++;
+            const pct = prevIds.size === 0 ? 0 : (vanished / prevIds.size) * 100;
+            if (pct > 0.5) err('id-churn', `${vanished} ${table} IDs (${pct.toFixed(2)}%) vanished vs pack ${prev}`);
+            else if (vanished > 0) warn('id-churn', `${vanished} ${table} IDs vanished vs pack ${prev} (${pct.toFixed(2)}% ≤ 0.5%)`);
+          }
         } finally {
           prevDb.close();
         }

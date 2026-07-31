@@ -1,12 +1,18 @@
 # HANDOFF — continue the work from any machine
 
-> **TL;DR (tiếng Việt):** Dự án đang ở **v0.4** (đã xong — **câu ví dụ + âm thanh**).
+> **TL;DR (tiếng Việt):** Dự án đang ở **v0.5** (đã xong — **ngữ pháp**).
+> Mục `/grammar`: **573 điểm ngữ pháp HSK chính thức** (chia cấp HSK1→7-9, đọc offline được),
+> **toàn bộ 130 trang** Tex's French Grammar (có vài bài kèm giọng đọc thật), và 17 chương
+> ngữ pháp tiếng Anh từ Wikibooks. Chỗ nào bị giấy phép cấm đóng gói (Chinese Grammar Wiki,
+> CC BY-NC-SA) thì **chỉ để liên kết ra ngoài** — và chỉ liên kết khi trang đó có thật.
+>
+> Trước đó, v0.4 — **câu ví dụ + âm thanh**:
 > Mỗi thẻ có câu ví dụ thật (68.683 câu Tatoeba, có pinyin và bản dịch tiếng Anh) ·
 > 7.211 từ HSK và 2.782 từ Pháp A1–B1 có giọng người thật · từ nào không có bản thu thì
 > đọc bằng giọng máy (TTS), kể cả câu ví dụ — nên **không từ nào là câm**.
 > v0.3 trước đó: xem 好 tự viết rồi tự tô · tô chữ `é` · nghe đủ 1.707 âm tiết pinyin ·
 > luyện thanh điệu · bảng IPA có hình cắt dọc.
-> ⚠️ Gói dữ liệu giờ **128,9 MB** (tải một lần). Muốn nhỏ lại: sửa hằng số `LEVELS` trong
+> ⚠️ Gói dữ liệu giờ **130,1 MB** (tải một lần). Muốn nhỏ lại: sửa hằng số `LEVELS` trong
 > [fr/word-audio.ts](apps/ingest/src/sources/fr/word-audio.ts) — xem "Pack size" bên dưới.
 > Trên máy mới: `pnpm install` → `pnpm ingest seed:all` → `pnpm pack:build` → `pnpm ingest pack publish` → `pnpm dev`.
 
@@ -15,6 +21,80 @@ working session, and commit it with the session's push. It is the single source 
 "where were we?" on a fresh clone.
 
 ## Current state (updated 2026-07-31)
+
+- **v0.5 shipped — "Grammar".** A `/grammar` reader over **720 topics**: the official HSK 3.0
+  syllabus (573 points, graded HSK1→7-9), Tex's French Grammar in full (130 pages), and 17
+  Wikibooks English chapters. Both roadmap acceptance clauses hold: *read HSK-2 的/得/地 offline*
+  · *Tex's grammar with audio*. Pack `2026.07.31-6`: 128.9 → **130.1 MB gz** (+1.2 MB), 21 sources.
+  - **P1 — the Chinese syllabus.** `seed:zh-grammar`
+    ([apps/ingest/src/sources/zh/grammar.ts](apps/ingest/src/sources/zh/grammar.ts)) ingests
+    ivankra/hsk30's `hsk30-grammar.csv`. **573 points, not the 625 lines the file has** — 38
+    records wrap across lines inside quoted fields, so a per-line split silently reads garbage.
+    `parseCsv()` in [text.ts](apps/ingest/src/lib/text.ts) is a whole-document RFC-4180 parser;
+    use it for any CSV not known to be one-line-per-record.
+  - **Nothing is translated that we cannot translate honestly.** The source is entirely Chinese.
+    Its `Group` column is a real closed taxonomy (12 values) — but `Category` has **135 values and
+    most are grammar PATTERNS** (`还是……吧`, `X就X（点儿）吧`), not category names. So the point
+    text stays Chinese (a Chinese grammar point's name *is* Chinese) and only the taxonomy is
+    localised, in the UI through i18next where user-facing strings belong. `title_vi` is NULL
+    rather than machine-translated.
+  - **P2 — Tex's French Grammar, bundled verbatim.** `seed:fr-grammar`
+    ([apps/ingest/src/sources/fr/grammar.ts](apps/ingest/src/sources/fr/grammar.ts)) takes all
+    **130 grammar pages** in the site's own index order — that order is the pedagogy, so it
+    becomes `ord`. Tex is not CEFR-graded, so `level` is NULL rather than invented.
+    CC BY 3.0 is **verified on each page** (`creativecommons.org/licenses/by/`) before it is
+    bundled, not assumed from the ledger. Pages are iso-8859-1 and use named entities, so both
+    the bytes and `&eacute;` need decoding — `decodeHtml()` handles the Latin-1 set, including
+    the semicolon-less legacy form (`ne&nbsp pas`) that appears in the conjugation pages.
+  - **P3 — English, from the OTHER Wikibooks book.** The 0.5 row named "English in Use"; that is
+    deliberately **not** what ships. Measured: its contents page says it is "intended for use by
+    native speakers of English or advanced learners", its About page records that the initial text
+    was copied from **Goold Brown's 1851 grammar**, and `thou`/`hath`/`OBS.`/Brown's citations
+    still run through its Syntax, Punctuation, Commas and Articles chapters. Its modern companion
+    "English Grammar" ships instead — 17 chapters, 46 KB, **0 archaic markers**. Thin and correct
+    beats thick and misleading. This is v0.4's licensing lesson in a new dimension: **the ledger
+    describes a source, it does not vouch for every page of it.**
+  - **The Grammar Wiki links were nearly all dead, and measuring is what caught it.** The Chinese
+    Grammar Wiki is CC BY-NC-SA — link only, never bundled — and the first implementation pointed
+    each point at a search URL. Sampled over 16 real HSK1–2 points, **2 resolved and 14 landed on
+    "There were no results"**. Linking the point's individual TOKENS instead resolved **15 of 16**:
+    the wiki is organised by particle (的, 得, 地, 把, 虽然), not by syllabus wording. The seed now
+    splits each point into tokens, checks every distinct token once against the live wiki (cached
+    to disk), and **stores a link only where a real article exists** — a point with no match gets
+    no link at all. A "learn more" that dead-ends is worse than admitting we have nothing.
+    Full-run result: **239/576 tokens have a real article; 273/573 points carry ≥1 verified link**;
+    the wiki itself is registered as a `link-only` source so its NC licence shows on `/licenses`.
+    Two operational notes from the crawl: cache only DEFINITIVE answers (a throttle recorded as
+    "no article" silently deletes a link that exists and looks exactly like a correct result), and
+    pace GENTLY — at `polite()`'s standard 250 ms spacing this wiki rate-limits every request into
+    the full 2s/4s/8s retry ladder (~15 s/token); at ~800 ms spacing the same checks answer
+    instantly. Gentler was literally faster.
+  - **The acceptance script had the same blind spot** and passed while shipping dead links,
+    because it asserted an `<a>` was *present*, never that it *resolved*. It now fetches the 得
+    link and fails on a "no article" body, and fails outright if any topic still stores a search
+    URL. Checking existence is not checking correctness.
+  - `/grammar` renders by **`license_mode`, not by language**: a link-only topic shows an explicit
+    reason and its outbound link instead of a blank page, and the reader refuses to print body
+    text for such a source even if a future seed wrongly stored some. Markdown is rendered by
+    [markdown.tsx](apps/web/src/components/markdown.tsx), which emits React elements and never
+    touches `dangerouslySetInnerHTML` — the same reasoning that made IPA diagrams `<img src="data:">`.
+  - **Tex's audio is a lever, not a default — and never bundle the podcast copies.** The RSS
+    enclosures point at `/tex/aud/itunes/…`, and every one of those files carries an ID3 `APIC`
+    frame with the same ~82 KB cover JPEG (adj2_ex1: 136,798 B as the iTunes copy, 54,960 B plain
+    at `/tex/aud/…` — identical audio). The seed strips `/itunes/` from the URL and refuses any
+    clip that still contains `APIC`. Real totals: 730 clips ≈ 57 MB plain (the feed's "114 MB"
+    double-counts cover art); all 11 chapters at one clip per page ≈ 22 MB. `AUDIO_CHAPTERS`
+    defaults to `['adj']` — 8 clips, **1.0 MB** — which proves the feature end to end; everything
+    else falls back to v0.4's TTS.
+  - `pack verify`'s **ID-churn gate now covers `grammar_topics`** as well as `words`, so a slug-
+    derivation change fails the build instead of surfacing as a bug report. (Chinese grammar IDs
+    include the HSK level and the point text — fine for a reader, revisit before cards.)
+  - Verified against pack `2026.07.31-6`: 得 opens at HSK2 and reads offline with a Grammar Wiki
+    link **fetched and confirmed to resolve during the test** (checking a link exists is not
+    checking it works); a French page renders 47 blocks and 78 emphasised spans with no literal
+    `**` left; a Tex clip plays 6.40 s from a `blob:` URL; 0 link-only rows carry body text;
+    0 orphan sources; 0 search URLs. **0 off-origin requests, 0 console errors.** All 11 earlier
+    acceptance scripts still pass. Script: `tools/e2e/verify-v05-p1-p2.mjs`.
 
 - **v0.4 shipped — "Sentences + sound".** Pack `2026.07.31-4`: 68,683 sentences, **11,700 audio
   clips** (1,707 pinyin syllables + 7,211 HSK words + 2,782 French words), 9,993 word→audio links,
@@ -367,19 +447,31 @@ working session, and commit it with the session's push. It is the single source 
 - Pack `2026.07.29-2` is published on [GitHub Releases (v0.1)](https://github.com/nhhandevops/multilingual-studies/releases/tag/v0.1) under CC BY-SA 4.0 — see "The database" below.
 - 2026-07-30: git history was rewritten (force-push) to purge 142 MB of accidentally committed pack duplicates; `.gitignore` now blanket-ignores `*.gz`. If an old clone exists somewhere, delete and re-clone instead of pulling.
 
-## Next up: v0.5 — Grammar
+## Next up: v0.6 — The daily pull
 
-v0.4 is complete. See [docs/PLAN.md](docs/PLAN.md) for the 0.5 row (Wikibooks EN sequenced by
-CEFR-J + HSK official grammar CSV + Chinese Grammar Wiki **deep links only** — it is CC BY-NC-SA,
-so link, never bundle — + Tex's French Grammar verbatim with audio + a reader UI). The roadmap is
-the "what's next" oracle; this file is the "where were we" one.
+v0.5 is complete. See [docs/PLAN.md](docs/PLAN.md) for the 0.6 row (daily source modules + the VOA
+LE archive seed + a real `SKILL.md` + a Today screen: news at level, word-of-day into the SRS
+queue, a tip + evergreen tips). The roadmap is the "what's next" oracle; this file is the "where
+were we" one.
 
-Two things to settle before or during 0.5:
+Carried forward from 0.5, none blocking:
 
-1. **The pack size decision above.** 128.9 MB works but should be chosen, not inherited.
-2. **Whether grammar text needs a `license_mode='verbatim-only'` path** — Tex's French Grammar is
-   bundleable verbatim but not adaptable, which is a mode `pack verify` already knows about but
-   no source has exercised yet.
+1. **The pack size decision.** 130.1 MB works but should be chosen, not inherited. Levers, in
+   order of how little they cost: French word audio `LEVELS`
+   ([fr/word-audio.ts](apps/ingest/src/sources/fr/word-audio.ts), −14 MB for A1+A2 only), zh word
+   audio at `18k-abr` (−8 MB), stroke data restricted to HSK + top-N (−9 MB), or **split media
+   into an optional second pack** — the real answer, which v0.9 forces anyway.
+2. **Grammar is a reader, not a deck.** No grammar cards, no `CardSnapshot` change — that was
+   outside the 0.5 row. If grammar ever becomes card-backed, revisit the Chinese IDs first: they
+   key on the point's text, so an upstream rewording moves the ID, which is harmless for a reader
+   and not for SRS state.
+3. **The Tex audio link rides in `external_links` as a pseudo-URL** (`audio:<id>`), filtered out
+   by the reader before rendering. Works, but if grammar examples ever grow past one clip per
+   page, give them a real `grammar_examples` table instead of overloading a links column.
+4. **`license_mode='verbatim-only'` is still unexercised.** Every grammar source so far is either
+   `bundled` (Tex CC BY, Wikibooks CC BY-SA, the HSK list) or linked without a source row at all.
+5. **地 has thinner coverage than 的 and 得.** All three link out, but if a bundled explanation is
+   ever wanted, Wikibooks Chinese (Mandarin) Lesson 3 covers 的 and 得 and **not** 地.
 
 **The v0.2 → v0.3 in-place upgrade is verified**, not assumed: an existing install on the
 pre-v0.3 pack with real SRS state (cards, a review, a streak) upgrades on reload — pack version

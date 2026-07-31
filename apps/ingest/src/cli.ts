@@ -22,11 +22,14 @@ const SEEDS: Record<string, () => Promise<{ run: SeedFn }>> = {
   'zh-strokes': () => import('./sources/zh/strokes'), //  needs zh-cedict (readings + coverage set)
   'zh-pinyin-audio': () => import('./sources/zh/pinyin-audio'),
   'zh-word-audio': () => import('./sources/zh/word-audio'), //  needs zh-hsk (levels drive the filter)
+  'zh-grammar': () => import('./sources/zh/grammar'), //         official HSK grammar syllabus
   'en-cefrj': () => import('./sources/en/cefrj'),
   'en-oewn': () => import('./sources/en/oewn'), //        needs en-cefrj
+  'en-grammar': () => import('./sources/en/grammar'), //  Wikibooks English Grammar (CC BY-SA)
   'fr-lexique': () => import('./sources/fr/lexique'),
   'fr-kaikki-en': () => import('./sources/fr/kaikki'), // needs fr-lexique
   'fr-word-audio': () => import('./sources/fr/word-audio'), // needs fr-lexique (levels drive the filter)
+  'fr-grammar': () => import('./sources/fr/grammar'), //       Tex's French Grammar (CC BY), bundled verbatim
   ipa: () => import('./sources/shared/ipa'), //           fills readings still NULL — after kaikki
   'ipa-sagittal': () => import('./sources/shared/sagittal'),
   'latin-letters': () => import('./sources/shared/latin'),

@@ -11,6 +11,7 @@ import { GlyphPage } from './routes/glyph';
 import { PinyinChart } from './routes/pinyin';
 import { ToneDrill } from './routes/tones';
 import { IpaChart } from './routes/ipa';
+import { GrammarIndex, GrammarPage } from './routes/grammar';
 import { Licenses } from './routes/licenses';
 
 export function App() {
@@ -31,6 +32,7 @@ export function App() {
           <Link to="/pinyin">{t('nav.pinyin')}</Link>
           <Link to="/tones">{t('nav.tones')}</Link>
           <Link to="/ipa">{t('nav.ipa')}</Link>
+          <Link to="/grammar">{t('nav.grammar')}</Link>
           <Link to="/licenses">{t('nav.licenses')}</Link>
         </nav>
         <div className="ui-lang" title={t('ui.language')}>
@@ -71,6 +73,8 @@ export function App() {
             <Route path="/pinyin" element={<PinyinChart />} />
             <Route path="/tones" element={<ToneDrill />} />
             <Route path="/ipa" element={<IpaChart />} />
+            <Route path="/grammar" element={<GrammarIndex />} />
+            <Route path="/grammar/:id" element={<GrammarPage />} />
             <Route path="/licenses" element={<Licenses />} />
           </Routes>
           <footer className="pack">{t('db.packVersion', { version: db.status.packVersion })}</footer>

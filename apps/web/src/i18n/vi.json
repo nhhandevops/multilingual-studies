@@ -11,7 +11,8 @@
     "write": "Tập viết",
     "pinyin": "Bảng pinyin",
     "tones": "Thanh điệu",
-    "ipa": "Bảng IPA"
+    "ipa": "Bảng IPA",
+    "grammar": "Ngữ pháp"
   },
   "deck": {
     "add": "Thêm vào bộ thẻ",
@@ -169,5 +170,16 @@
   },
   "ui": {
     "language": "Ngôn ngữ giao diện"
+  },
+  "grammar": {
+    "title": "Ngữ pháp",
+    "allLevels": "Tất cả cấp độ",
+    "count": "{{n}} chủ điểm",
+    "linkOnly": "chỉ liên kết",
+    "linkOnlyBody": "Tài liệu này có giấy phép phi thương mại nên không thể đóng gói trong ứng dụng. Liên kết bên dưới mở phần giải thích trên trang gốc.",
+    "noBody": "Điểm ngữ pháp này chưa có phần giải thích đi kèm.",
+    "readMore": "Đọc thêm",
+    "notFound": "Không tìm thấy chủ điểm ngữ pháp.",
+    "back": "← Quay lại ngữ pháp"
   }
 }

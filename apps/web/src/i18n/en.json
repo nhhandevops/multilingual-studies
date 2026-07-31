@@ -11,7 +11,8 @@
     "write": "Writing",
     "pinyin": "Pinyin",
     "tones": "Tones",
-    "ipa": "IPA"
+    "ipa": "IPA",
+    "grammar": "Grammar"
   },
   "deck": {
     "add": "Add to deck",
@@ -169,5 +170,16 @@
   },
   "ui": {
     "language": "UI language"
+  },
+  "grammar": {
+    "title": "Grammar",
+    "allLevels": "All levels",
+    "count": "{{n}} topics",
+    "linkOnly": "link only",
+    "linkOnlyBody": "This reference is licensed NonCommercial, so it cannot be bundled in the app. The link below opens the explanation on its own site.",
+    "noBody": "No explanation is bundled for this point.",
+    "readMore": "Read more",
+    "notFound": "Grammar topic not found.",
+    "back": "← Back to grammar"
   }
 }

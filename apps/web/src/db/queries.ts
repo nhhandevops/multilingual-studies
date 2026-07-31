@@ -376,6 +376,78 @@ export async function hanziStrokeCounts(db: Db): Promise<{ ord: number; n: numbe
   );
 }
 
+export interface GrammarRow {
+  id: string;
+  lang: string;
+  code: string | null;
+  title_en: string;
+  title_vi: string | null;
+  level: string | null;
+  ord: number | null;
+  body_md: string | null;
+  external_links: string | null; //  JSON [{label,url}]
+  source_id: string;
+  license_mode: string; //           'bundled' | 'verbatim-only' | 'link-only'
+  source_name: string;
+  source_url: string;
+  license: string;
+}
+
+export interface GrammarLink {
+  label: string;
+  url: string;
+}
+
+/** Parse `external_links`; a malformed value must not take the page down. */
+export function grammarLinks(row: { external_links: string | null }): GrammarLink[] {
+  if (!row.external_links) return [];
+  try {
+    const v: unknown = JSON.parse(row.external_links);
+    return Array.isArray(v) ? (v as GrammarLink[]).filter((l) => l && typeof l.url === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Grammar topics for a language, in the source's own teaching order.
+ *
+ * `license_mode` rides along because it changes what the UI may show: a link-only source has no
+ * body to read in-app, and the reader has to say so rather than render a blank page.
+ */
+export async function listGrammar(db: Db, lang: string, level?: string): Promise<GrammarRow[]> {
+  const where = level ? `AND g.level = ?` : '';
+  return db.query<GrammarRow>(
+    `SELECT g.*, s.license_mode, s.name AS source_name, s.url AS source_url, s.license
+       FROM grammar_topics g JOIN sources s ON s.id = g.source_id
+      WHERE g.lang = ? ${where}
+      ORDER BY g.level IS NULL, g.level, g.ord, g.id`,
+    level ? [lang, level] : [lang],
+  );
+}
+
+export async function getGrammar(db: Db, id: string): Promise<GrammarRow | null> {
+  const rows = await db.query<GrammarRow>(
+    `SELECT g.*, s.license_mode, s.name AS source_name, s.url AS source_url, s.license
+       FROM grammar_topics g JOIN sources s ON s.id = g.source_id
+      WHERE g.id = ?`,
+    [id],
+  );
+  return rows[0] ?? null;
+}
+
+/** Which languages actually have grammar in this pack, and how many topics each. */
+export async function grammarLangs(db: Db): Promise<{ lang: string; n: number }[]> {
+  return db.query(`SELECT lang, COUNT(*) AS n FROM grammar_topics GROUP BY lang ORDER BY lang`);
+}
+
+export async function grammarLevels(db: Db, lang: string): Promise<{ level: string; n: number }[]> {
+  return db.query(
+    `SELECT level, COUNT(*) AS n FROM grammar_topics WHERE lang = ? AND level IS NOT NULL GROUP BY level ORDER BY level`,
+    [lang],
+  );
+}
+
 export async function listSources(db: Db): Promise<SourceRow[]> {
   return db.query<SourceRow>(`SELECT * FROM sources ORDER BY id`);
 }
