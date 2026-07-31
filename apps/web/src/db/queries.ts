@@ -109,6 +109,12 @@ export async function getWord(db: Db, id: string): Promise<{ word: WordRow; sens
   return { word, senses, source: sources[0]! };
 }
 
+export interface WordAudioRow {
+  id: string; //           audio id, for playback
+  speaker: string; //      the person who recorded it
+  attribution: string; //  speaker + license — display it wherever the clip can be played
+}
+
 export interface ExampleRow {
   id: string;
   text: string;
@@ -136,12 +142,20 @@ export async function listExamples(db: Db, wordId: string, limit = 3): Promise<E
  * the lookup simply returns null and the play button disappears — the card still reviews.
  * Storing megabytes of mp3 inside user.db to avoid this would be far worse.
  */
-export async function getWordAudioId(db: Db, wordId: string): Promise<string | null> {
-  const rows = await db.query<{ audio_id: string }>(
-    `SELECT audio_id FROM word_audio WHERE word_id = ? LIMIT 1`,
+/**
+ * The speaker and attribution come back with the id, not just the id: every bundled clip is
+ * CC0/CC BY/CC BY-SA, and for the CC BY family naming the author is the licence's one real
+ * condition. A single-speaker source could satisfy that with a line on the Licenses screen —
+ * Lingua Libre cannot, since hundreds of different people recorded these.
+ */
+export async function getWordAudio(db: Db, wordId: string): Promise<WordAudioRow | null> {
+  const rows = await db.query<WordAudioRow>(
+    `SELECT a.id, a.speaker, a.attribution
+       FROM word_audio wa JOIN audio a ON a.id = wa.audio_id
+      WHERE wa.word_id = ? LIMIT 1`,
     [wordId],
   );
-  return rows[0]?.audio_id ?? null;
+  return rows[0] ?? null;
 }
 
 export async function listSenses(db: Db, wordId: string): Promise<SenseRow[]> {

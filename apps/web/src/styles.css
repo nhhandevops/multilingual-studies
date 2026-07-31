@@ -195,3 +195,6 @@ button.speak:hover { border-color: var(--accent); }
 /* Synthetic voice: dashed border + a small TTS marker, so it never reads as a native recording. */
 button.speak.tts { border-style: dashed; opacity: 0.85; }
 button.speak.tts sup { font-size: 0.55em; letter-spacing: 0.03em; margin-left: 0.15rem; opacity: 0.8; }
+/* CC BY/BY-SA: the speaker is credited wherever their clip can be played. Lingua Libre is
+   hundreds of volunteers, so the Licenses screen cannot stand in for a per-clip credit. */
+.audio-credit { color: var(--fg-soft); font-size: 0.7rem; margin-left: 0.4rem; }

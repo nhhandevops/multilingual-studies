@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useDb } from '../db/provider';
-import { getWord, getWordAudioId, haveStrokeData, listExamples, type ExampleRow } from '../db/queries';
+import { getWord, getWordAudio, haveStrokeData, listExamples, type ExampleRow, type WordAudioRow } from '../db/queries';
 import { SpeakButton } from '../components/speak-button';
 import { getCard } from '../db/user-queries';
 import { AddToDeck } from '../components/add-to-deck';
@@ -20,14 +20,15 @@ export function WordPage() {
   const [inDeck, setInDeck] = useState(false);
   const [drawable, setDrawable] = useState<Set<string>>(new Set());
   const [examples, setExamples] = useState<ExampleRow[]>([]);
-  const [audioId, setAudioId] = useState<string | null>(null);
+  // undefined = lookup in flight, null = no recording exists. See SpeakButton.
+  const [audio, setAudio] = useState<WordAudioRow | null | undefined>(undefined);
 
   useEffect(() => {
     let cancelled = false;
     setDetail('loading');
     setDrawable(new Set());
     setExamples([]);
-    setAudioId(null);
+    setAudio(undefined);
     if (id) {
       const rawId = id; // React Router v7 already percent-decodes params — never decode twice
       void getWord(db, rawId).then(async (d) => {
@@ -44,8 +45,8 @@ export function WordPage() {
       void listExamples(db, rawId, 3).then((e) => {
         if (!cancelled) setExamples(e);
       });
-      void getWordAudioId(db, rawId).then((a) => {
-        if (!cancelled) setAudioId(a);
+      void getWordAudio(db, rawId).then((a) => {
+        if (!cancelled) setAudio(a);
       });
     }
     return () => {
@@ -85,7 +86,7 @@ export function WordPage() {
             : word.headword}
         </span>
         {word.reading && <span className="reading" style={{ fontSize: '1.3rem' }}>{word.reading}</span>}
-        <SpeakButton db={db} audioId={audioId} text={word.headword} lang={word.lang} />
+        <SpeakButton db={db} audio={audio} text={word.headword} lang={word.lang} />
         <span className="badge">{t(`lang.${word.lang}`, word.lang)}</span>
         {word.level && <span className="badge">{word.level}</span>}
         <AddToDeck word={word} senses={senses} inDeck={inDeck} onChange={setInDeck} />
@@ -124,7 +125,7 @@ export function WordPage() {
                 {/* Tatoeba's own sentence recordings are CC BY-NC-ND, so they can never be
                     bundled — TTS is the only pronunciation these sentences will ever have. */}
                 <p className="ex-text">
-                  {ex.text} <SpeakButton db={db} audioId={null} text={ex.text} lang={word.lang} />
+                  {ex.text} <SpeakButton db={db} audio={null} text={ex.text} lang={word.lang} />
                 </p>
                 {ex.reading && <p className="ex-reading">{ex.reading}</p>}
                 {ex.trans_en && <p className="ex-trans">{ex.trans_en}</p>}

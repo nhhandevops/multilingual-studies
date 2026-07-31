@@ -22,6 +22,13 @@ async function urlFor(db: Db, audioId: string): Promise<string | null> {
   return url;
 }
 
+/** Stop whatever clip is playing, if any. */
+export function stopAudio(): void {
+  if (!current) return;
+  current.pause();
+  current.currentTime = 0;
+}
+
 /** Play a clip, stopping whatever was playing. Resolves once playback has started. */
 export async function playAudio(db: Db, audioId: string): Promise<void> {
   const url = await urlFor(db, audioId);

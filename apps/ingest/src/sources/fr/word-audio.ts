@@ -28,7 +28,7 @@ const SOURCE_ID = 'lingualibre-fra';
 const KAIKKI_URL = 'https://kaikki.org/dictionary/French/kaikki.org-dictionary-French.jsonl.gz';
 const COMMONS_API = 'https://commons.wikimedia.org/w/api.php';
 const CACHE = join(DATA_CACHE, 'fr', 'word-audio');
-const PARSER_VERSION = 1;
+const PARSER_VERSION = 2; //  2: per-clip license (v1 stamped every row 'CC BY-SA 4.0' — wrong)
 
 /**
  * THE PACK-SIZE LEVER. Every levelled French word has ~13.8 KB of audio, so all six bands
@@ -60,6 +60,7 @@ interface Candidate {
   mp3: string;
   speaker: string;
   france: boolean; //  tagged as a France variety (preferred as the teaching default)
+  license: string; //  as verified on Commons for THIS file — never assumed (see below)
 }
 
 /** `LL-Q150 (fra)-DSwissK-bonjour.wav` → `DSwissK`. Speakers may contain hyphens; words may too,
@@ -179,6 +180,7 @@ export async function run(db: DB): Promise<void> {
         mp3: s.mp3_url,
         speaker,
         france: tags.some((t) => /^(france|paris|lyon|toulouse|marseille|bretagne|alsace|normandie)$/i.test(t)),
+        license: '', //  filled from Commons in verifyLicenses; empty means "not yet checked"
       });
       byWord.set(word, list);
       speakerCount.set(speaker, (speakerCount.get(speaker) ?? 0) + 1);
@@ -217,9 +219,18 @@ export async function run(db: DB): Promise<void> {
       rejected++;
       continue;
     }
-    usable.push(c);
+    // Carry the VERIFIED license forward. Assuming "Lingua Libre ⇒ CC BY-SA 4.0" (which is what
+    // docs/RESEARCH-SOURCES.md says, and what this seed first hardcoded) is wrong for most of
+    // the corpus: measured over 2,782 files it is CC0 ×1870, CC BY-SA 4.0 ×902, CC BY 4.0 ×9,
+    // CC BY-SA 3.0 ×1. Stamping ShareAlike onto a recording whose author dedicated it to the
+    // public domain misstates their choice, and no `pack verify` check can catch a well-formed
+    // license string that is simply untrue.
+    usable.push({ ...c, license: info.license });
   }
+  const byLicense = new Map<string, number>();
+  for (const c of usable) byLicense.set(c.license, (byLicense.get(c.license) ?? 0) + 1);
   console.log(`  ✓ licenses: ${usable.length} free, ${rejected} rejected, ${unverified} unverified (skipped)`);
+  console.log(`    ${[...byLicense].sort((a, b) => b[1] - a[1]).map(([l, n]) => `${l} ×${n}`).join(', ')}`);
   if (usable.length === 0) throw new Error('no usable Lingua Libre recordings — refusing to write an empty source');
 
   let fetched = 0;
@@ -231,20 +242,25 @@ export async function run(db: DB): Promise<void> {
       cached++;
       return false;
     }
+    // "Known permanently missing" is a SEPARATE sentinel file, not a zero-byte mp3: writeFileSync
+    // is not atomic, so a run killed mid-write leaves a zero-byte mp3, and treating that as
+    // "handled" would silently strip that word's audio forever. Distinguishing them also makes
+    // the marker actually work — keyed on size alone it never matched, so every known-404 was
+    // re-requested on every run, which is precisely what it exists to prevent.
+    if (existsSync(`${dest}.missing`)) return false;
     return true;
   });
 
   /**
-   * A few requests in flight at once. Each round-trip to upload.wikimedia.org costs ~1.7 s, so
-   * awaiting them one at a time spends the whole crawl idle — 2,700 clips took 77 minutes that
-   * way. Overlap is safe because the real rate limit lives in `polite()`, which spaces every
-   * request to this host 250 ms apart no matter how many callers are waiting; this only stops
-   * us leaving that budget unspent. Wikimedia documents ~15,000 files/hour as acceptable for
-   * bulk Lingua Libre downloads, which is still above what the queue will ever emit.
+   * More workers than `polite()` will ever run at once, deliberately: its queue (2 in flight,
+   * 250 ms apart) stays the single place the request rate is decided, and these only keep that
+   * budget saturated — each round-trip to upload.wikimedia.org costs ~2 s, so awaiting them one
+   * at a time leaves it mostly unspent.
+   *
+   * Raising the queue itself was tried and measured WORSE: at 8 in flight the host answered 429
+   * and throughput fell from 0.5 to 0.3 files/s. Wikimedia's documented "~15,000 files/hour"
+   * describes their bulk tooling, not transcode URLs. Do not re-litigate this by raising it.
    */
-  // More workers than polite() will run at once, deliberately: the queue (2 in flight, 250 ms
-  // apart) stays the single place rate is decided, and these just keep it saturated. Raising
-  // the queue instead was tried and measured worse — upload.wikimedia.org answers 429.
   const WORKERS = 6;
   let next = 0;
   await Promise.all(
@@ -253,30 +269,34 @@ export async function run(db: DB): Promise<void> {
         const c = todo[next++];
         if (!c) return;
         const dest = join(CACHE, cacheName(c.file));
-        let res;
+        let bytes: Buffer;
         try {
-          res = await polite(c.mp3);
+          const res = await polite(c.mp3);
+          if (!res.ok) {
+            // A transcode can be missing for one file without the crawl being wrong; skip it
+            // and let TTS cover that word rather than failing 2,700 good downloads. This one IS
+            // permanent, so it gets a marker and is not requested again on any future run.
+            console.warn(`  ! transcode unavailable (HTTP ${res.status}): ${c.file}`);
+            writeFileSync(`${dest}.missing`, '');
+            continue;
+          }
+          // Inside the try on purpose: undici resolves fetch() on HEADERS, so a reset or
+          // timeout while streaming the body rejects HERE. Left outside, one dropped socket in
+          // a multi-hour crawl would escape the failure budget and abort the whole seed —
+          // and under `seed:all` take the seeds after it down too.
+          bytes = Buffer.from(await res.arrayBuffer());
         } catch (e) {
-          // polite() gives up after four tries. That is TRANSIENT, so no marker file is written
-          // and the next run retries this word — but a wall of them means we are being refused,
+          // polite() gives up after four tries. That is TRANSIENT, so no marker is written and
+          // the next run retries this word — but a wall of them means we are being refused,
           // and grinding on would just be rude.
           failed++;
           console.warn(`  ! download failed (${failed}): ${c.file} — ${e instanceof Error ? e.message : String(e)}`);
           if (failed > 100) throw new Error(`aborting after ${failed} download failures — re-run later to resume`);
           continue;
         }
-        if (!res.ok) {
-          // A transcode can be missing for one file without the crawl being wrong; skip it and
-          // let TTS cover that word rather than failing 2,700 good downloads. This one IS
-          // permanent, so it gets an empty marker and is not retried on every future run.
-          console.warn(`  ! transcode unavailable (HTTP ${res.status}): ${c.file}`);
-          writeFileSync(dest, Buffer.alloc(0));
-          continue;
-        }
-        const bytes = Buffer.from(await res.arrayBuffer());
         if (!looksLikeMp3(bytes)) {
           console.warn(`  ! not an mp3, skipping: ${c.file}`);
-          writeFileSync(dest, Buffer.alloc(0));
+          writeFileSync(`${dest}.missing`, '');
           continue;
         }
         writeFileSync(dest, bytes);
@@ -308,8 +328,8 @@ export async function run(db: DB): Promise<void> {
     url: 'https://commons.wikimedia.org/wiki/Category:Lingua_Libre_pronunciation-fra',
     sha256: artifactSha,
     bytes: totalBytes,
-    license: 'CC BY-SA 4.0 (Lingua Libre speakers, via Wikimedia Commons)',
-    notes: `${ready.length} French word mp3 transcodes for levels ${LEVELS.join('/')}; license verified per file via the Commons API`,
+    license: 'CC0 / CC BY / CC BY-SA, per clip (Lingua Libre speakers, via Wikimedia Commons)',
+    notes: `${ready.length} French word mp3 transcodes for levels ${LEVELS.join('/')}; license verified per file via the Commons API, never inferred from the filename`,
   });
   const inputSha = createHash('sha256').update(artifactSha).update(`parser:${PARSER_VERSION}`).digest('hex');
   if (alreadyIngested(db, SOURCE_ID, inputSha)) {
@@ -321,18 +341,21 @@ export async function run(db: DB): Promise<void> {
     id: SOURCE_ID,
     name: 'Lingua Libre (French word recordings)',
     url: 'https://commons.wikimedia.org/wiki/Category:Lingua_Libre_pronunciation-fra',
-    license: 'CC BY-SA 4.0',
-    licenseUrl: 'https://creativecommons.org/licenses/by-sa/4.0/',
+    // Per-clip, not per-corpus: contributors choose their own terms and most choose CC0. The
+    // row records the range actually bundled; `audio.license` carries the truth for each clip.
+    license: 'CC0 / CC BY 4.0 / CC BY-SA 3.0–4.0 (per clip)',
+    licenseUrl: 'https://commons.wikimedia.org/wiki/Commons:Licensing',
     attributionText:
-      'French word recordings by Lingua Libre contributors (Wikimédia France), hosted on Wikimedia Commons. Each clip credits its own speaker; all are licensed CC BY-SA 4.0 and remain share-alike.',
+      'French word recordings by Lingua Libre contributors (Wikimédia France), hosted on Wikimedia Commons. Each clip names its own speaker and carries its own license — most are dedicated to the public domain under CC0, the rest are CC BY or CC BY-SA and remain share-alike.',
     retrievedAt: new Date().toISOString().slice(0, 10),
     licenseMode: 'bundled',
   });
 
   const insertAudio = db.prepare(`
     INSERT INTO audio (id, lang, kind, location, speaker, license, attribution, source_id)
-    VALUES (@id, 'fr', 'word', @location, @speaker, 'CC BY-SA 4.0', @attribution, '${SOURCE_ID}')
-    ON CONFLICT(id) DO UPDATE SET location = excluded.location, attribution = excluded.attribution`);
+    VALUES (@id, 'fr', 'word', @location, @speaker, @license, @attribution, '${SOURCE_ID}')
+    ON CONFLICT(id) DO UPDATE SET
+      location = excluded.location, license = excluded.license, attribution = excluded.attribution`);
   const insertBlob = db.prepare(`
     INSERT INTO audio_blobs (audio_id, bytes) VALUES (@audio_id, @bytes)
     ON CONFLICT(audio_id) DO UPDATE SET bytes = excluded.bytes`);
@@ -356,7 +379,8 @@ export async function run(db: DB): Promise<void> {
         id: aid,
         location: `bundled:lingualibre/${c.file}`,
         speaker: c.speaker,
-        attribution: `${c.speaker} (Lingua Libre, Wikimedia Commons), CC BY-SA 4.0`,
+        license: c.license,
+        attribution: `${c.speaker} (Lingua Libre, Wikimedia Commons), ${c.license}`,
       });
       insertBlob.run({ audio_id: aid, bytes });
       clips++;

@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 import { CardSnapshot, GRADES, previewMinutes, snapshotKind, State, type Grade, type UserCardRow } from '@mls/shared/srs';
 import { StrokeWriter } from '../components/stroke-writer';
 import { useDb } from '../db/provider';
-import { getWordAudioId } from '../db/queries';
+import { getWordAudio, type WordAudioRow } from '../db/queries';
 import { SpeakButton } from '../components/speak-button';
 import {
   fetchQueue,
@@ -49,7 +49,7 @@ export function Review() {
   const [showAnswer, setShowAnswer] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [ratingBusy, setRatingBusy] = useState(false);
-  const [cardAudio, setCardAudio] = useState<string | null>(null);
+  const [cardAudio, setCardAudio] = useState<WordAudioRow | null | undefined>(undefined);
   const ratingRef = useRef(false); // re-entrancy guard: a double-tap must not rate twice
   const shownAt = useRef(0);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -119,13 +119,13 @@ export function Review() {
     }
   };
 
-  // Audio is looked up per card rather than frozen into the snapshot — see getWordAudioId.
+  // Audio is looked up per card rather than frozen into the snapshot — see getWordAudio.
   const currentId = queue[0]?.id;
   useEffect(() => {
     let cancelled = false;
-    setCardAudio(null);
+    setCardAudio(undefined);
     if (!currentId || db.status.state !== 'ready') return;
-    void getWordAudioId(db, currentId).then((a) => {
+    void getWordAudio(db, currentId).then((a) => {
       if (!cancelled) setCardAudio(a);
     });
     return () => {
@@ -171,7 +171,7 @@ export function Review() {
                   Latin letter teaches nothing, so TTS is offered for word cards only. */}
               <SpeakButton
                 db={db}
-                audioId={cardAudio}
+                audio={cardAudio}
                 text={snap.headword}
                 lang={isGrapheme ? 'all' : card.lang}
                 variant="block"
@@ -186,7 +186,7 @@ export function Review() {
                 <div className="review-example">
                   <p className="ex-text">
                     {snap.example.text}{' '}
-                    <SpeakButton db={db} audioId={null} text={snap.example.text} lang={card.lang} />
+                    <SpeakButton db={db} audio={null} text={snap.example.text} lang={card.lang} />
                   </p>
                   {snap.example.reading && <p className="ex-reading">{snap.example.reading}</p>}
                   {snap.example.transEn && <p className="ex-trans">{snap.example.transEn}</p>}

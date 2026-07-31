@@ -64,6 +64,11 @@ export function canSpeak(lang: string): boolean {
   return supported() && voiceFor(lang) !== null;
 }
 
+/** Stop any in-flight utterance. */
+export function stopSpeech(): void {
+  if (supported()) window.speechSynthesis.cancel();
+}
+
 /** Speak `text`, cancelling anything already speaking. */
 export function speak(text: string, lang: string): void {
   const voice = voiceFor(lang);
