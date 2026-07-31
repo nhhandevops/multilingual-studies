@@ -186,6 +186,14 @@
       "license": "CC BY 3.0 (COERLL / University of Texas at Austin)",
       "notes": "130 grammar pages + 8 recorded examples (chapters: adj)"
     },
+    "voa-learning-english:articles": {
+      "url": "https://learningenglish.voanews.com/sitemap.xml",
+      "sha256": "c6730da51bd81f8931271d062511493cfb164dbff1bdf79c38a782cec8db442a",
+      "bytes": 689530,
+      "retrievedAt": "2026-07-31T15:02:08.079Z",
+      "license": "Public domain (US government work) — VOA Terms of Use",
+      "notes": "160 articles, quota 75/band; wire-agency-derived pieces excluded; no audio bundled"
+    },
     "wikibooks:English Grammar": {
       "url": "https://en.wikibooks.org/wiki/English%20Grammar",
       "sha256": "1edac95f91a9820338c3d1d7f4432484aad5fffe0f47b18e281ddc78382ae4ca",

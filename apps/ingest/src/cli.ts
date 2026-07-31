@@ -10,6 +10,7 @@ import { join } from 'node:path';
 import { buildPack, nextPackVersion, verifyPack } from '@mls/content-pack';
 import { openStaging } from './lib/staging';
 import { PACKS_DIR, STAGING_DB, WEB_PACKS_DIR } from './lib/paths';
+import { registerDaily } from './daily';
 
 const program = new Command('ingest');
 
@@ -26,6 +27,7 @@ const SEEDS: Record<string, () => Promise<{ run: SeedFn }>> = {
   'en-cefrj': () => import('./sources/en/cefrj'),
   'en-oewn': () => import('./sources/en/oewn'), //        needs en-cefrj
   'en-grammar': () => import('./sources/en/grammar'), //  Wikibooks English Grammar (CC BY-SA)
+  'voa-le': () => import('./sources/en/voa-le'), //       needs en-cefrj (levels are measured against it)
   'fr-lexique': () => import('./sources/fr/lexique'),
   'fr-kaikki-en': () => import('./sources/fr/kaikki'), // needs fr-lexique
   'fr-word-audio': () => import('./sources/fr/word-audio'), // needs fr-lexique (levels drive the filter)
@@ -35,6 +37,7 @@ const SEEDS: Record<string, () => Promise<{ run: SeedFn }>> = {
   'latin-letters': () => import('./sources/shared/latin'),
   sentences: () => import('./sources/shared/tatoeba'), //  needs every word seed (filters to pack words)
   freq: () => import('./sources/shared/freq'),
+  tips: () => import('./sources/shared/tips'), //          authored evergreen study tips
 };
 
 for (const name of Object.keys(SEEDS)) {
@@ -68,6 +71,8 @@ program
       db.close();
     }
   });
+
+registerDaily(program);
 
 const pack = program.command('pack').description('content pack operations');
 

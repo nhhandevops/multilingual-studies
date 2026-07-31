@@ -209,3 +209,19 @@ button.speak.tts sup { font-size: 0.55em; letter-spacing: 0.03em; margin-left: 0
 .md-list { padding-left: 1.1rem; margin: 0.5rem 0; }
 .md-list li { margin: 0.3rem 0; line-height: 1.55; }
 .grammar-detail { max-width: 46rem; }
+
+/* today / the daily pull (v0.6) */
+.today { max-width: 48rem; }
+.today-block { border-top: 1px solid var(--border); margin-top: 1.5rem; padding-top: 0.6rem; }
+.today-block h3 { margin: 0.2rem 0 0.4rem; font-size: 1.05rem; }
+.daily-list { list-style: none; padding: 0; margin: 0.4rem 0; }
+.daily-list li { margin: 0.5rem 0; }
+.daily-list a { display: flex; align-items: baseline; gap: 0.5rem; text-decoration: none; color: inherit; }
+.daily-list a:hover .daily-title { text-decoration: underline; }
+.daily-title { flex: 1; }
+/* Claude's Vietnamese one-liner. Distinct from the article's own words on purpose — it is our
+   commentary, not the publisher's text. */
+.curated-note { color: var(--accent); font-size: 0.85rem; margin: 0.15rem 0 0 0; }
+.daily-detail { max-width: 46rem; }
+.daily-detail .attribution { border-top: 1px dashed var(--border); padding-top: 0.5rem; }
+.today-block.tip h4 { margin: 0.4rem 0 0.2rem; }

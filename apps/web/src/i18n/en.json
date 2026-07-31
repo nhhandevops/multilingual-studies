@@ -12,7 +12,8 @@
     "pinyin": "Pinyin",
     "tones": "Tones",
     "ipa": "IPA",
-    "grammar": "Grammar"
+    "grammar": "Grammar",
+    "today": "Today"
   },
   "deck": {
     "add": "Add to deck",
@@ -181,5 +182,23 @@
     "readMore": "Read more",
     "notFound": "Grammar topic not found.",
     "back": "← Back to grammar"
+  },
+  "today": {
+    "title": "Today",
+    "news": "News",
+    "freshToday": "Today’s news.",
+    "freshFrom": "The newest news in this pack is from {{date}}. Update the pack for fresher items.",
+    "noNews": "This pack has no news for that language yet.",
+    "reading": "Graded reading",
+    "readingHint": "The level here is MEASURED from the text itself: the band at which 90% of the words we recognise sit at or below — not the publisher’s own grading.",
+    "words": "Words of the day",
+    "noWords": "No words were chosen for this day.",
+    "autoPicked": "picked automatically from today’s reading",
+    "tip": "Today’s tip",
+    "notFound": "Item not found.",
+    "back": "← Back to Today",
+    "noBody": "This item has no bundled text.",
+    "readOriginal": "Read the original",
+    "listenAtSource": "Listen at the source"
   }
 }

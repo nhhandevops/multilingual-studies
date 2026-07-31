@@ -12,7 +12,8 @@
     "pinyin": "Bảng pinyin",
     "tones": "Thanh điệu",
     "ipa": "Bảng IPA",
-    "grammar": "Ngữ pháp"
+    "grammar": "Ngữ pháp",
+    "today": "Hôm nay"
   },
   "deck": {
     "add": "Thêm vào bộ thẻ",
@@ -181,5 +182,23 @@
     "readMore": "Đọc thêm",
     "notFound": "Không tìm thấy chủ điểm ngữ pháp.",
     "back": "← Quay lại ngữ pháp"
+  },
+  "today": {
+    "title": "Hôm nay",
+    "news": "Tin tức",
+    "freshToday": "Tin của hôm nay.",
+    "freshFrom": "Tin mới nhất trong gói dữ liệu này: {{date}}. Cập nhật gói để có tin mới hơn.",
+    "noNews": "Gói dữ liệu này chưa có tin nào cho ngôn ngữ đó.",
+    "reading": "Bài đọc theo cấp độ",
+    "readingHint": "Cấp độ ở đây được ĐO từ chính bài viết: mức mà 90% số từ nhận ra được nằm ở đó hoặc thấp hơn — không phải xếp hạng của nhà xuất bản.",
+    "words": "Từ của ngày",
+    "noWords": "Chưa có từ nào được chọn cho ngày này.",
+    "autoPicked": "tự chọn từ bài đọc hôm nay",
+    "tip": "Mẹo hôm nay",
+    "notFound": "Không tìm thấy mục này.",
+    "back": "← Quay lại Hôm nay",
+    "noBody": "Mục này không có nội dung kèm theo.",
+    "readOriginal": "Đọc bản gốc",
+    "listenAtSource": "Nghe trên trang gốc"
   }
 }

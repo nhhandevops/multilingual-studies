@@ -23,8 +23,19 @@ Each script exits non-zero and prints `ASSERT: …` on failure, or a `RESULT: PA
 line at the end. Run the lot:
 
 ```sh
-for s in verify-*.mjs; do printf '%-26s ' "$s"; node "$s" >/dev/null 2>&1 && echo PASS || echo FAIL; done
+# The upgrade test is the one exception — it swaps the pack file underneath the app, so it needs
+# the static server rather than `pnpm dev`. Running it in this loop always "fails".
+for s in verify-*.mjs; do
+  case "$s" in verify-upgrade*) continue;; esac
+  printf '%-30s ' "$s"; node "./$s" >/dev/null 2>&1 && echo PASS || echo FAIL
+done
+
+# then, for the upgrade test:
+pnpm --filter @mls/web build && node static-server.mjs &
+MLS_BASE=http://localhost:5199 node ./verify-upgrade-v02-to-v03.mjs
 ```
+
+All 14 pass on v0.6.
 
 ## What each one proves
 
@@ -41,6 +52,8 @@ for s in verify-*.mjs; do printf '%-26s ' "$s"; node "$s" >/dev/null 2>&1 && ech
 | `verify-v04-p1.mjs` | 0.4 | every card carries a real credited example, frozen into its snapshot |
 | `verify-v04-p2.mjs` | 0.4 | words play a decodable human recording out of the pack |
 | `verify-v04-p3-p4.mjs` | 0.4 | French Lingua Libre audio + the TTS fallback, incl. late-arriving voices and per-clip credit |
+| `verify-v05-p1-p2.mjs` | 0.5 | the grammar reader: HSK-2 得 offline, Tex with audio, and every "learn more" link fetched to prove it resolves |
+| `verify-v06.mjs` | 0.6 | the daily pull: pulling twice does not duplicate, a dying source degrades to a partial report, and the word of the day reaches the SRS deck |
 | `verify-upgrade-v02-to-v03.mjs` | 0.3 | an in-place pack upgrade preserves all SRS state (needs `static-server.mjs`, not `pnpm dev`) |
 | `audit-v04-fixes.cjs` | 0.4 | data-level audit of the sentence corpus (no browser; reads `build/staging.db`) |
 

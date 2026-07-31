@@ -186,7 +186,7 @@ CREATE TABLE IF NOT EXISTS tech_term_labels ( -- Wikidata CC0 labels/aliases
 CREATE TABLE IF NOT EXISTS daily_items (
   id           TEXT PRIMARY KEY,
   lang         TEXT NOT NULL REFERENCES languages(code),
-  date         TEXT NOT NULL,
+  date         TEXT NOT NULL,             -- the day this item is FOR (pull date; archive items use their own publication date)
   kind         TEXT NOT NULL CHECK (kind IN ('news','wotd','tip-ref')),
   title        TEXT NOT NULL,
   url          TEXT,
@@ -194,7 +194,13 @@ CREATE TABLE IF NOT EXISTS daily_items (
   audio_url    TEXT,
   level_est    TEXT,
   source_id    TEXT NOT NULL REFERENCES sources(id),
-  curated_note TEXT                       -- Claude's one-liner, in Vietnamese
+  curated_note TEXT,                      -- Claude's one-liner, in Vietnamese
+  -- Per-ITEM credit, not per-corpus. Global Voices is CC BY: the licence's one real condition is
+  -- naming the AUTHOR, and the author differs per article, so a sources-row credit cannot
+  -- discharge it — exactly the v0.4 lesson that 68% of French clips were stamped with a licence
+  -- their authors never chose. NOT NULL by design; pack verify audits it.
+  attribution  TEXT NOT NULL DEFAULT '',
+  published_at TEXT                       -- the item's OWN publication date, which is not `date`
 );
 CREATE INDEX IF NOT EXISTS idx_daily_date ON daily_items(date, lang);
 

@@ -17,7 +17,11 @@ Rules that override defaults:
 
 Commands: `pnpm dev` (web), `pnpm ingest seed:all`, `pnpm pack:build`, `pnpm pack:verify`,
 `pnpm ingest pack publish`, `pnpm -r typecheck`.
-Acceptance: `cd tools/e2e && npm install`, then `node verify-v04-p3-p4.mjs` with `pnpm dev` running.
+Daily (v0.6, driven by the `/daily-pull` skill): `pnpm ingest daily:all`, `daily:candidates`,
+`daily:select --file f.json`, `tips:add --file t.json`.
+Acceptance: `cd tools/e2e && npm install`, then `node verify-v06.mjs` with `pnpm dev` running.
+`verify-upgrade-v02-to-v03.mjs` is the exception — it swaps the pack file, so it needs
+`static-server.mjs` and `MLS_BASE=http://localhost:5199`, never `pnpm dev`.
 
 Two operational traps worth knowing before they cost an hour: stop `pnpm dev` before
 `pnpm ingest pack publish` (Windows kills the watcher with `EBUSY`), and bump a seed's

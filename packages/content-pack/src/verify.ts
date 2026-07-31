@@ -9,7 +9,7 @@ import Database from 'better-sqlite3';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { PackManifest } from '@mls/shared';
+import { PackManifest, screenWire } from '@mls/shared';
 
 export interface VerifyIssue {
   level: 'error' | 'warn';
@@ -143,6 +143,46 @@ export function verifyPack(packDir: string, packsDir?: string): VerifyIssue[] {
          OR NOT EXISTS (SELECT 1 FROM audio_blobs b WHERE b.audio_id = wa.audio_id)`);
     if (orphanWordAudio > 0) err('media', `${orphanWordAudio} word_audio rows point at a missing word or blob`);
 
+    // the daily pull (v0.6) ------------------------------------------------------------------
+    // Every licence in play here names somebody: CC BY names the author, CC BY-SA names the
+    // revision, and VOA's public-domain grant asks for a credit line. A daily item without one
+    // cannot be displayed lawfully, so an empty attribution is a build failure, not a gap.
+    const unattributedDaily = one(
+      `SELECT COUNT(*) AS n FROM daily_items WHERE attribution IS NULL OR TRIM(attribution) = ''`,
+    );
+    if (unattributedDaily > 0) err('attribution', `daily_items: ${unattributedDaily} rows carry no per-item credit`);
+    // An item with neither text nor a link is a headline that goes nowhere.
+    const emptyDaily = one(
+      `SELECT COUNT(*) AS n FROM daily_items
+        WHERE (body_text IS NULL OR TRIM(body_text) = '') AND (url IS NULL OR TRIM(url) = '')`,
+    );
+    if (emptyDaily > 0) err('daily', `daily_items: ${emptyDaily} rows have neither body nor link`);
+    const orphanPlan = one(`SELECT COUNT(*) AS n FROM daily_plan p
+      WHERE NOT EXISTS (SELECT 1 FROM words w WHERE w.id = p.word_id)`);
+    if (orphanPlan > 0) err('daily', `daily_plan: ${orphanPlan} rows point at a word not in this pack`);
+    const orphanTips = one(`SELECT COUNT(*) AS n FROM tips t
+      WHERE t.source_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM sources s WHERE s.id = t.source_id)`);
+    if (orphanTips > 0) err('orphan-source', `tips: ${orphanTips} rows with an unregistered source_id`);
+    const emptyTips = one(
+      `SELECT COUNT(*) AS n FROM tips WHERE TRIM(COALESCE(title,'')) = '' OR TRIM(COALESCE(body_md,'')) = ''`,
+    );
+    if (emptyTips > 0) err('daily', `tips: ${emptyTips} rows have no title or no body`);
+
+    // The wire-agency screen, re-applied over the FINISHED pack.
+    //
+    // The ingest modules already screen, but a rule enforced only where it is remembered is not
+    // enforced. VOA's public-domain grant covers material produced exclusively by VOA; an article
+    // adapted from AP or Reuters is not that, and no `license_mode` check can notice, because the
+    // source really is public domain — just not for that row.
+    const wireHits = (db.prepare(
+      `SELECT id, COALESCE(title,'') || CHAR(10) || COALESCE(body_text,'') AS text FROM daily_items
+        WHERE body_text IS NOT NULL`,
+    ).all() as { id: string; text: string }[]).filter((r) => screenWire(r.text).derived);
+    for (const hit of wireHits.slice(0, 5)) {
+      err('license', `daily_items ${hit.id} is wire-agency-derived: "${screenWire(hit.text).evidence ?? ''}"`);
+    }
+    if (wireHits.length > 5) err('license', `…and ${wireHits.length - 5} more wire-derived daily_items`);
+
     // FTS coverage
     const words = one('SELECT COUNT(*) AS n FROM words');
     const fts = one('SELECT COUNT(*) AS n FROM words_fts');
@@ -159,7 +199,10 @@ export function verifyPack(packDir: string, packsDir?: string): VerifyIssue[] {
           // them too, so a slug-derivation change shows up here and not in a bug report. A table
           // absent from the OLDER pack (grammar_topics predates its content) contributes zero
           // prevIds and passes vacuously — new content is not churn.
-          for (const table of ['words', 'grammar_topics'] as const) {
+          // `daily_items` is deliberately absent: a pull replaces the day's items by design, and
+          // an archive re-seed re-selects, so churn there is the feature rather than the bug.
+          // `tips` are authored and permanent, so they belong under the gate.
+          for (const table of ['words', 'grammar_topics', 'tips'] as const) {
             let prevRows: { id: string }[] = [];
             try {
               prevRows = prevDb.prepare(`SELECT id FROM ${table}`).all() as { id: string }[];

@@ -12,6 +12,7 @@ import { PinyinChart } from './routes/pinyin';
 import { ToneDrill } from './routes/tones';
 import { IpaChart } from './routes/ipa';
 import { GrammarIndex, GrammarPage } from './routes/grammar';
+import { Today, DailyItemPage } from './routes/today';
 import { Licenses } from './routes/licenses';
 
 export function App() {
@@ -26,6 +27,7 @@ export function App() {
         </h1>
         <nav>
           <Link to="/">{t('nav.search')}</Link>
+          <Link to="/today">{t('nav.today')}</Link>
           <Link to="/browse">{t('nav.browse')}</Link>
           <Link to="/review">{t('nav.review')}</Link>
           <Link to="/write">{t('nav.write')}</Link>
@@ -75,6 +77,8 @@ export function App() {
             <Route path="/ipa" element={<IpaChart />} />
             <Route path="/grammar" element={<GrammarIndex />} />
             <Route path="/grammar/:id" element={<GrammarPage />} />
+            <Route path="/today" element={<Today />} />
+            <Route path="/today/:id" element={<DailyItemPage />} />
             <Route path="/licenses" element={<Licenses />} />
           </Routes>
           <footer className="pack">{t('db.packVersion', { version: db.status.packVersion })}</footer>

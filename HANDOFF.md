@@ -1,6 +1,15 @@
 # HANDOFF — continue the work from any machine
 
-> **TL;DR (tiếng Việt):** Dự án đang ở **v0.5** (đã xong — **ngữ pháp**).
+> **TL;DR (tiếng Việt):** Dự án đang ở **v0.6** (đã xong — **bản tin mỗi ngày**).
+> Mục `/today`: tin tức thật, mới trong ngày, ở cả ba thứ tiếng — **VOA tiếng Trung** (miền công
+> cộng), **Global Voices** tiếng Anh và tiếng Pháp (CC BY), và mục "tin vắn" của Wikipedia Pháp/Trung.
+> Kèm theo: **160 bài đọc tiếng Anh phân cấp** từ kho VOA Learning English, **từ của ngày** lấy từ
+> chính bài đọc hôm đó (bấm ＋ là vào bộ thẻ ôn tập), và **mẹo học mỗi ngày** (16 mẹo viết riêng cho
+> người Việt). Chạy `/daily-pull` mỗi sáng để làm mới; không chạy thì màn hình vẫn dùng được.
+> ⚠️ Một phần ba kho VOA Learning English **không phải miền công cộng** (bài lấy lại từ AP/AFP) —
+> đã lọc bỏ tự động, xem bên dưới.
+>
+> Trước đó, v0.5 — **ngữ pháp**:
 > Mục `/grammar`: **573 điểm ngữ pháp HSK chính thức** (chia cấp HSK1→7-9, đọc offline được),
 > **toàn bộ 130 trang** Tex's French Grammar (có vài bài kèm giọng đọc thật), và 17 chương
 > ngữ pháp tiếng Anh từ Wikibooks. Chỗ nào bị giấy phép cấm đóng gói (Chinese Grammar Wiki,
@@ -12,7 +21,7 @@
 > đọc bằng giọng máy (TTS), kể cả câu ví dụ — nên **không từ nào là câm**.
 > v0.3 trước đó: xem 好 tự viết rồi tự tô · tô chữ `é` · nghe đủ 1.707 âm tiết pinyin ·
 > luyện thanh điệu · bảng IPA có hình cắt dọc.
-> ⚠️ Gói dữ liệu giờ **130,1 MB** (tải một lần). Muốn nhỏ lại: sửa hằng số `LEVELS` trong
+> ⚠️ Gói dữ liệu giờ **130,4 MB** (tải một lần). Muốn nhỏ lại: sửa hằng số `LEVELS` trong
 > [fr/word-audio.ts](apps/ingest/src/sources/fr/word-audio.ts) — xem "Pack size" bên dưới.
 > Trên máy mới: `pnpm install` → `pnpm ingest seed:all` → `pnpm pack:build` → `pnpm ingest pack publish` → `pnpm dev`.
 
@@ -21,6 +30,109 @@ working session, and commit it with the session's push. It is the single source 
 "where were we?" on a fresh clone.
 
 ## Current state (updated 2026-07-31)
+
+- **v0.6 shipped — "The daily pull".** A `/today` screen over **186 daily items** (26 pulled today
+  + a 160-article graded archive), **16 evergreen tips**, and a per-day word plan that feeds the
+  SRS deck. Both roadmap clauses hold: *run `/daily-pull` with coffee* · *open the app to fresh
+  curated content*. Pack `2026.07.31-8`: 130.1 → **130.4 MB gz** (+0.32 MB), 26 sources.
+  The skills are real now: [.claude/skills/daily-pull/SKILL.md](.claude/skills/daily-pull/SKILL.md)
+  and [curate-pack](.claude/skills/curate-pack/SKILL.md).
+  - **P1 — three daily sources, each with a licence trap that had to be measured.**
+    `daily:voa-zh` ([zh/daily-voa.ts](apps/ingest/src/sources/zh/daily-voa.ts)) pulls VOA Chinese,
+    the only verified public-domain DAILY Mandarin service. Its feed URL is **hardcoded on
+    purpose**: `/rssfeeds` is not deterministic — two fetches two minutes apart returned two
+    structurally different pages (46 VOA Learning English programme feeds one time, 27 Chinese
+    section feeds the next), so resolving it at run time makes the pull depend on which page the
+    CDN served.
+  - `daily:globalvoices` ([shared/daily-globalvoices.ts](apps/ingest/src/sources/shared/daily-globalvoices.ts))
+    pulls English and French. **`<dc:creator>` is the TRANSLATOR, not the author** — on the French
+    feed for 10 items out of 10, and on the English feed for syndicated pieces. CC BY's one real
+    condition is naming the author, so the obvious field credits the wrong person on most rows.
+    This is v0.4's French-audio bug in a new costume: *a licence field filled from the nearest
+    plausible place is not a licence field*. The real credit is parsed from each article's
+    `gv-rss-footer` block, which distinguishes "Written (English) by" from "Traduit (Français) par".
+    The **licence is verified per article** too, read only from `div.post-credit-container` — a
+    page-wide regex would pick up a Wikimedia photo's CC BY-SA 3.0 or an RDF URL with a doubled
+    slash, i.e. somebody else's licence.
+  - `daily:wiki-itn` ([shared/daily-wiki-itn.ts](apps/ingest/src/sources/shared/daily-wiki-itn.ts))
+    pulls the French and Chinese current-events blurbs. **The ledger's Chinese page name was
+    wrong**: `Portal:新闻动态` redirects to a portal that transcludes the content, returns 508 KB
+    with 778 list items, and reports its own revid as the attribution handle for text living
+    elsewhere. `Template:Itn` is the content page. The French list **nests** — one entry holds a
+    sub-list of two events and has no sentence of its own — so items are split at depth 0 and
+    sub-items are emitted separately, inheriting the parent's date. Under `variant=zh-cn` the
+    **hrefs stay traditional while the `title` attributes are converted**, so display text comes
+    from the attribute or a simplified-only app shows 熊本縣.
+  - **The licence is fetched, never remembered.** `meta=siteinfo&siprop=rightsinfo` returns each
+    wiki's own statement — and the two wikis link their *localised* deeds (`deed.fr` vs `deed.zh`),
+    which is one licence in two languages. Comparing the URLs verbatim made an agreement look like
+    a conflict and failed the first run.
+  - **P2 — the VOA Learning English archive, and the finding that shaped it.**
+    `seed:voa-le` ([en/voa-le.ts](apps/ingest/src/sources/en/voa-le.ts)) crawled 900 pages of the
+    frozen archive and kept **160 articles, 673 KB of text**. **314 of those 900 pages — 35% —
+    were rejected as wire-agency-derived.** VOA's terms put material produced *exclusively* by VOA
+    in the public domain, and a third of Learning English is AP or AFP reporting a VOA writer
+    adapted: *"Mark Long reported this story for the Associated Press. Anna Matteo adapted it for
+    VOA Learning English."* Two of those rejections were re-fetched by hand to confirm the screen
+    is accurate rather than over-broad. **No `license_mode` check could ever catch this** — the
+    source really is public domain, just not for those rows. The screen distinguishes two shapes
+    that mean opposite things: a trailing "reported this story for X" byline disqualifies the
+    piece; an inline "spoke to the Associated Press" is a quoted attribution and is kept. Measured
+    on the shipped pack: **0 derived, 47 merely quoting.**
+  - The rule lives in [packages/shared/src/wire.ts](packages/shared/src/wire.ts) and is applied
+    **twice** — by the ingest module, and again by `pack verify` over the finished pack. The second
+    pass is the one that matters: it catches a future module that forgets the first.
+  - **The level is not in VOA's data**, and their own index contradicts itself. No article page
+    carries a level (the only "Beginning/Intermediate/Advanced" strings are the site-wide nav), and
+    the three level landing pages are an editorial index of *programmes* that files "Words & Their
+    Stories" under Advanced while that programme's own blurb says it is written "at the
+    intermediate and upper-beginner level". So no level is copied from VOA.
+  - **Levels are MEASURED instead** ([lib/level.ts](apps/ingest/src/lib/level.ts)): the band at
+    which 90% of the words we recognise sit at or below, against the pack's own HSK/CEFR lexicon.
+    It is not a CEFR grading and the UI says so. It declines to answer below 20 recognised tokens —
+    a threshold set by measurement, not taste: the reported band moves by 1/n per token, so at n=8
+    one token is worth 12.5%, coarser than the 90% it is compared against, and *"le Slovène Tadej
+    Pogačar remporte le Tour de France pour la cinquième fois"* came out **C2**. One-line news
+    blurbs therefore get no level, which is the honest answer.
+  - Result on the archive: **A1 3 · A2 75 · B1 75 · B2 7** — sensible for a controlled-vocabulary
+    corpus, and the A2/B1 quotas are what stopped the crawl. **No audio is bundled**: one clip is
+    3,450,715 bytes (the `_hq` sibling is exactly twice that), so the full set is ~113 GB. The MP3
+    URL is stored and offered as an outbound link, never fetched.
+  - **P3 — `/today`, built around the fact that the pack is older than today.** It is downloaded
+    once and read offline, so "today's news" can only mean "the newest day this pack holds" — and
+    the screen states which day that is rather than implying freshness it does not have. Every
+    section degrades instead of vanishing: news falls back to the newest pulled day, graded reading
+    is dateless, the word plan falls back to the newest plan, and the tip falls back to a
+    deterministic pick from the evergreen set (deterministic, because "today's tip" that reshuffles
+    on reload is a shuffle button).
+  - **`daily:all` writes a provisional word plan** from the words today's own articles contain, so
+    the screen works for someone who never runs the skill; `daily:select` replaces it with curation.
+    It only writes where no plan exists, so re-running the pull cannot overwrite Claude's choices.
+    A curated word shows its reason; an auto-picked one says so.
+  - **P4 — the skills are real.** `/daily-pull` is a six-step operational document, not a stub:
+    pull → curate → tip → select → build/verify/publish → commit → report, with the traps inline
+    (stop `pnpm dev` before publishing; a non-empty `unknownWords` must be fixed, not ignored; a
+    wire-screen failure means drop the item, never relax the check). `/curate-pack` is the weekly
+    counterweight: rotate one source per week and verify its licence **at the artifact**, prune
+    daily items past 90 days (never the archive), ping each source, and watch for VOA English
+    reviving.
+  - **`pack verify` gained the v0.6 gates**: every daily item must carry a per-item credit, no item
+    may have neither body nor link, no planned word may be missing from the pack, tips must have a
+    registered source and a body, and **no bundled body may be wire-derived**. The ID-churn gate
+    now also covers `tips`; `daily_items` is deliberately excluded, because a pull replacing the
+    day's items is the feature.
+  - **A pre-existing v0.4 bug surfaced and is fixed.** On a pack older than v0.4 the review screen
+    threw `SQLITE_ERROR: no such table: word_audio` three times per card — a feature added later
+    assumed a table older packs do not have. `getWordAudio` now tolerates exactly "no such
+    table"/"no such column" and returns nothing; every other SQL error still propagates. Found by
+    running the upgrade acceptance script, which the blanket suite loop had been running in the
+    wrong environment (it needs the static server, not `pnpm dev`) — the README's runner is fixed.
+  - Verified against pack `2026.07.31-8`: re-running a pull the same day leaves the row count and
+    the ids identical; an injected source failure still stores 3 source/language pairs, names the
+    failure and exits 0; `/today` states the day it is showing, opens an item with 21 blocks of
+    text and its per-item credit, and the word of the day lands in the SRS deck ("1 thẻ trong bộ");
+    the tip is stable across reloads. **0 off-origin requests, 0 console errors. All 14 acceptance
+    scripts pass.** Script: `tools/e2e/verify-v06.mjs`.
 
 - **v0.5 shipped — "Grammar".** A `/grammar` reader over **720 topics**: the official HSK 3.0
   syllabus (573 points, graded HSK1→7-9), Tex's French Grammar in full (130 pages), and 17
@@ -447,12 +559,37 @@ working session, and commit it with the session's push. It is the single source 
 - Pack `2026.07.29-2` is published on [GitHub Releases (v0.1)](https://github.com/nhhandevops/multilingual-studies/releases/tag/v0.1) under CC BY-SA 4.0 — see "The database" below.
 - 2026-07-30: git history was rewritten (force-push) to purge 142 MB of accidentally committed pack duplicates; `.gitignore` now blanket-ignores `*.gz`. If an old clone exists somewhere, delete and re-clone instead of pulling.
 
-## Next up: v0.6 — The daily pull
+## Next up: v0.7 — IoT vocabulary
 
-v0.5 is complete. See [docs/PLAN.md](docs/PLAN.md) for the 0.6 row (daily source modules + the VOA
-LE archive seed + a real `SKILL.md` + a Today screen: news at level, word-of-day into the SRS
-queue, a tip + evergreen tips). The roadmap is the "what's next" oracle; this file is the "where
-were we" one.
+v0.6 is complete. See [docs/PLAN.md](docs/PLAN.md) for the 0.7 row (NIST + Wikipedia glossaries +
+Wikidata en/zh/fr/**vi** labels + a tech module UI + tech cards — "learn firmware/固件/micrologiciel
+with a Vietnamese label"). The roadmap is the "what's next" oracle; this file is the "where were
+we" one. `tech_terms` and `tech_term_labels` already exist in the schema and are still empty.
+
+Carried forward from 0.6, none blocking:
+
+1. **The daily pull has never run unattended.** Everything is verified by acceptance script and by
+   one real pull today; the habit itself — thirty consecutive days, which is v1.0's gate — has not
+   been exercised. The first thing that will break is the pinned VOA feed token; `/curate-pack`
+   step 4 is where that gets noticed.
+2. **`level_est` is a coverage measure, not a grading**, and it inherits v0.1's derived French
+   CEFR bands, which put `cinquième` and `technologie` at C2 because they are frequency-derived
+   over only 5,000 lemmas. The measure is honest about itself, but French levels are the weakest
+   input it has.
+3. **Chinese daily items carry no pinyin.** Word and sentence rows do; `daily_items` has no
+   `reading` column, so a beginner reading VOA Chinese gets characters only. Adding one is cheap
+   (`pinyin-pro` is already a dependency and `lib/pinyin.ts` exists) but was outside the 0.6 row.
+4. **`license_mode='verbatim-only'` is STILL unexercised** — and v0.6 found the reason it keeps
+   not happening. The natural candidate was The Conversation France (CC BY-ND, a vetted daily
+   French source), and it is genuinely unusable here: ND forbids excerpting, so even a preview line
+   on the Today card is a modification, *and* their republishing terms ask for a 1×1 tracking
+   pixel, which an app whose every acceptance run asserts **0 off-origin requests** cannot serve.
+   Worth recording as a verdict rather than a to-do.
+5. **Old daily items are never pruned automatically.** `/curate-pack` step 3 does it by hand at 90
+   days. At ~26 items a day that is ~2,300 rows before anyone notices — small, but it grows.
+6. **The archive is 160 articles of a possible 32,737.** `QUOTA_PER_BAND` in
+   [en/voa-le.ts](apps/ingest/src/sources/en/voa-le.ts) is the lever; the cost is one HTTP request
+   per candidate, not bytes (160 articles are 673 KB of text).
 
 Carried forward from 0.5, none blocking:
 
@@ -529,8 +666,11 @@ Notes:
   carry one.
 - The pack in `apps/web/public/packs/` is **gitignored** — every machine builds its own from sources (same stable IDs ⇒ same user progress compatibility).
 - Acceptance scripts live in [tools/e2e/](tools/e2e/) (`cd tools/e2e && npm install`, then
-  `node verify-v04-p3-p4.mjs` with `pnpm dev` running). They need an installed Chrome; set
-  `CHROME=/path/to/chrome` if it is not in a standard location. All 11 pass on v0.4.
+  `node verify-v06.mjs` with `pnpm dev` running). They need an installed Chrome; set
+  `CHROME=/path/to/chrome` if it is not in a standard location. **All 14 pass on v0.6.** One of
+  them, `verify-upgrade-v02-to-v03.mjs`, must run against `static-server.mjs` rather than
+  `pnpm dev` — see [tools/e2e/README.md](tools/e2e/README.md); running it in a blanket loop
+  always "fails", which is how a real v0.4 bug stayed hidden until v0.6.
 - `gh` CLI is optional: plain `git push` works with stored credentials; repo creation was done via API.
 
 ## The database (content pack) — what it is and how to use it
@@ -540,7 +680,7 @@ Notes:
 > `apps/ingest` rồi build lại pack. File này không nằm trong git; máy khác lấy nó bằng cách
 > tự build (cách A) hoặc tải từ GitHub Releases (cách B).
 
-> **Size changed again in v0.4:** the pack is now **128.9 MB gz** (27.7 → 47.5 in v0.3 → 128.9).
+> **Size as of v0.6: 130.4 MB gz** (27.7 → 47.5 in v0.3 → 128.9 in v0.4 → 130.1 in v0.5 → 130.4).
 > Roughly 86 MB of that is audio blobs and 30 MB is stroke JSON. The published v0.1 release asset
 > is still the old 27.7 MB pack: it works, but has no `graphemes`/`hanzi_info`/`audio`/`sentences`,
 > so `/write`, `/pinyin`, examples and every 🔊 will be empty. Rebuild from sources (way A) to get
@@ -614,7 +754,11 @@ now blanket-ignores `*.gz`. If you see such files: they are redundant browser do
 | `packages/shared` | ID derivation (contract!), Zod types, `src/srs/` = user.db schema + ts-fsrs wrapper (`@mls/shared/srs`) |
 | `packages/content-pack` | schema.sql (contract!), pack builder/verifier |
 | `sources.lock.json` | sha256 + license of every raw download (auto-maintained) |
-| `.claude/skills/` | (from v0.6) `/daily-pull` and `/curate-pack` Claude Code skills |
+| `.claude/skills/` | (v0.6) `/daily-pull` (the six-step daily contract) and `/curate-pack` (the weekly licence + liveness audit) |
+| `apps/ingest/src/daily.ts` | (v0.6) the `daily:*` / `tips:add` CLI the skill drives; `daily:all` degrades per source instead of aborting |
+| `packages/shared/src/wire.ts` | (v0.6) the wire-agency screen — a LICENCE rule, applied by ingest and re-applied by `pack verify`. 35% of VOA Learning English fails it |
+| `apps/ingest/src/lib/level.ts` | (v0.6) measured difficulty: the band at which 90% of recognised words sit at or below. Not a CEFR grading; declines below 20 recognised tokens |
+| `apps/web/src/routes/today.tsx` | (v0.6) `/today` — news, graded reading, word of the day → SRS, tip. Every section degrades rather than disappearing |
 
 ## Testing recipe (browser verification)
 

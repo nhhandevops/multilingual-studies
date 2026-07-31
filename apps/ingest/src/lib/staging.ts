@@ -21,8 +21,29 @@ export function openStaging(): DB {
       input_sha256 TEXT,
       PRIMARY KEY (source, started_at)
     );`);
+  migrate(db);
   seedLanguages(db);
   return db;
+}
+
+/**
+ * Idempotent column additions.
+ *
+ * schema.sql is all `CREATE TABLE IF NOT EXISTS`, so a table that already exists in someone's
+ * staging.db never gains a column added to the file — a fresh clone would get it and this machine
+ * would not, silently. Re-running `seed:all` from scratch is the documented remedy, but it costs
+ * ~2.5 hours, which is too much to pay for one nullable column. These ALTERs bridge the gap and
+ * are no-ops on a database built from the current schema.
+ */
+function migrate(db: DB): void {
+  const has = (table: string, col: string): boolean =>
+    (db.pragma(`table_info(${table})`) as { name: string }[]).some((c) => c.name === col);
+  for (const [table, col, decl] of [
+    ['daily_items', 'attribution', `TEXT NOT NULL DEFAULT ''`],
+    ['daily_items', 'published_at', 'TEXT'],
+  ] as const) {
+    if (!has(table, col)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${decl}`);
+  }
 }
 
 function seedLanguages(db: DB): void {

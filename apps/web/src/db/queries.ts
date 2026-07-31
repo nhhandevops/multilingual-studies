@@ -34,6 +34,25 @@ export interface SourceRow {
 
 const WORD_COLS = 'id, lang, headword, alt_form, reading, freq_rank, level, sv_cognate, source_id';
 
+/**
+ * Run a query against a table or column that a LATER pack version introduced.
+ *
+ * An installed pack can legitimately predate a feature: when the update is unreachable the worker
+ * deliberately keeps what is installed rather than leaving the learner with nothing. SQLite
+ * answers a query about a table that does not exist yet with "no such table", and that is a
+ * missing feature, not a fault — the caller shows an empty state, exactly as `db.packTooOld` does
+ * for the writing screens. Only those two messages are swallowed; every other SQL error still
+ * propagates, so a real query bug cannot hide behind this.
+ */
+async function tolerant<T>(run: () => Promise<T[]>): Promise<T[]> {
+  try {
+    return await run();
+  } catch (e) {
+    if (/no such (table|column)/i.test(String(e))) return [];
+    throw e;
+  }
+}
+
 const hasCjk = (s: string) => /[㐀-鿿豈-﫿]/.test(s);
 
 /** Build a safe FTS5 MATCH string: each term quoted, AND-joined (detail=none ⇒ no phrases). */
@@ -149,11 +168,16 @@ export async function listExamples(db: Db, wordId: string, limit = 3): Promise<E
  * Lingua Libre cannot, since hundreds of different people recorded these.
  */
 export async function getWordAudio(db: Db, wordId: string): Promise<WordAudioRow | null> {
-  const rows = await db.query<WordAudioRow>(
-    `SELECT a.id, a.speaker, a.attribution
-       FROM word_audio wa JOIN audio a ON a.id = wa.audio_id
-      WHERE wa.word_id = ? LIMIT 1`,
-    [wordId],
+  // `word_audio` arrived in v0.4. An install still on a v0.3 pack threw here on every word page
+  // and every review answer — three uncaught SQLITE_ERRORs per card — because a feature added
+  // later assumed a table that older packs do not have.
+  const rows = await tolerant<WordAudioRow>(() =>
+    db.query<WordAudioRow>(
+      `SELECT a.id, a.speaker, a.attribution
+         FROM word_audio wa JOIN audio a ON a.id = wa.audio_id
+        WHERE wa.word_id = ? LIMIT 1`,
+      [wordId],
+    ),
   );
   return rows[0] ?? null;
 }
@@ -446,6 +470,158 @@ export async function grammarLevels(db: Db, lang: string): Promise<{ level: stri
     `SELECT level, COUNT(*) AS n FROM grammar_topics WHERE lang = ? AND level IS NOT NULL GROUP BY level ORDER BY level`,
     [lang],
   );
+}
+
+// --- the daily pull (v0.6) --------------------------------------------------
+
+export interface DailyItemRow {
+  id: string;
+  lang: string;
+  date: string; //           the day this item is FOR
+  kind: string;
+  title: string;
+  url: string | null;
+  body_text: string | null;
+  audio_url: string | null;
+  level_est: string | null;
+  source_id: string;
+  curated_note: string | null; //  Claude's Vietnamese one-liner, when the pull was curated
+  attribution: string; //          per-item credit — always render it
+  published_at: string | null;
+  source_name: string;
+  source_url: string;
+  license: string;
+  license_mode: string;
+}
+
+const DAILY_COLS = `d.*, s.name AS source_name, s.url AS source_url, s.license, s.license_mode`;
+
+/** Sources a daily pull writes. The rest of `daily_items` is the graded archive. */
+const FRESH_SOURCES = `('voa-chinese', 'global-voices', 'wikipedia-itn')`;
+
+/**
+ * The most recent day this pack actually has news for, per language.
+ *
+ * The pack is built once and then read offline for as long as the learner goes without updating,
+ * so "today's news" has to mean "the newest news this pack holds" — and the screen has to say
+ * which day that is. Pretending a three-day-old pull is today's would be the dishonest version.
+ */
+export async function latestPullDate(db: Db, lang: string): Promise<string | null> {
+  const rows = await db.query<{ date: string }>(
+    `SELECT MAX(date) AS date FROM daily_items WHERE lang = ? AND source_id IN ${FRESH_SOURCES}`,
+    [lang],
+  );
+  return rows[0]?.date ?? null;
+}
+
+export async function listDailyNews(db: Db, lang: string, date: string): Promise<DailyItemRow[]> {
+  return db.query<DailyItemRow>(
+    `SELECT ${DAILY_COLS} FROM daily_items d JOIN sources s ON s.id = d.source_id
+      WHERE d.lang = ? AND d.date = ? AND d.source_id IN ${FRESH_SOURCES}
+      ORDER BY d.source_id, d.id`,
+    [lang, date],
+  );
+}
+
+/**
+ * Graded reading from the archive, newest first.
+ *
+ * Separate from the fresh pull on purpose: these are not today's news and must not be presented
+ * as such. They are the levelled half of the Today screen — the part that works on any day.
+ */
+export async function listGradedReading(db: Db, lang: string, level?: string, limit = 12): Promise<DailyItemRow[]> {
+  const where = level ? `AND d.level_est = ?` : '';
+  return db.query<DailyItemRow>(
+    `SELECT ${DAILY_COLS} FROM daily_items d JOIN sources s ON s.id = d.source_id
+      WHERE d.lang = ? AND d.source_id NOT IN ${FRESH_SOURCES} ${where}
+      ORDER BY d.date DESC, d.id LIMIT ?`,
+    level ? [lang, level, limit] : [lang, limit],
+  );
+}
+
+export async function gradedLevels(db: Db, lang: string): Promise<{ level: string; n: number }[]> {
+  return db.query(
+    `SELECT level_est AS level, COUNT(*) AS n FROM daily_items
+      WHERE lang = ? AND level_est IS NOT NULL AND source_id NOT IN ${FRESH_SOURCES}
+      GROUP BY level_est ORDER BY level_est`,
+    [lang],
+  );
+}
+
+export async function getDailyItem(db: Db, id: string): Promise<DailyItemRow | null> {
+  const rows = await db.query<DailyItemRow>(
+    `SELECT ${DAILY_COLS} FROM daily_items d JOIN sources s ON s.id = d.source_id WHERE d.id = ?`,
+    [id],
+  );
+  return rows[0] ?? null;
+}
+
+/** Which languages have any daily content at all. */
+export async function dailyLangs(db: Db): Promise<{ lang: string; n: number }[]> {
+  return db.query(`SELECT lang, COUNT(*) AS n FROM daily_items GROUP BY lang ORDER BY lang`);
+}
+
+export interface PlannedWord extends WordRow {
+  /** Why this word, in Vietnamese — present only when a human/Claude curated the day. */
+  reason: string | null;
+}
+
+/**
+ * The day's new words. `date` is the plan's date, which may predate today for the same reason
+ * the news does. Falls back to the newest plan the pack holds for this language.
+ */
+export async function dailyPlanWords(db: Db, lang: string, date: string | null): Promise<PlannedWord[]> {
+  const on = date
+    ? date
+    : (await db.query<{ d: string }>(`SELECT MAX(date) AS d FROM daily_plan WHERE lang = ?`, [lang]))[0]?.d;
+  if (!on) return [];
+  return db.query<PlannedWord>(
+    `SELECT ${WORD_COLS.split(', ').map((c) => `w.${c}`).join(', ')}, p.reason
+       FROM daily_plan p JOIN words w ON w.id = p.word_id
+      WHERE p.date = ? AND p.lang = ?
+      ORDER BY w.level, w.freq_rank IS NULL, w.freq_rank`,
+    [on, lang],
+  );
+}
+
+export interface TipRow {
+  id: string;
+  lang: string;
+  date_added: string;
+  title: string;
+  body_md: string;
+  technique: string | null;
+  links: string | null;
+  source_id: string;
+}
+
+/**
+ * One tip for the day: the tip written for that date if there is one, else a deterministic pick
+ * from the evergreen set.
+ *
+ * Deterministic, not random: the same day must show the same tip on every reload and on every
+ * device, or "today's tip" is just a shuffle button.
+ */
+export async function tipOfDay(db: Db, lang: string, isoDate: string): Promise<TipRow | null> {
+  const dated = await db.query<TipRow>(
+    `SELECT * FROM tips WHERE date_added = ? AND lang IN (?, 'all') ORDER BY lang = 'all', id LIMIT 1`,
+    [isoDate, lang],
+  );
+  if (dated[0]) return dated[0];
+  const pool = await db.query<TipRow>(`SELECT * FROM tips WHERE lang IN (?, 'all') ORDER BY id`, [lang]);
+  if (pool.length === 0) return null;
+  const days = Math.floor(Date.parse(`${isoDate}T00:00:00Z`) / 86_400_000);
+  return pool[((days % pool.length) + pool.length) % pool.length]!;
+}
+
+export function tipLinks(row: { links: string | null }): GrammarLink[] {
+  if (!row.links) return [];
+  try {
+    const v: unknown = JSON.parse(row.links);
+    return Array.isArray(v) ? (v as GrammarLink[]).filter((l) => l && typeof l.url === 'string') : [];
+  } catch {
+    return [];
+  }
 }
 
 export async function listSources(db: Db): Promise<SourceRow[]> {
