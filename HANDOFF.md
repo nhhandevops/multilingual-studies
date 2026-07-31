@@ -4,7 +4,8 @@
 > Xem 好 tự viết rồi tự tô · tô chữ `é` · nghe đủ 1.707 âm tiết pinyin · luyện thanh điệu ·
 > bảng IPA có hình cắt dọc · thẻ tập viết chạy chung vòng ôn SRS của v0.2.
 > **v0.4 đang làm dở (chưa tag): P1 xong** — mỗi thẻ đã có câu ví dụ thật (73.389 câu Tatoeba,
-> có pinyin và bản dịch tiếng Anh). Còn lại: âm thanh cho từ (ZH/FR) và TTS dự phòng.
+> có pinyin và bản dịch tiếng Anh) **và P2 xong** — 7.211 từ HSK có giọng người thật (63% số từ
+> có cấp độ). Còn lại: âm thanh tiếng Pháp (Lingua Libre) và TTS dự phòng.
 > Trên máy mới: `pnpm install` → `pnpm ingest seed:all` → `pnpm pack:build` → `pnpm ingest pack publish` → `pnpm dev`.
 
 Keep this file current: update the **Current state** and **Next up** sections at the end of every
@@ -35,6 +36,27 @@ working session, and commit it with the session's push. It is the single source 
     example with its credit; export → import round-trips a card carrying one.
     Script: `scratchpad/e2e/verify-v04-p1.mjs`.
   - Pack: 47.5 → **57.7 MB gz** (sentences + their FTS index).
+  - **P2 done — most words speak with a human voice.** `seed:zh-word-audio` ingests **7,211**
+    HSK word recordings from `hugolpz/audio-cmn` — same repo as the syllable chart but a
+    **different speaker and collection** (Yue Tan / cmn-caen-tan vs Chen Wang), so it registers
+    its own `sources` row: the attribution has to name the right person. Only recordings that
+    match a **levelled** pack word are downloaded at all, so a fresh machine doesn't pull 36 MB
+    to discard a third of it. Coverage: **7,211 / 11,470 levelled zh words = 63%**.
+  - Audio hangs off a new **`word_audio`** join table, not a `words.audio_id` column: audio comes
+    from a different source than the word, and a word may later have several speakers.
+  - **Deliberate, narrow exception to invariant 6:** the review card looks its audio up by card
+    id instead of freezing it into the snapshot. Audio is *enrichment*, not card content — if the
+    word vanishes from a newer pack the button simply disappears and the card still reviews.
+    Freezing megabytes of mp3 into `user.db` would be far worse. Documented at `getWordAudioId`.
+  - Verified: 🔊 on the word page and on the review answer both play a decodable clip from a
+    `blob:` URL, **0 off-origin requests**, and the PLAN's v0.4 gate holds — **0 audio rows with
+    NULL attribution, 0 NC/ND clips**. Script: `scratchpad/e2e/verify-v04-p2.mjs`.
+  - **Pack: 57.7 → 88.3 MB gz.** This is now the project's biggest open question. Levers, in
+    order of how little they cost: drop word audio to `18k-abr` (−8 MB), restrict word audio to
+    HSK1–6 (−12 MB), restrict stroke data to HSK + top-N frequency (−9 MB), or — the real answer —
+    **split media into an optional second pack**, which v0.9 (PWA + deploy) will force anyway.
+    Nothing is broken at 88 MB; it is a one-time download for a local-first app. But it should be
+    a decision, not a drift.
   - **Seeds must delete before they insert.** Re-running with stricter filters left 77k rejected
     rows behind, because `INSERT … ON CONFLICT` upserts and never removes. `seed:sentences` now
     clears its own rows (scoped by `source_id`) first. Any seed whose *selection* can change

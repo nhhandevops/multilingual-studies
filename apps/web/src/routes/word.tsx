@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useDb } from '../db/provider';
-import { getWord, haveStrokeData, listExamples, type ExampleRow } from '../db/queries';
+import { getWord, getWordAudioId, haveStrokeData, listExamples, type ExampleRow } from '../db/queries';
+import { playAudio } from '../audio/player';
 import { getCard } from '../db/user-queries';
 import { AddToDeck } from '../components/add-to-deck';
 
@@ -19,12 +20,14 @@ export function WordPage() {
   const [inDeck, setInDeck] = useState(false);
   const [drawable, setDrawable] = useState<Set<string>>(new Set());
   const [examples, setExamples] = useState<ExampleRow[]>([]);
+  const [audioId, setAudioId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     setDetail('loading');
     setDrawable(new Set());
     setExamples([]);
+    setAudioId(null);
     if (id) {
       const rawId = id; // React Router v7 already percent-decodes params — never decode twice
       void getWord(db, rawId).then(async (d) => {
@@ -40,6 +43,9 @@ export function WordPage() {
       });
       void listExamples(db, rawId, 3).then((e) => {
         if (!cancelled) setExamples(e);
+      });
+      void getWordAudioId(db, rawId).then((a) => {
+        if (!cancelled) setAudioId(a);
       });
     }
     return () => {
@@ -79,6 +85,12 @@ export function WordPage() {
             : word.headword}
         </span>
         {word.reading && <span className="reading" style={{ fontSize: '1.3rem' }}>{word.reading}</span>}
+        {audioId && (
+          <button className="speak" title={t('word.listen')} aria-label={t('word.listen')}
+                  onClick={() => void playAudio(db, audioId)}>
+            🔊
+          </button>
+        )}
         <span className="badge">{t(`lang.${word.lang}`, word.lang)}</span>
         {word.level && <span className="badge">{word.level}</span>}
         <AddToDeck word={word} senses={senses} inDeck={inDeck} onChange={setInDeck} />

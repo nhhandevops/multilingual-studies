@@ -150,7 +150,8 @@
     "source": "Data source",
     "notFound": "Word not found.",
     "back": "← Back",
-    "examples": "Example sentences"
+    "examples": "Example sentences",
+    "listen": "Listen"
   },
   "licenses": {
     "title": "Data sources & licenses",

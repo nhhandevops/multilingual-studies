@@ -5,6 +5,8 @@ import { Link } from 'react-router-dom';
 import { CardSnapshot, GRADES, previewMinutes, snapshotKind, State, type Grade, type UserCardRow } from '@mls/shared/srs';
 import { StrokeWriter } from '../components/stroke-writer';
 import { useDb } from '../db/provider';
+import { getWordAudioId } from '../db/queries';
+import { playAudio } from '../audio/player';
 import {
   fetchQueue,
   queueSummary,
@@ -47,6 +49,7 @@ export function Review() {
   const [showAnswer, setShowAnswer] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [ratingBusy, setRatingBusy] = useState(false);
+  const [cardAudio, setCardAudio] = useState<string | null>(null);
   const ratingRef = useRef(false); // re-entrancy guard: a double-tap must not rate twice
   const shownAt = useRef(0);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -116,6 +119,20 @@ export function Review() {
     }
   };
 
+  // Audio is looked up per card rather than frozen into the snapshot — see getWordAudioId.
+  const currentId = queue[0]?.id;
+  useEffect(() => {
+    let cancelled = false;
+    setCardAudio(null);
+    if (!currentId || db.status.state !== 'ready') return;
+    void getWordAudioId(db, currentId).then((a) => {
+      if (!cancelled) setCardAudio(a);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [currentId, db]);
+
   const offset = clockOffsetMs();
   const offsetBadge =
     offset !== 0 ? (
@@ -150,6 +167,13 @@ export function Review() {
                 ))}
               </ol>
               {snap.level && <span className="badge">{snap.level}</span>}
+              {cardAudio && (
+                <p>
+                  <button className="speak" onClick={() => void playAudio(db, cardAudio)}>
+                    🔊 {t('word.listen')}
+                  </button>
+                </p>
+              )}
               {/* Grapheme cards get the writer on the answer side: recall first, then practise
                   the strokes. Stroke data comes from the snapshot — never from content.db. */}
               {isGrapheme && snap.strokeJson && (

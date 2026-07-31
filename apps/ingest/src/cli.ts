@@ -21,6 +21,7 @@ const SEEDS: Record<string, () => Promise<{ run: SeedFn }>> = {
   'zh-hsk': () => import('./sources/zh/hsk'), //          needs zh-cedict
   'zh-strokes': () => import('./sources/zh/strokes'), //  needs zh-cedict (readings + coverage set)
   'zh-pinyin-audio': () => import('./sources/zh/pinyin-audio'),
+  'zh-word-audio': () => import('./sources/zh/word-audio'), //  needs zh-hsk (levels drive the filter)
   'en-cefrj': () => import('./sources/en/cefrj'),
   'en-oewn': () => import('./sources/en/oewn'), //        needs en-cefrj
   'fr-lexique': () => import('./sources/fr/lexique'),

@@ -1,6 +1,14 @@
 {
   "$comment": "Every raw artifact downloaded by apps/ingest is recorded here by lib/download.ts: { id, url, sha256, bytes, retrievedAt, license, notes }. This file is the mirror-rot insurance and license audit trail. Never hand-edit entries; add sources only after vetting in docs/RESEARCH-SOURCES.md.",
   "artifacts": {
+    "audio-cmn:24k-abr/hsk": {
+      "url": "https://github.com/hugolpz/audio-cmn/tree/master/24k-abr/hsk",
+      "sha256": "048ddec482eefa582e9e234f369cf514cf0d288c0df82c11c7ea298dd60fe348",
+      "bytes": 31668078,
+      "retrievedAt": "2026-07-31T03:31:13.066Z",
+      "license": "CC BY-SA (Yue Tan, Shtooka cmn-caen-tan collection)",
+      "notes": "7211 HSK word mp3s (of 8596 upstream), matched to levelled pack words"
+    },
     "audio-cmn:24k-abr/syllabs": {
       "url": "https://github.com/hugolpz/audio-cmn/tree/master/24k-abr/syllabs",
       "sha256": "9fd2dddcdb8a46651e39099874d77c4593c3ba70c5bd9ab7e98bdc97e79b55b3",

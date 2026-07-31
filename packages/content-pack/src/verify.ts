@@ -133,6 +133,10 @@ export function verifyPack(packDir: string, packsDir?: string): VerifyIssue[] {
     if (untranslated > 0) warn('sentences', `${untranslated} non-English sentences have no English translation`);
     const zhNoReading = one(`SELECT COUNT(*) AS n FROM sentences WHERE lang = 'zh' AND (reading IS NULL OR reading = '')`);
     if (zhNoReading > 0) err('sentences', `${zhNoReading} zh sentences have no pinyin reading`);
+    const orphanWordAudio = one(`SELECT COUNT(*) AS n FROM word_audio wa
+      WHERE NOT EXISTS (SELECT 1 FROM words w WHERE w.id = wa.word_id)
+         OR NOT EXISTS (SELECT 1 FROM audio_blobs b WHERE b.audio_id = wa.audio_id)`);
+    if (orphanWordAudio > 0) err('media', `${orphanWordAudio} word_audio rows point at a missing word or blob`);
 
     // FTS coverage
     const words = one('SELECT COUNT(*) AS n FROM words');

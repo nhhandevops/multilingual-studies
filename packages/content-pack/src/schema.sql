@@ -128,6 +128,15 @@ CREATE TABLE IF NOT EXISTS asset_blobs (
   source_id TEXT NOT NULL REFERENCES sources(id)
 ) WITHOUT ROWID;
 
+-- Word pronunciations. A join table rather than a `words.audio_id` column: audio arrives from a
+-- different source than the word, and a word may later have several recordings (speakers).
+CREATE TABLE IF NOT EXISTS word_audio (
+  word_id  TEXT NOT NULL REFERENCES words(id),
+  audio_id TEXT NOT NULL REFERENCES audio(id),
+  PRIMARY KEY (word_id, audio_id)
+) WITHOUT ROWID;
+CREATE INDEX IF NOT EXISTS idx_word_audio_audio ON word_audio(audio_id);
+
 -- makemeahanzi's dictionary.txt is LGPL-3.0-or-later while its graphics.txt is Arphic PL.
 -- They live in separate tables on purpose: the LGPL half stays a separate, replaceable
 -- component (see docs/RESEARCH-SOURCES.md) and `graphemes` keeps only bundle-clean data.

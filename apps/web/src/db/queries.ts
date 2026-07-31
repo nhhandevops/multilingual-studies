@@ -128,6 +128,22 @@ export async function listExamples(db: Db, wordId: string, limit = 3): Promise<E
   );
 }
 
+/**
+ * The pronunciation clip for a word, if the pack has one.
+ *
+ * Review cards render from their snapshot (invariant 6), and this is a deliberate, narrow
+ * exception: audio is *enrichment*, not card content. If the word vanished from a newer pack
+ * the lookup simply returns null and the play button disappears — the card still reviews.
+ * Storing megabytes of mp3 inside user.db to avoid this would be far worse.
+ */
+export async function getWordAudioId(db: Db, wordId: string): Promise<string | null> {
+  const rows = await db.query<{ audio_id: string }>(
+    `SELECT audio_id FROM word_audio WHERE word_id = ? LIMIT 1`,
+    [wordId],
+  );
+  return rows[0]?.audio_id ?? null;
+}
+
 export async function listSenses(db: Db, wordId: string): Promise<SenseRow[]> {
   return db.query<SenseRow>(
     `SELECT ord, pos, gloss_en, gloss_vi, examples FROM senses WHERE word_id = ? ORDER BY ord`,
