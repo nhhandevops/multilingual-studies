@@ -11,6 +11,11 @@ function queueFor(host: string): PQueue {
   let q = queues.get(host);
   if (!q) {
     // Conservative default: 2 concurrent, ≥250ms apart per host.
+    //
+    // Measured, not guessed: raising this to 8 for upload.wikimedia.org during the Lingua Libre
+    // crawl made throughput *worse* (0.5 → 0.3 files/s) because the host answered with 429s and
+    // the retries ate the gain. Wikimedia's documented "~15,000 files/hour" applies to their
+    // bulk tooling, not to hammering transcode URLs. Leave this alone.
     q = new PQueue({ concurrency: 2, interval: 250, intervalCap: 1 });
     queues.set(host, q);
   }

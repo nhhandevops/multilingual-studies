@@ -151,7 +151,8 @@
     "notFound": "Word not found.",
     "back": "← Back",
     "examples": "Example sentences",
-    "listen": "Listen"
+    "listen": "Listen",
+    "listenTts": "Listen (synthetic voice)"
   },
   "licenses": {
     "title": "Data sources & licenses",

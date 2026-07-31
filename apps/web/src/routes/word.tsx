@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useDb } from '../db/provider';
 import { getWord, getWordAudioId, haveStrokeData, listExamples, type ExampleRow } from '../db/queries';
-import { playAudio } from '../audio/player';
+import { SpeakButton } from '../components/speak-button';
 import { getCard } from '../db/user-queries';
 import { AddToDeck } from '../components/add-to-deck';
 
@@ -85,12 +85,7 @@ export function WordPage() {
             : word.headword}
         </span>
         {word.reading && <span className="reading" style={{ fontSize: '1.3rem' }}>{word.reading}</span>}
-        {audioId && (
-          <button className="speak" title={t('word.listen')} aria-label={t('word.listen')}
-                  onClick={() => void playAudio(db, audioId)}>
-            🔊
-          </button>
-        )}
+        <SpeakButton db={db} audioId={audioId} text={word.headword} lang={word.lang} />
         <span className="badge">{t(`lang.${word.lang}`, word.lang)}</span>
         {word.level && <span className="badge">{word.level}</span>}
         <AddToDeck word={word} senses={senses} inDeck={inDeck} onChange={setInDeck} />
@@ -126,7 +121,11 @@ export function WordPage() {
           <ul>
             {examples.map((ex) => (
               <li key={ex.id}>
-                <p className="ex-text">{ex.text}</p>
+                {/* Tatoeba's own sentence recordings are CC BY-NC-ND, so they can never be
+                    bundled — TTS is the only pronunciation these sentences will ever have. */}
+                <p className="ex-text">
+                  {ex.text} <SpeakButton db={db} audioId={null} text={ex.text} lang={word.lang} />
+                </p>
                 {ex.reading && <p className="ex-reading">{ex.reading}</p>}
                 {ex.trans_en && <p className="ex-trans">{ex.trans_en}</p>}
                 {/* CC BY 2.0 FR: the contributor credit travels with the sentence. */}

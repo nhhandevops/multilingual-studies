@@ -72,6 +72,11 @@ export function verifyPack(packDir: string, packsDir?: string): VerifyIssue[] {
     if (badAudio > 0) err('attribution', `audio: ${badAudio} rows missing attribution/license`);
     const ncAudio = one(`SELECT COUNT(*) AS n FROM audio WHERE license LIKE '%NC%' OR license LIKE '%NonCommercial%' OR license LIKE '%ND%' OR license LIKE '%NoDeriv%'`);
     if (ncAudio > 0) err('license', `audio: ${ncAudio} NC/ND-licensed files must not be bundled`);
+    // Every bundled clip is CC BY / BY-SA, whose whole requirement is crediting the author. A
+    // corpus-level credit does not discharge that when each recording is a different person —
+    // Lingua Libre alone contributes hundreds of speakers — so the name must be on the row.
+    const noSpeaker = one(`SELECT COUNT(*) AS n FROM audio WHERE speaker IS NULL OR speaker = ''`);
+    if (noSpeaker > 0) err('attribution', `audio: ${noSpeaker} rows do not name their speaker`);
 
     // license_mode enforcement
     const linkOnlyGrammar = one(`SELECT COUNT(*) AS n FROM grammar_topics g

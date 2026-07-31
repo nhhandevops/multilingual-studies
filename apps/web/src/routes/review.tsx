@@ -6,7 +6,7 @@ import { CardSnapshot, GRADES, previewMinutes, snapshotKind, State, type Grade, 
 import { StrokeWriter } from '../components/stroke-writer';
 import { useDb } from '../db/provider';
 import { getWordAudioId } from '../db/queries';
-import { playAudio } from '../audio/player';
+import { SpeakButton } from '../components/speak-button';
 import {
   fetchQueue,
   queueSummary,
@@ -167,13 +167,15 @@ export function Review() {
                 ))}
               </ol>
               {snap.level && <span className="badge">{snap.level}</span>}
-              {cardAudio && (
-                <p>
-                  <button className="speak" onClick={() => void playAudio(db, cardAudio)}>
-                    🔊 {t('word.listen')}
-                  </button>
-                </p>
-              )}
+              {/* Grapheme cards are single letters/characters — a synthetic reading of one
+                  Latin letter teaches nothing, so TTS is offered for word cards only. */}
+              <SpeakButton
+                db={db}
+                audioId={cardAudio}
+                text={snap.headword}
+                lang={isGrapheme ? 'all' : card.lang}
+                variant="block"
+              />
               {/* Grapheme cards get the writer on the answer side: recall first, then practise
                   the strokes. Stroke data comes from the snapshot — never from content.db. */}
               {isGrapheme && snap.strokeJson && (
@@ -182,7 +184,10 @@ export function Review() {
               {/* Frozen at add-time — never joined from content.db (invariant 6). */}
               {snap.example && (
                 <div className="review-example">
-                  <p className="ex-text">{snap.example.text}</p>
+                  <p className="ex-text">
+                    {snap.example.text}{' '}
+                    <SpeakButton db={db} audioId={null} text={snap.example.text} lang={card.lang} />
+                  </p>
                   {snap.example.reading && <p className="ex-reading">{snap.example.reading}</p>}
                   {snap.example.transEn && <p className="ex-trans">{snap.example.transEn}</p>}
                   <p className="ex-credit">{snap.example.attribution}</p>

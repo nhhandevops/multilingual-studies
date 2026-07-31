@@ -151,7 +151,8 @@
     "notFound": "Không tìm thấy từ này.",
     "back": "← Quay lại",
     "examples": "Câu ví dụ",
-    "listen": "Nghe phát âm"
+    "listen": "Nghe phát âm",
+    "listenTts": "Nghe giọng máy"
   },
   "licenses": {
     "title": "Nguồn dữ liệu & giấy phép",

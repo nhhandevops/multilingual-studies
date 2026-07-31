@@ -26,6 +26,7 @@ const SEEDS: Record<string, () => Promise<{ run: SeedFn }>> = {
   'en-oewn': () => import('./sources/en/oewn'), //        needs en-cefrj
   'fr-lexique': () => import('./sources/fr/lexique'),
   'fr-kaikki-en': () => import('./sources/fr/kaikki'), // needs fr-lexique
+  'fr-word-audio': () => import('./sources/fr/word-audio'), // needs fr-lexique (levels drive the filter)
   ipa: () => import('./sources/shared/ipa'), //           fills readings still NULL — after kaikki
   'ipa-sagittal': () => import('./sources/shared/sagittal'),
   'latin-letters': () => import('./sources/shared/latin'),
