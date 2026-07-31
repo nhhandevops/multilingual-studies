@@ -11,6 +11,15 @@ export const SnapshotSense = z.object({
 });
 export type SnapshotSense = z.infer<typeof SnapshotSense>;
 
+/** An example sentence carried on a card. `attribution` is a CC BY licence obligation, not decoration. */
+export const SnapshotExample = z.object({
+  text: z.string(),
+  reading: z.string().nullable(), //  zh pinyin
+  transEn: z.string().nullable(),
+  attribution: z.string(),
+});
+export type SnapshotExample = z.infer<typeof SnapshotExample>;
+
 /**
  * Display fields frozen into the card at add-to-deck time. Cards key on word IDs, but a
  * word can legitimately vanish or change between packs (verify tolerates ≤0.5% churn) —
@@ -29,6 +38,9 @@ export const CardSnapshot = z.object({
   kind: z.enum(['word', 'grapheme']).optional(),
   /** Graphemes only: hanzi-writer `{strokes,medians}`, frozen in so review never joins content.db. */
   strokeJson: z.string().optional(),
+  // v0.4 — one example sentence, frozen at add-time for the same reason as every other field
+  // here: a review must render from the snapshot alone (invariant 6). Also optional.
+  example: SnapshotExample.optional(),
 });
 export type CardSnapshot = z.infer<typeof CardSnapshot>;
 

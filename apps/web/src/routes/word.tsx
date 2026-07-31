@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useDb } from '../db/provider';
-import { getWord, haveStrokeData } from '../db/queries';
+import { getWord, haveStrokeData, listExamples, type ExampleRow } from '../db/queries';
 import { getCard } from '../db/user-queries';
 import { AddToDeck } from '../components/add-to-deck';
 
@@ -18,11 +18,13 @@ export function WordPage() {
   const [detail, setDetail] = useState<Detail | 'loading'>('loading');
   const [inDeck, setInDeck] = useState(false);
   const [drawable, setDrawable] = useState<Set<string>>(new Set());
+  const [examples, setExamples] = useState<ExampleRow[]>([]);
 
   useEffect(() => {
     let cancelled = false;
     setDetail('loading');
     setDrawable(new Set());
+    setExamples([]);
     if (id) {
       const rawId = id; // React Router v7 already percent-decodes params — never decode twice
       void getWord(db, rawId).then(async (d) => {
@@ -35,6 +37,9 @@ export function WordPage() {
       });
       void getCard(db, rawId).then((c) => {
         if (!cancelled) setInDeck(c !== null);
+      });
+      void listExamples(db, rawId, 3).then((e) => {
+        if (!cancelled) setExamples(e);
       });
     }
     return () => {
@@ -103,6 +108,22 @@ export function WordPage() {
           )),
         )}
       </ol>
+      {examples.length > 0 && (
+        <section className="examples">
+          <h3>{t('word.examples')}</h3>
+          <ul>
+            {examples.map((ex) => (
+              <li key={ex.id}>
+                <p className="ex-text">{ex.text}</p>
+                {ex.reading && <p className="ex-reading">{ex.reading}</p>}
+                {ex.trans_en && <p className="ex-trans">{ex.trans_en}</p>}
+                {/* CC BY 2.0 FR: the contributor credit travels with the sentence. */}
+                <p className="ex-credit">{ex.attribution}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       <p className="hint">
         {t('word.source')}: <a href={source.url} target="_blank" rel="noreferrer">{source.name}</a> ({source.license})
       </p>

@@ -109,6 +109,25 @@ export async function getWord(db: Db, id: string): Promise<{ word: WordRow; sens
   return { word, senses, source: sources[0]! };
 }
 
+export interface ExampleRow {
+  id: string;
+  text: string;
+  reading: string | null; //   zh: generated pinyin
+  trans_en: string | null;
+  attribution: string; //      CC BY 2.0 FR requires this — always display it
+  rank: number;
+}
+
+/** Example sentences for a word, best first. */
+export async function listExamples(db: Db, wordId: string, limit = 3): Promise<ExampleRow[]> {
+  return db.query<ExampleRow>(
+    `SELECT s.id, s.text, s.reading, s.trans_en, s.attribution, ws.rank
+       FROM word_sentences ws JOIN sentences s ON s.id = ws.sentence_id
+      WHERE ws.word_id = ? ORDER BY ws.rank LIMIT ?`,
+    [wordId, limit],
+  );
+}
+
 export async function listSenses(db: Db, wordId: string): Promise<SenseRow[]> {
   return db.query<SenseRow>(
     `SELECT ord, pos, gloss_en, gloss_vi, examples FROM senses WHERE word_id = ? ORDER BY ord`,

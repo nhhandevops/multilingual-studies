@@ -155,6 +155,15 @@ export function Review() {
               {isGrapheme && snap.strokeJson && (
                 <StrokeWriter glyph={snap.headword} strokeJson={snap.strokeJson} />
               )}
+              {/* Frozen at add-time — never joined from content.db (invariant 6). */}
+              {snap.example && (
+                <div className="review-example">
+                  <p className="ex-text">{snap.example.text}</p>
+                  {snap.example.reading && <p className="ex-reading">{snap.example.reading}</p>}
+                  {snap.example.transEn && <p className="ex-trans">{snap.example.transEn}</p>}
+                  <p className="ex-credit">{snap.example.attribution}</p>
+                </div>
+              )}
             </div>
           )}
         </div>

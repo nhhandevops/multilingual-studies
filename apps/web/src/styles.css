@@ -179,3 +179,13 @@ button.phone-btn .glyph { font-size: 1.35rem; line-height: 1.2; }
   padding: 0.8rem; display: flex; justify-content: center; color: #555; }
 .diagram img { max-width: 100%; max-height: 62vh; height: auto; }
 ul.glyph-grid .glyph.latin { font-size: 2.1rem; font-family: Georgia, "Times New Roman", serif; }
+
+/* --- example sentences (v0.4) ---------------------------------------------- */
+.examples ul { list-style: none; padding: 0; margin: 0.5rem 0; }
+.examples li { border-left: 3px solid var(--border); padding: 0.1rem 0 0.1rem 0.8rem; margin-bottom: 1rem; }
+.ex-text { font-size: 1.15rem; margin: 0.1rem 0; }
+.ex-reading { color: var(--accent); margin: 0.1rem 0; font-size: 0.95rem; }
+.ex-trans { color: var(--fg-soft); margin: 0.1rem 0; }
+.ex-credit { color: var(--fg-soft); font-size: 0.7rem; margin: 0.25rem 0 0; }
+.review-example { border-top: 1px dashed var(--border); margin-top: 1rem; padding-top: 0.8rem; text-align: left; }
+.review-example .ex-text { font-size: 1.25rem; }

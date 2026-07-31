@@ -3,7 +3,7 @@
  * Every scheduling mutation goes through db.userExec — one message = one transaction.
  */
 import type { Db } from './provider';
-import type { GraphemeRow, SenseRow, WordRow } from './queries';
+import { listExamples, type GraphemeRow, type SenseRow, type WordRow } from './queries';
 import {
   DEFAULT_NEW_PER_DAY,
   newSrsFields,
@@ -38,7 +38,12 @@ export async function getCard(db: Db, id: string): Promise<UserCardRow | null> {
 }
 
 /** Freeze display fields into the card so it survives pack swaps (senses are NOT SRS-keyed). */
-function buildSnapshot(word: WordRow, senses: SenseRow[], packVersion: string): CardSnapshot {
+function buildSnapshot(
+  word: WordRow,
+  senses: SenseRow[],
+  packVersion: string,
+  example?: CardSnapshot['example'],
+): CardSnapshot {
   return {
     headword: word.headword,
     altForm: word.alt_form,
@@ -48,6 +53,7 @@ function buildSnapshot(word: WordRow, senses: SenseRow[], packVersion: string): 
     senses: senses.slice(0, 4).map((s) => ({ pos: s.pos, glossEn: s.gloss_en, glossVi: s.gloss_vi })),
     packVersion,
     kind: 'word',
+    ...(example ? { example } : {}),
   };
 }
 
@@ -99,7 +105,13 @@ export async function addCard(
   now: Date,
 ): Promise<void> {
   const f = newSrsFields(now);
-  const snapshot = JSON.stringify(buildSnapshot(word, senses, packVersion));
+  // Pull the best example NOW: a review renders from the snapshot alone, so joining
+  // content.db later is not an option (invariant 6). No example is fine — it stays undefined.
+  const [best] = await listExamples(db, word.id, 1);
+  const example = best
+    ? { text: best.text, reading: best.reading, transEn: best.trans_en, attribution: best.attribution }
+    : undefined;
+  const snapshot = JSON.stringify(buildSnapshot(word, senses, packVersion, example));
   await db.userExec([
     {
       sql: `INSERT OR IGNORE INTO cards (${CARD_COLS})

@@ -118,6 +118,41 @@
       "retrievedAt": "2026-07-30T14:26:22.133Z",
       "license": "CC0 1.0 (Richard Wright & Dan McCloy, University of Washington)",
       "notes": "51 vocal-tract SVGs, aggregate hash over sorted (stem, bytes)"
+    },
+    "tatoeba:cmn_sentences_detailed": {
+      "url": "https://downloads.tatoeba.org/exports/per_language/cmn/cmn_sentences_detailed.tsv.bz2",
+      "sha256": "f46e6f3e788af42fe3a679368855386d15f3851d24c4cb9931bb14a7d3d21f29",
+      "bytes": 1702216,
+      "retrievedAt": "2026-07-30T16:11:17.723Z",
+      "license": "CC BY 2.0 FR (sentence text; per-sentence attribution required)"
+    },
+    "tatoeba:cmn-eng_links": {
+      "url": "https://downloads.tatoeba.org/exports/per_language/cmn/cmn-eng_links.tsv.bz2",
+      "sha256": "6b47cfe625d8fa13edbfea1a9d088263e01bac86879d750b62f48a0bd4abc4f9",
+      "bytes": 477996,
+      "retrievedAt": "2026-07-30T16:12:27.509Z",
+      "license": "CC BY 2.0 FR (translation links)"
+    },
+    "tatoeba:eng_sentences_detailed": {
+      "url": "https://downloads.tatoeba.org/exports/per_language/eng/eng_sentences_detailed.tsv.bz2",
+      "sha256": "8312d3ba807aac581f241be02f4c801a983c2aa98719d20c51fd38997df6a4d7",
+      "bytes": 34779571,
+      "retrievedAt": "2026-07-30T16:12:26.453Z",
+      "license": "CC BY 2.0 FR (sentence text; per-sentence attribution required)"
+    },
+    "tatoeba:fra_sentences_detailed": {
+      "url": "https://downloads.tatoeba.org/exports/per_language/fra/fra_sentences_detailed.tsv.bz2",
+      "sha256": "ed4ba8bc12c62b0737cd16c5daf46ac91086ba74184952de2e2ad318cd0f8aff",
+      "bytes": 14712339,
+      "retrievedAt": "2026-07-30T16:11:45.660Z",
+      "license": "CC BY 2.0 FR (sentence text; per-sentence attribution required)"
+    },
+    "tatoeba:fra-eng_links": {
+      "url": "https://downloads.tatoeba.org/exports/per_language/fra/fra-eng_links.tsv.bz2",
+      "sha256": "2a8c7024afcb52f68879a1af14e9d59e37ab51cdde80e54883ba41efda71df56",
+      "bytes": 2638413,
+      "retrievedAt": "2026-07-30T16:12:33.813Z",
+      "license": "CC BY 2.0 FR (translation links)"
     }
   }
 }

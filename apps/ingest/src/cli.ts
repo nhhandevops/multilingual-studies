@@ -28,6 +28,7 @@ const SEEDS: Record<string, () => Promise<{ run: SeedFn }>> = {
   ipa: () => import('./sources/shared/ipa'), //           fills readings still NULL — after kaikki
   'ipa-sagittal': () => import('./sources/shared/sagittal'),
   'latin-letters': () => import('./sources/shared/latin'),
+  sentences: () => import('./sources/shared/tatoeba'), //  needs every word seed (filters to pack words)
   freq: () => import('./sources/shared/freq'),
 };
 

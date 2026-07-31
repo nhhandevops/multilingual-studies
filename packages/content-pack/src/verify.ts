@@ -121,6 +121,19 @@ export function verifyPack(packDir: string, packsDir?: string): VerifyIssue[] {
         err('license', 'Arphic-licensed data is bundled but apps/web/public/licenses/ARPHICPL.TXT is missing');
     }
 
+    // sentences (v0.4) — CC BY 2.0 FR requires crediting each contributor, so a sentence
+    // without attribution is a licence violation, not a cosmetic gap.
+    const unattributed = one(`SELECT COUNT(*) AS n FROM sentences WHERE attribution IS NULL OR attribution = ''`);
+    if (unattributed > 0) err('attribution', `sentences: ${unattributed} rows missing per-sentence attribution`);
+    const orphanLinks = one(`SELECT COUNT(*) AS n FROM word_sentences ws
+      WHERE NOT EXISTS (SELECT 1 FROM sentences s WHERE s.id = ws.sentence_id)
+         OR NOT EXISTS (SELECT 1 FROM words w WHERE w.id = ws.word_id)`);
+    if (orphanLinks > 0) err('sentences', `${orphanLinks} word_sentences rows point at a missing word or sentence`);
+    const untranslated = one(`SELECT COUNT(*) AS n FROM sentences WHERE lang != 'en' AND (trans_en IS NULL OR trans_en = '')`);
+    if (untranslated > 0) warn('sentences', `${untranslated} non-English sentences have no English translation`);
+    const zhNoReading = one(`SELECT COUNT(*) AS n FROM sentences WHERE lang = 'zh' AND (reading IS NULL OR reading = '')`);
+    if (zhNoReading > 0) err('sentences', `${zhNoReading} zh sentences have no pinyin reading`);
+
     // FTS coverage
     const words = one('SELECT COUNT(*) AS n FROM words');
     const fts = one('SELECT COUNT(*) AS n FROM words_fts');

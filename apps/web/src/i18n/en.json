@@ -149,7 +149,8 @@
     "freqRank": "Frequency rank",
     "source": "Data source",
     "notFound": "Word not found.",
-    "back": "← Back"
+    "back": "← Back",
+    "examples": "Example sentences"
   },
   "licenses": {
     "title": "Data sources & licenses",

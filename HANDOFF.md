@@ -3,14 +3,42 @@
 > **TL;DR (tiếng Việt):** Dự án đang ở **v0.3** (đã xong, đã tag — **hệ chữ viết**).
 > Xem 好 tự viết rồi tự tô · tô chữ `é` · nghe đủ 1.707 âm tiết pinyin · luyện thanh điệu ·
 > bảng IPA có hình cắt dọc · thẻ tập viết chạy chung vòng ôn SRS của v0.2.
-> Việc tiếp theo là **v0.4** — xem [docs/PLAN.md](docs/PLAN.md).
+> **v0.4 đang làm dở (chưa tag): P1 xong** — mỗi thẻ đã có câu ví dụ thật (73.389 câu Tatoeba,
+> có pinyin và bản dịch tiếng Anh). Còn lại: âm thanh cho từ (ZH/FR) và TTS dự phòng.
 > Trên máy mới: `pnpm install` → `pnpm ingest seed:all` → `pnpm pack:build` → `pnpm ingest pack publish` → `pnpm dev`.
 
 Keep this file current: update the **Current state** and **Next up** sections at the end of every
 working session, and commit it with the session's push. It is the single source of truth for
 "where were we?" on a fresh clone.
 
-## Current state (updated 2026-07-30)
+## Current state (updated 2026-07-31)
+
+- **v0.4 IN PROGRESS — not tagged.** Same phase-by-phase rhythm as v0.3.
+  - **P1 done — every card has a real example.** `seed:sentences`
+    ([apps/ingest/src/sources/shared/tatoeba.ts](apps/ingest/src/sources/shared/tatoeba.ts))
+    ingests Tatoeba (CC BY 2.0 FR) filtered to words we actually ship: **73,389 sentences,
+    96,202 word links**. Coverage of levelled words: **HSK1 99% · HSK2 97% · HSK3 94% ·
+    EN 93% · FR 94%**. ZH readings are generated with `pinyin-pro`, not taken from Tatoeba's
+    patchy transcriptions export.
+  - **Attribution is per sentence, not per corpus.** CC BY 2.0 FR requires crediting the
+    contributor, so every row stores `sentence #<id> by <username>` and the UI always renders it.
+    `pack verify` now **fails** on any sentence missing attribution, on orphan `word_sentences`,
+    and on a zh sentence with no reading.
+  - **Selection quality is deliberate.** Sentences are assigned shortest-first (simple examples,
+    and they cover common words anyway) but with a substance floor — without it the "best"
+    example for a word was 哈哈 / "Ok!" / "Si.", which are real Tatoeba sentences that teach
+    nothing. Floors: ≥3 Han characters for zh, ≥12 characters for en/fr. Also caps: 3 examples
+    per word, 30k sentences per language, ≤70 characters.
+  - **Cards freeze their example** (`CardSnapshot.example`, optional so v0.2/v0.3 cards still
+    validate). A review renders it from the snapshot — never by joining content.db (invariant 6).
+  - Verified: word pages show reading + translation + credit; the review answer shows the frozen
+    example with its credit; export → import round-trips a card carrying one.
+    Script: `scratchpad/e2e/verify-v04-p1.mjs`.
+  - Pack: 47.5 → **57.7 MB gz** (sentences + their FTS index).
+  - **Seeds must delete before they insert.** Re-running with stricter filters left 77k rejected
+    rows behind, because `INSERT … ON CONFLICT` upserts and never removes. `seed:sentences` now
+    clears its own rows (scoped by `source_id`) first. Any seed whose *selection* can change
+    needs this — an input-hash guard alone does not cover it.
 
 - **v0.3 shipped & tagged** — "Writing systems". Built in seven committed phases (P1–P4d), each
   verified in headless Chrome before the next started. Pack `2026.07.30-5`: 147,261 words,

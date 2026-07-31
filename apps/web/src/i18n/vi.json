@@ -149,7 +149,8 @@
     "freqRank": "Hạng tần suất",
     "source": "Nguồn dữ liệu",
     "notFound": "Không tìm thấy từ này.",
-    "back": "← Quay lại"
+    "back": "← Quay lại",
+    "examples": "Câu ví dụ"
   },
   "licenses": {
     "title": "Nguồn dữ liệu & giấy phép",
