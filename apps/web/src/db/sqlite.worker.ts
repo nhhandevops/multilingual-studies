@@ -1,43 +1,104 @@
 /**
  * SQLite worker: owns the OPFS (opfs-sahpool VFS) databases and answers query RPCs.
  *
- * Two databases share the single 'mls-pool' SAH pool (one pool per origin — never
+ * Three databases share the single 'mls-pool' SAH pool (one pool per origin — never
  * create a second worker or pool):
- *  - /content.db — read-only pack. Lifecycle: read /packs/manifest.json → compare with
- *    meta.pack_version in the installed DB → if different, download content.db.gz,
+ *  - /content.db — read-only CORE pack. Lifecycle: read packs/manifest.json → compare with
+ *    meta.pack_version in the installed DB → if different, download content.pack,
  *    gunzip, sha256-verify, importDb. Wholesale-replaced on every pack update.
+ *  - /media.db — OPTIONAL media pack (v0.9): word-pronunciation blobs only. Its presence in
+ *    the pool IS the opt-in record; installed via the 'install-media' RPC, auto-updated at
+ *    init when the core pack updates, removable at any time. Never required for anything —
+ *    a missing blob degrades to the labelled TTS voice.
  *  - /user.db — the learner's SRS state (cards/review_log/settings/daily_stats).
  *    Created + migrated here at init; NEVER touched by the pack update path.
  */
 import sqlite3InitModule, { type Database, type Sqlite3Static } from '@sqlite.org/sqlite-wasm';
 import { CardSnapshot, USER_MIGRATIONS, USER_SCHEMA_VERSION } from '@mls/shared/srs';
 
-interface InitMsg { id: number; type: 'init' }
+interface InitMsg { id: number; type: 'init'; base?: string }
 interface QueryMsg { id: number; type: 'query'; sql: string; params?: unknown[] }
 interface UserQueryMsg { id: number; type: 'user-query'; sql: string; params?: unknown[] }
 interface UserExecMsg { id: number; type: 'user-exec'; statements: { sql: string; params?: unknown[] }[] }
 interface UserExportMsg { id: number; type: 'user-export' }
 interface UserImportMsg { id: number; type: 'user-import'; bytes: ArrayBuffer }
+interface AudioBytesMsg { id: number; type: 'audio-bytes'; audioId: string }
+interface AudioHasMsg { id: number; type: 'audio-has'; audioId: string }
+interface InstallMediaMsg { id: number; type: 'install-media' }
+interface RemoveMediaMsg { id: number; type: 'remove-media' }
+interface CheckUpdateMsg { id: number; type: 'check-update' }
 interface SuspendMsg { id: number; type: 'suspend' }
 interface ResumeMsg { id: number; type: 'resume' }
 type InMsg =
   | InitMsg | QueryMsg | UserQueryMsg | UserExecMsg | UserExportMsg | UserImportMsg
+  | AudioBytesMsg | AudioHasMsg | InstallMediaMsg | RemoveMediaMsg | CheckUpdateMsg
   | SuspendMsg | ResumeMsg;
+
+/** Result of a post-boot update check (the boot path self-updates; this feeds the banner). */
+export interface UpdateCheck {
+  /** A newer pack exists that this app version can install. */
+  available: boolean;
+  packVersion: string | null;
+  coreBytes: number | null;
+  mediaBytes: number | null;
+  /** The newest pack requires a newer app — update/reload the app first. */
+  needsAppUpdate: boolean;
+}
+
+/** What the UI knows about the optional media pack. */
+export interface MediaState {
+  installed: boolean;
+  /** Compressed download size from the manifest, null when the manifest has no media pack. */
+  availableBytes: number | null;
+}
 
 const post = (msg: Record<string, unknown>, transfer?: Transferable[]) =>
   (self as unknown as Worker).postMessage(msg, transfer ?? []);
-const progress = (phase: string) => {
+const progress = (phase: string, extra?: Record<string, unknown>) => {
   console.log('[sqlite.worker]', phase);
-  post({ type: 'progress', phase });
+  post({ type: 'progress', phase, ...extra });
 };
 
 let sqlite3: Sqlite3Static | null = null;
 let poolUtil: Awaited<ReturnType<Sqlite3Static['installOpfsSAHPoolVfs']>> | null = null;
 let db: Database | null = null; // content.db
 let userDb: Database | null = null; // user.db
+let mediaDb: Database | null = null; // media.db — null when the media pack is not installed
+/** Base path all pack fetches are relative to ('/' in dev, '/multilingual-studies/' on Pages). */
+let basePath = '/';
+/** The manifest from this session's init — install-media reuses it instead of re-fetching. */
+let lastManifest: Manifest | null = null;
+/** The pack version actually being served (set by init) — check-update compares against it. */
+let effectiveVersion: string | null = null;
+
+/** Injected by vite `define` into every chunk, workers included. */
+declare const __APP_VERSION__: string;
+
+/** Dotted-numeric version compare: -1 | 0 | 1. Non-numeric segments compare as 0. */
+function compareVersions(a: string, b: string): number {
+  const pa = a.split('.').map((s) => Number(s) || 0);
+  const pb = b.split('.').map((s) => Number(s) || 0);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const d = (pa[i] ?? 0) - (pb[i] ?? 0);
+    if (d !== 0) return d < 0 ? -1 : 1;
+  }
+  return 0;
+}
+
+/** Does this app satisfy the manifest's minAppVersion? (Absent field = no requirement.) */
+const minAppOk = (m: Manifest): boolean =>
+  !m.minAppVersion || compareVersions(__APP_VERSION__, m.minAppVersion) >= 0;
 /** Non-null while the VFS is paused for the back/forward cache — see suspend()/resume(). */
 let suspension: Promise<void> | null = null;
 let releaseSuspension: () => void = () => {};
+
+interface Manifest {
+  packVersion: string;
+  dbSha256: string;
+  dbBytes: number;
+  minAppVersion?: string;
+  media?: { file: string; sha256: string; bytes: number; blobCount: number };
+}
 
 async function sha256Hex(bytes: ArrayBuffer): Promise<string> {
   const digest = await crypto.subtle.digest('SHA-256', bytes);
@@ -97,64 +158,112 @@ async function installPool(sqlite3: Sqlite3Static): Promise<NonNullable<typeof p
   throw new Error(`${STORAGE_LOCKED}: ${lastError instanceof Error ? lastError.message : String(lastError)}`);
 }
 
-async function init(): Promise<{ packVersion: string }> {
-  progress('sqlite');
-  sqlite3 = await sqlite3InitModule({ print: () => {}, printErr: console.error });
-  poolUtil = await installPool(sqlite3);
-  // Default pool capacity is 6; two DBs plus journal/temp files need headroom.
-  // reserveMinimumCapacity is idempotent and persists in OPFS.
-  await poolUtil.reserveMinimumCapacity(8);
-
-  // What pack (if any) is already installed?
-  let installed: string | null = null;
+/** Read meta.pack_version from a pool DB file, null when absent/unreadable. */
+function probeVersion(pool: NonNullable<typeof poolUtil>, file: string): string | null {
   try {
-    const probe = new poolUtil.OpfsSAHPoolDb('/content.db');
+    const probe = new pool.OpfsSAHPoolDb(file);
     try {
       const row = probe.selectObject(`SELECT value FROM meta WHERE key = 'pack_version'`) as
         | { value: string }
         | undefined;
-      installed = row?.value ?? null;
+      return row?.value ?? null;
     } finally {
       probe.close();
     }
   } catch {
-    installed = null; // no DB yet
+    return null; // no DB yet
   }
+}
+
+/**
+ * Download a pack file, gunzip if needed, and verify size + sha256 against the manifest.
+ * Some servers mark .gz files Content-Encoding: gzip and the browser pre-decompresses;
+ * others serve raw bytes. Sniff the gzip magic (1f 8b) and decompress only if needed.
+ */
+async function fetchVerifiedPack(
+  file: string,
+  expected: { sha256: string; bytes: number },
+  report: (phase: string, extra?: Record<string, unknown>) => void,
+): Promise<ArrayBuffer> {
+  report('download', { bytes: expected.bytes }); // real size — the UI shows honest MB
+  const res = await fetch(`${basePath}packs/${file}`, { cache: 'no-cache' });
+  if (!res.ok) throw new Error(`pack download failed (HTTP ${res.status}) for ${file}`);
+  let bytes = await res.arrayBuffer();
+  const head = new Uint8Array(bytes, 0, 2);
+  if (head[0] === 0x1f && head[1] === 0x8b) {
+    const gunzipped = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
+    bytes = await new Response(gunzipped).arrayBuffer();
+  }
+  report('verify');
+  if (bytes.byteLength !== expected.bytes)
+    throw new Error(`pack size mismatch: ${bytes.byteLength} != ${expected.bytes}`);
+  const sha = await sha256Hex(bytes);
+  if (sha !== expected.sha256) throw new Error(`pack sha256 mismatch for ${file}`);
+  return bytes;
+}
+
+/** Does the pool currently hold an installed media pack? (Presence IS the opt-in record.) */
+function mediaFileExists(pool: NonNullable<typeof poolUtil>): boolean {
+  try {
+    return pool.getFileNames().includes('/media.db');
+  } catch {
+    return false;
+  }
+}
+
+function mediaState(): MediaState {
+  return {
+    installed: mediaDb !== null,
+    availableBytes: lastManifest?.media ? lastManifest.media.bytes : null,
+  };
+}
+
+async function init(base: string): Promise<{ packVersion: string; media: MediaState }> {
+  basePath = base.endsWith('/') ? base : `${base}/`;
+  progress('sqlite');
+  sqlite3 = await sqlite3InitModule({ print: () => {}, printErr: console.error });
+  poolUtil = await installPool(sqlite3);
+  // Default pool capacity is 6; three DBs plus backup/import scratch files plus journal/temp
+  // files need headroom. reserveMinimumCapacity is idempotent and persists in OPFS.
+  await poolUtil.reserveMinimumCapacity(12);
+
+  // What packs (if any) are already installed?
+  const installed = probeVersion(poolUtil, '/content.db');
+  const mediaInstalled = mediaFileExists(poolUtil) ? probeVersion(poolUtil, '/media.db') : null;
 
   progress('manifest');
-  let manifest: { packVersion: string; dbSha256: string; dbBytes: number } | null = null;
+  let manifest: Manifest | null = null;
   try {
-    const manifestRes = await fetch('/packs/manifest.json', { cache: 'no-cache' });
+    const manifestRes = await fetch(`${basePath}packs/manifest.json`, { cache: 'no-cache' });
     if (!manifestRes.ok) throw new Error(`no pack manifest (HTTP ${manifestRes.status}) — run: pnpm ingest pack publish`);
-    manifest = (await manifestRes.json()) as { packVersion: string; dbSha256: string; dbBytes: number };
+    manifest = (await manifestRes.json()) as Manifest;
   } catch (e) {
     // Offline / server gone: an already-installed pack keeps working (reviews must not
     // depend on the network). With no installed pack there is nothing to open — rethrow.
     if (installed === null) throw e;
+  }
+  lastManifest = manifest;
+
+  // v0.9: a pack may require a newer app (manifest.minAppVersion, enforced at last).
+  // With an install: keep serving it — the update banner explains. Without one there is
+  // nothing usable to open; surface a recognisable error instead of broken screens.
+  if (manifest && !minAppOk(manifest)) {
+    if (installed === null) {
+      throw new Error(`app-too-old: pack ${manifest.packVersion} requires app ${manifest.minAppVersion}`);
+    }
+    console.warn(`[sqlite.worker] pack ${manifest.packVersion} needs app ${manifest.minAppVersion} — keeping installed pack`);
+    manifest = null; // do not install; installed pack keeps serving
   }
 
   // Which version we actually end up serving — updated only when an install succeeds.
   let effective = installed;
   if (manifest && installed !== manifest.packVersion) {
     try {
-      progress('download');
-      const gzRes = await fetch('/packs/content.pack', { cache: 'no-cache' });
-      if (!gzRes.ok) throw new Error(`pack download failed (HTTP ${gzRes.status})`);
-      // Some servers mark .gz files Content-Encoding: gzip and the browser pre-decompresses;
-      // others serve raw bytes. Sniff the gzip magic (1f 8b) and decompress only if needed.
-      let bytes = await gzRes.arrayBuffer();
-      const head = new Uint8Array(bytes, 0, 2);
-      if (head[0] === 0x1f && head[1] === 0x8b) {
-        const gunzipped = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
-        bytes = await new Response(gunzipped).arrayBuffer();
-      }
-
-      progress('verify');
-      if (bytes.byteLength !== manifest.dbBytes)
-        throw new Error(`pack size mismatch: ${bytes.byteLength} != ${manifest.dbBytes}`);
-      const sha = await sha256Hex(bytes);
-      if (sha !== manifest.dbSha256) throw new Error(`pack sha256 mismatch`);
-
+      const bytes = await fetchVerifiedPack(
+        'content.pack',
+        { sha256: manifest.dbSha256, bytes: manifest.dbBytes },
+        progress,
+      );
       progress('install');
       await poolUtil.importDb('/content.db', new Uint8Array(bytes));
       effective = manifest.packVersion;
@@ -168,14 +277,113 @@ async function init(): Promise<{ packVersion: string }> {
     effective = manifest.packVersion;
   }
 
+  // Media pack: only ever touched when the user opted in (the file exists). Rides the core
+  // update — same never-brick rule: a failed media refresh keeps the old blobs, which remain
+  // mostly valid because audio IDs are stable across packs (invariant 1).
+  if (mediaInstalled !== null && manifest?.media && mediaInstalled !== effective) {
+    try {
+      const bytes = await fetchVerifiedPack(
+        manifest.media.file,
+        { sha256: manifest.media.sha256, bytes: manifest.media.bytes },
+        (phase) => post({ type: 'media-progress', phase }),
+      );
+      post({ type: 'media-progress', phase: 'install' });
+      await poolUtil.importDb('/media.db', new Uint8Array(bytes));
+    } catch (e) {
+      console.error('[sqlite.worker] media update failed, keeping installed media:', e);
+    }
+  }
+
   db = new poolUtil.OpfsSAHPoolDb('/content.db');
+  if (mediaFileExists(poolUtil)) mediaDb = new poolUtil.OpfsSAHPoolDb('/media.db');
 
   // user.db: created on first open, migrated forward on every init. Independent of the
   // pack lifecycle above — a pack reinstall never touches it.
   userDb = new poolUtil.OpfsSAHPoolDb('/user.db');
   migrateUserDb(userDb);
 
-  return { packVersion: effective! };
+  effectiveVersion = effective!;
+  return { packVersion: effective!, media: mediaState() };
+}
+
+/**
+ * Post-boot update check for long-lived PWA sessions. Reports only — applying a CORE
+ * update stays reload-based (the boot path is the verified installer and an in-session
+ * swap would have to fence every in-flight content query).
+ */
+async function checkUpdate(): Promise<UpdateCheck> {
+  const none: UpdateCheck = { available: false, packVersion: null, coreBytes: null, mediaBytes: null, needsAppUpdate: false };
+  try {
+    const res = await fetch(`${basePath}packs/manifest.json`, { cache: 'no-cache' });
+    if (!res.ok) return none;
+    const manifest = (await res.json()) as Manifest;
+    lastManifest = manifest; // newer media availability propagates to install-media
+    if (manifest.packVersion === effectiveVersion) return none;
+    if (!minAppOk(manifest)) return { ...none, needsAppUpdate: true, packVersion: manifest.packVersion };
+    return {
+      available: true,
+      packVersion: manifest.packVersion,
+      coreBytes: manifest.dbBytes,
+      mediaBytes: manifest.media?.bytes ?? null,
+      needsAppUpdate: false,
+    };
+  } catch {
+    return none; // offline — nothing to report
+  }
+}
+
+/** Opt in: download + verify + install the media pack, then open it. */
+async function installMedia(): Promise<MediaState> {
+  if (!poolUtil) throw new Error('not initialized');
+  if (mediaDb) return mediaState(); // already installed
+  const media = lastManifest?.media;
+  if (!media) throw new Error('no media pack in the current manifest');
+  const bytes = await fetchVerifiedPack(media.file, { sha256: media.sha256, bytes: media.bytes }, (phase) =>
+    post({ type: 'media-progress', phase }),
+  );
+  post({ type: 'media-progress', phase: 'install' });
+  await poolUtil.importDb('/media.db', new Uint8Array(bytes));
+  mediaDb = new poolUtil.OpfsSAHPoolDb('/media.db');
+  post({ type: 'media-progress', phase: 'done' });
+  return mediaState();
+}
+
+/** Opt out: close and delete the media pack. Content and user data untouched. */
+function removeMedia(): MediaState {
+  if (!poolUtil) throw new Error('not initialized');
+  mediaDb?.close();
+  mediaDb = null;
+  poolUtil.unlink('/media.db');
+  return mediaState();
+}
+
+/** Blob lookup across media (word audio) then core (syllables/phones). */
+function audioBytes(audioId: string): Uint8Array | null {
+  for (const source of [mediaDb, db]) {
+    if (!source) continue;
+    try {
+      const row = source.selectObject(`SELECT bytes FROM audio_blobs WHERE audio_id = ?`, [audioId]) as
+        | { bytes: Uint8Array }
+        | undefined;
+      if (row?.bytes) return row.bytes;
+    } catch {
+      // e.g. a pre-split pack with no audio_blobs table — fall through
+    }
+  }
+  return null;
+}
+
+function audioHas(audioId: string): boolean {
+  for (const source of [mediaDb, db]) {
+    if (!source) continue;
+    try {
+      const row = source.selectObject(`SELECT 1 AS hit FROM audio_blobs WHERE audio_id = ?`, [audioId]);
+      if (row) return true;
+    } catch {
+      // table absent in this DB — fall through
+    }
+  }
+  return false;
 }
 
 /** Run statements atomically against user.db. */
@@ -291,8 +499,10 @@ function suspend(): void {
   if (!poolUtil || suspension) return;
   db?.close();
   userDb?.close();
+  mediaDb?.close();
   db = null;
   userDb = null;
+  mediaDb = null;
   poolUtil.pauseVfs();
   progress('suspended');
 }
@@ -303,6 +513,7 @@ async function resume(): Promise<void> {
   await pool.unpauseVfs();
   db = new pool.OpfsSAHPoolDb('/content.db');
   userDb = new pool.OpfsSAHPoolDb('/user.db');
+  if (mediaFileExists(pool)) mediaDb = new pool.OpfsSAHPoolDb('/media.db');
   progress('resumed');
 }
 
@@ -333,8 +544,28 @@ self.onmessage = async (ev: MessageEvent<InMsg>) => {
     }
     if (msg.type !== 'init') await awaitResume();
     if (msg.type === 'init') {
-      const { packVersion } = await init();
-      post({ id: msg.id, ok: true, packVersion });
+      const { packVersion, media } = await init(msg.base ?? '/');
+      post({ id: msg.id, ok: true, packVersion, media });
+    } else if (msg.type === 'audio-bytes') {
+      const bytes = audioBytes(msg.audioId);
+      if (bytes) {
+        // Copy out of wasm-backed memory so the buffer is transferable.
+        const copy = bytes.slice();
+        post({ id: msg.id, ok: true, bytes: copy.buffer }, [copy.buffer]);
+      } else {
+        post({ id: msg.id, ok: true, bytes: null });
+      }
+    } else if (msg.type === 'audio-has') {
+      post({ id: msg.id, ok: true, has: audioHas(msg.audioId) });
+    } else if (msg.type === 'install-media') {
+      const media = await installMedia();
+      post({ id: msg.id, ok: true, media });
+    } else if (msg.type === 'remove-media') {
+      const media = removeMedia();
+      post({ id: msg.id, ok: true, media });
+    } else if (msg.type === 'check-update') {
+      const update = await checkUpdate();
+      post({ id: msg.id, ok: true, update });
     } else if (msg.type === 'query') {
       if (!db) throw new Error('db not initialized');
       const rows = db.selectObjects(msg.sql, (msg.params ?? []) as never);

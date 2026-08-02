@@ -7,7 +7,8 @@ import { REPO } from './paths.mjs';
 const ROOT = `${REPO}/apps/web/dist`;
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css',
   '.wasm': 'application/wasm', '.json': 'application/json', '.pack': 'application/octet-stream',
-  '.txt': 'text/plain', '.svg': 'image/svg+xml' };
+  '.txt': 'text/plain', '.svg': 'image/svg+xml', '.png': 'image/png',
+  '.webmanifest': 'application/manifest+json' };
 createServer(async (req, res) => {
   const url = decodeURIComponent(req.url.split('?')[0]);
   let path = join(ROOT, url);

@@ -166,5 +166,18 @@ export const PackManifest = z.object({
   dbSha256: z.string().length(64),
   dbBytes: z.number().int().positive(),
   counts: z.record(z.number().int().nonnegative()),
+  /**
+   * v0.9: the optional media pack (word-pronunciation blobs split out of the core pack).
+   * Optional on purpose — pre-0.9 manifests parse in new code, and old clients ignore the key.
+   * `bytes` is the DECOMPRESSED size (mirrors dbBytes); `file` is the published name (media.pack).
+   */
+  media: z
+    .object({
+      file: z.string().min(1),
+      sha256: z.string().length(64),
+      bytes: z.number().int().positive(),
+      blobCount: z.number().int().nonnegative(),
+    })
+    .optional(),
 });
 export type PackManifest = z.infer<typeof PackManifest>;

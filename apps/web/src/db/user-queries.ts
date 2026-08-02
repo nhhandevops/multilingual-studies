@@ -30,6 +30,12 @@ export type { UserCardRow };
 // ---------------------------------------------------------------------------
 // deck membership
 
+/** Total cards in the deck — drives the storage-persist request and the backup nag. */
+export async function countCards(db: Db): Promise<number> {
+  const rows = await db.userQuery<{ n: number }>(`SELECT COUNT(*) AS n FROM cards`);
+  return rows[0]?.n ?? 0;
+}
+
 export async function deckIds(db: Db, ids: string[]): Promise<Set<string>> {
   if (ids.length === 0) return new Set();
   const rows = await db.userQuery<{ id: string }>(
@@ -188,6 +194,22 @@ export async function removeCard(db: Db, id: string): Promise<void> {
 
 // ---------------------------------------------------------------------------
 // budgets & stats
+
+/** Generic settings k/v access (settings has been a k/v table since v0.2 — no migration). */
+export async function getSetting(db: Db, key: string): Promise<string | null> {
+  const rows = await db.userQuery<{ value: string }>(`SELECT value FROM settings WHERE key = ?`, [key]);
+  return rows[0]?.value ?? null;
+}
+
+export async function setSetting(db: Db, key: string, value: string): Promise<void> {
+  await db.userExec([
+    {
+      sql: `INSERT INTO settings (key, value) VALUES (?, ?)
+            ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+      params: [key, value],
+    },
+  ]);
+}
 
 export async function newPerDay(db: Db, lang: string): Promise<number> {
   const rows = await db.userQuery<{ value: string }>(`SELECT value FROM settings WHERE key = ?`, [

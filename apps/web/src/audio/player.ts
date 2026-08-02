@@ -29,10 +29,14 @@ export function stopAudio(): void {
   current.currentTime = 0;
 }
 
-/** Play a clip, stopping whatever was playing. Resolves once playback has started. */
-export async function playAudio(db: Db, audioId: string): Promise<void> {
+/**
+ * Play a clip, stopping whatever was playing. Resolves once playback has started.
+ * Returns false when the clip's bytes are unreachable (e.g. media pack removed after this
+ * page looked the metadata up) so the caller can fall back to the labelled TTS voice.
+ */
+export async function playAudio(db: Db, audioId: string): Promise<boolean> {
   const url = await urlFor(db, audioId);
-  if (!url) return;
+  if (!url) return false;
   if (current) {
     current.pause();
     current.currentTime = 0;
@@ -44,4 +48,5 @@ export async function playAudio(db: Db, audioId: string): Promise<void> {
   } catch {
     // Autoplay policy or a race with the next click — never worth breaking the UI over.
   }
+  return true;
 }

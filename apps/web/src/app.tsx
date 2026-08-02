@@ -1,7 +1,13 @@
+import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, Route, Routes } from 'react-router-dom';
 import { setUiLang } from './i18n';
 import { useDb } from './db/provider';
+import { ensurePersisted } from './storage/persist';
+import { countCards } from './db/user-queries';
+import { UpdateBanner } from './components/update-banner';
+import { BackupNag } from './components/backup-nag';
+import { IosA2hs } from './components/ios-a2hs';
 import { Home } from './routes/home';
 import { Browse } from './routes/browse';
 import { WordPage } from './routes/word';
@@ -20,6 +26,20 @@ import { Licenses } from './routes/licenses';
 export function App() {
   const { t, i18n } = useTranslation();
   const db = useDb();
+
+  // Ask for durable storage once the learner has something to lose (any card), and again on
+  // PWA install (Chrome grants installed origins near-automatically). Fire-and-forget: the
+  // result renders in the review screen's storage block, not here.
+  const ready = db.status.state === 'ready';
+  useEffect(() => {
+    if (!ready) return;
+    void countCards(db).then((n) => {
+      if (n > 0) void ensurePersisted();
+    });
+    const onInstalled = () => void ensurePersisted();
+    window.addEventListener('appinstalled', onInstalled);
+    return () => window.removeEventListener('appinstalled', onInstalled);
+  }, [ready, db]);
 
   return (
     <div className="shell">
@@ -51,7 +71,11 @@ export function App() {
         </div>
       </header>
 
-      {db.status.state === 'loading' && <p className="status">{t(`db.phase.${db.status.phase}`, t('db.loading'))}</p>}
+      {db.status.state === 'loading' && (
+        <p className="status">
+          {t(`db.phase.${db.status.phase}`, { defaultValue: t('db.loading'), mb: db.status.mb ?? '…' })}
+        </p>
+      )}
       {db.status.state === 'error' &&
         (db.status.message.startsWith('storage-locked') ? (
           // Another document (a second tab, or a page frozen in the back/forward cache) holds
@@ -88,6 +112,9 @@ export function App() {
             <Route path="/stats" element={<Stats />} />
             <Route path="/licenses" element={<Licenses />} />
           </Routes>
+          <UpdateBanner />
+          <BackupNag />
+          <IosA2hs />
           <footer className="pack">{t('db.packVersion', { version: db.status.packVersion })}</footer>
         </>
       )}

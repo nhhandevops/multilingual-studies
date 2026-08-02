@@ -124,7 +124,7 @@
       "start": "Đang khởi động…",
       "sqlite": "Đang nạp SQLite…",
       "manifest": "Đang kiểm tra gói dữ liệu…",
-      "download": "Đang tải gói dữ liệu (lần đầu ~41 MB)…",
+      "download": "Đang tải gói dữ liệu ({{mb}} MB, chỉ lần đầu)…",
       "verify": "Đang xác minh dữ liệu…",
       "install": "Đang cài đặt gói dữ liệu…",
       "waiting-for-storage": "Đang chờ giải phóng bộ lưu trữ…"
@@ -134,6 +134,40 @@
     "locked": "Dữ liệu đang được một tab hoặc trang khác của ứng dụng sử dụng. Hãy tải lại trang này để tiếp tục.",
     "reload": "Tải lại trang",
     "packTooOld": "Gói dữ liệu đang cài đặt cũ hơn phiên bản ứng dụng nên chưa có phần này. Hãy kết nối mạng và tải lại trang để cập nhật gói dữ liệu."
+  },
+  "ios": {
+    "hint": "Cài ứng dụng vào màn hình chính để học offline và dữ liệu không bị trình duyệt tự xoá.",
+    "steps": "Nhấn nút Chia sẻ (□↑) rồi chọn “Thêm vào MH chính”."
+  },
+  "update": {
+    "app": "Ứng dụng có bản mới.",
+    "pack": "Gói dữ liệu {{version}} đã sẵn sàng ({{mb}} MB).",
+    "needsApp": "Gói dữ liệu mới cần phiên bản ứng dụng mới hơn — hãy tải lại trang.",
+    "apply": "Cập nhật"
+  },
+  "storage": {
+    "persisted": "Bộ nhớ: bền vững (trình duyệt sẽ không tự xoá dữ liệu).",
+    "notPersisted": "Bộ nhớ: chưa bền vững — trình duyệt CÓ THỂ tự xoá khi thiếu chỗ.",
+    "usage": "đang dùng {{mb}} MB",
+    "protect": "Bảo vệ dữ liệu",
+    "nag": "Đã hơn 7 ngày chưa sao lưu tiến độ học.",
+    "nagGo": "Sao lưu ngay"
+  },
+  "media": {
+    "title": "Gói âm thanh (giọng người thật)",
+    "hint": "Bản thu giọng người thật cho hơn 10.000 từ tiếng Trung và tiếng Pháp. Tải thêm một lần (~{{mb}} MB); chưa cài thì từ vẫn được đọc bằng giọng máy (TTS).",
+    "installedHint": "Đã cài. Từ có bản thu sẽ phát giọng người thật; xoá đi bất cứ lúc nào cũng không mất dữ liệu học.",
+    "install": "Tải gói âm thanh (~{{mb}} MB)",
+    "installShort": "Tải gói âm thanh",
+    "remove": "Xoá gói âm thanh",
+    "wordHint": "Từ tiếng Trung/Pháp có bản thu giọng người thật trong gói âm thanh (~{{mb}} MB).",
+    "dismiss": "Để sau",
+    "error": "Không tải được gói âm thanh",
+    "busy": {
+      "download": "Đang tải gói âm thanh…",
+      "verify": "Đang xác minh…",
+      "install": "Đang cài đặt…"
+    }
   },
   "search": {
     "placeholder": "Tra từ: 你好 · hello · bonjour · ni hao…",

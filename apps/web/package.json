@@ -1,6 +1,6 @@
 {
   "name": "@mls/web",
-  "version": "0.1.0",
+  "version": "0.9.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -24,6 +24,7 @@
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.0",
     "typescript": "^5.7.0",
-    "vite": "^6.0.0"
+    "vite": "^6.0.0",
+    "vite-plugin-pwa": "^1.3.0"
   }
 }

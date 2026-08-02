@@ -130,9 +130,9 @@
     },
     "nist-csrc:glossary-export.zip": {
       "url": "https://csrc.nist.gov/csrc/media/glossary/glossary-export.zip",
-      "sha256": "3122634aa01b7f447333a2ad77be33eceeab2f80035967d8d267581a25864221",
+      "sha256": "4100fdbe2f806e16f60deb89f9af89a9c81f5113df627fdc669afab5c701c52b",
       "bytes": 831036,
-      "retrievedAt": "2026-07-31T16:12:31.961Z",
+      "retrievedAt": "2026-08-02T15:07:19.329Z",
       "license": "Public domain (US government work)",
       "notes": "CSRC glossary bulk export, regenerated daily; sha256 of the inner JSON is published in glossary-export.meta"
     },
@@ -160,37 +160,37 @@
     },
     "tatoeba:cmn_sentences_detailed": {
       "url": "https://downloads.tatoeba.org/exports/per_language/cmn/cmn_sentences_detailed.tsv.bz2",
-      "sha256": "f46e6f3e788af42fe3a679368855386d15f3851d24c4cb9931bb14a7d3d21f29",
-      "bytes": 1702216,
-      "retrievedAt": "2026-07-30T16:11:17.723Z",
+      "sha256": "7849815584cf39d45cd5f7978f69de1ef9b9d44ae561e6e42781838579621bc5",
+      "bytes": 1707411,
+      "retrievedAt": "2026-08-02T15:06:10.206Z",
       "license": "CC BY 2.0 FR (sentence text; per-sentence attribution required)"
     },
     "tatoeba:cmn-eng_links": {
       "url": "https://downloads.tatoeba.org/exports/per_language/cmn/cmn-eng_links.tsv.bz2",
-      "sha256": "6b47cfe625d8fa13edbfea1a9d088263e01bac86879d750b62f48a0bd4abc4f9",
-      "bytes": 477996,
-      "retrievedAt": "2026-07-30T16:12:27.509Z",
+      "sha256": "d7a56dc4955d6b7e6a0191ac1456543506ee7e711ca0f923d20e2d330eb41dad",
+      "bytes": 478716,
+      "retrievedAt": "2026-08-02T15:06:34.630Z",
       "license": "CC BY 2.0 FR (translation links)"
     },
     "tatoeba:eng_sentences_detailed": {
       "url": "https://downloads.tatoeba.org/exports/per_language/eng/eng_sentences_detailed.tsv.bz2",
-      "sha256": "8312d3ba807aac581f241be02f4c801a983c2aa98719d20c51fd38997df6a4d7",
-      "bytes": 34779571,
-      "retrievedAt": "2026-07-30T16:12:26.453Z",
+      "sha256": "abf30015a56bdb86432a0fbc418564957c043a451525c1d24b3e0a1e4400a535",
+      "bytes": 34789145,
+      "retrievedAt": "2026-08-02T15:06:34.393Z",
       "license": "CC BY 2.0 FR (sentence text; per-sentence attribution required)"
     },
     "tatoeba:fra_sentences_detailed": {
       "url": "https://downloads.tatoeba.org/exports/per_language/fra/fra_sentences_detailed.tsv.bz2",
-      "sha256": "ed4ba8bc12c62b0737cd16c5daf46ac91086ba74184952de2e2ad318cd0f8aff",
-      "bytes": 14712339,
-      "retrievedAt": "2026-07-30T16:11:45.660Z",
+      "sha256": "47718a8bcc46bac51835f8d5ba30c5ef67efb32e59904bd70fb88af0ca926c0b",
+      "bytes": 14717581,
+      "retrievedAt": "2026-08-02T15:06:15.326Z",
       "license": "CC BY 2.0 FR (sentence text; per-sentence attribution required)"
     },
     "tatoeba:fra-eng_links": {
       "url": "https://downloads.tatoeba.org/exports/per_language/fra/fra-eng_links.tsv.bz2",
-      "sha256": "2a8c7024afcb52f68879a1af14e9d59e37ab51cdde80e54883ba41efda71df56",
-      "bytes": 2638413,
-      "retrievedAt": "2026-07-30T16:12:33.813Z",
+      "sha256": "fc01ab33e74e384446ede20e7c3092caac70d6142c351bd3a600ca01ca7bf304",
+      "bytes": 2638691,
+      "retrievedAt": "2026-08-02T15:06:35.802Z",
       "license": "CC BY 2.0 FR (translation links)"
     },
     "tech-vocab:compiled": {
@@ -211,11 +211,11 @@
     },
     "voa-learning-english:articles": {
       "url": "https://learningenglish.voanews.com/sitemap.xml",
-      "sha256": "c6730da51bd81f8931271d062511493cfb164dbff1bdf79c38a782cec8db442a",
-      "bytes": 689530,
-      "retrievedAt": "2026-07-31T15:02:08.079Z",
+      "sha256": "fa3302dac146a4adbdb2a8a5d6ded25b2c5a5b8b24373338e110d3d150ec9efa",
+      "bytes": 724884,
+      "retrievedAt": "2026-08-02T15:04:55.139Z",
       "license": "Public domain (US government work) — VOA Terms of Use",
-      "notes": "160 articles, quota 75/band; wire-agency-derived pieces excluded; no audio bundled"
+      "notes": "166 articles, quota 75/band; wire-agency-derived pieces excluded; no audio bundled"
     },
     "wikibooks:English Grammar": {
       "url": "https://en.wikibooks.org/wiki/English%20Grammar",

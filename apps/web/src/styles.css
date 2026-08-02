@@ -107,6 +107,20 @@ button.rating-easy, button.rating-good { border-color: var(--accent); }
 .backup { border-top: 1px solid var(--border); margin-top: 2rem; padding-top: 1rem; }
 .backup button { border: 1px solid var(--border); background: var(--bg-soft); color: var(--fg);
   border-radius: 6px; padding: 0.35rem 0.8rem; cursor: pointer; }
+.media-pack { border-top: 1px solid var(--border); margin-top: 2rem; padding-top: 1rem; }
+.media-pack button { border: 1px solid var(--border); background: var(--bg-soft); color: var(--fg);
+  border-radius: 6px; padding: 0.35rem 0.8rem; cursor: pointer; }
+.media-hint { border: 1px dashed var(--border); border-radius: 6px; padding: 0.4rem 0.7rem; }
+.update-banner, .backup-nag {
+  display: flex; gap: 0.8rem; align-items: center; flex-wrap: wrap;
+  border: 1px solid var(--accent); border-radius: 8px;
+  padding: 0.5rem 0.9rem; margin-top: 1.5rem; font-size: 0.9rem;
+}
+.update-banner button { border: 1px solid var(--accent); background: var(--accent); color: #fff;
+  border-radius: 6px; padding: 0.25rem 0.8rem; cursor: pointer; }
+.ios-a2hs { border: 1px dashed var(--accent); border-radius: 8px; padding: 0.5rem 0.9rem;
+  margin-top: 1.5rem; font-size: 0.9rem; }
+.ios-a2hs p { margin: 0.2rem 0; }
 .debug-clock { color: #c0392b; }
 
 /* --- writing systems (v0.3) ---------------------------------------------- */

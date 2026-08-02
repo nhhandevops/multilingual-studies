@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { CardSnapshot, GRADES, previewMinutes, snapshotKind, State, type Grade, type UserCardRow } from '@mls/shared/srs';
 import { StrokeWriter } from '../components/stroke-writer';
+import { MediaPackControl } from '../components/media-pack';
 import { useDb } from '../db/provider';
 import { getWordAudio, type WordAudioRow } from '../db/queries';
 import { SpeakButton } from '../components/speak-button';
@@ -12,11 +13,13 @@ import {
   queueSummary,
   rateCard,
   setNewPerDay,
+  setSetting,
   streak,
   todayStats,
   type LangQueueSummary,
   type TodayStats,
 } from '../db/user-queries';
+import { StorageStateLine } from '../components/storage-state';
 import { clockOffsetMs, localDateStr, srsNow } from '../srs/clock';
 
 // 'all' is a real deck, not a placeholder: script graphemes that belong to no single language
@@ -109,6 +112,8 @@ export function Review() {
     a.download = `mls-user-${localDateStr(srsNow())}.db`;
     a.click();
     URL.revokeObjectURL(url);
+    // Feeds the weekly backup nag. Written AFTER the download was offered, never before.
+    await setSetting(db, 'last_backup_at', new Date(srsNow()).toISOString());
   };
 
   const onImportFile = async (file: File) => {
@@ -321,9 +326,11 @@ export function Review() {
         </>
       )}
 
+      <MediaPackControl />
       <div className="backup">
         <h3>{t('review.backupTitle')}</h3>
         <p className="hint">{t('review.backupHint')}</p>
+        <StorageStateLine />
         <button onClick={() => void onExport()}>{t('review.export')}</button>{' '}
         <button onClick={() => fileRef.current?.click()}>{t('review.import')}</button>
         <input

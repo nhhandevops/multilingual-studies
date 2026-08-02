@@ -124,7 +124,7 @@
       "start": "Starting…",
       "sqlite": "Loading SQLite…",
       "manifest": "Checking content pack…",
-      "download": "Downloading the content pack (~41 MB the first time)…",
+      "download": "Downloading the content pack ({{mb}} MB, first run only)…",
       "verify": "Verifying data…",
       "install": "Installing content pack…",
       "waiting-for-storage": "Waiting for storage to be released…"
@@ -134,6 +134,40 @@
     "locked": "The database is held by another tab or page of this app. Reload this page to continue.",
     "reload": "Reload page",
     "packTooOld": "The installed data pack predates this feature. Reconnect and reload to update the pack."
+  },
+  "ios": {
+    "hint": "Install to your Home Screen to study offline and keep data safe from browser eviction.",
+    "steps": "Tap Share (□↑), then “Add to Home Screen”."
+  },
+  "update": {
+    "app": "A new version of the app is ready.",
+    "pack": "Content pack {{version}} is available ({{mb}} MB).",
+    "needsApp": "The new content pack needs a newer app — reload the page.",
+    "apply": "Update"
+  },
+  "storage": {
+    "persisted": "Storage: durable (the browser will not evict your data).",
+    "notPersisted": "Storage: not durable — the browser MAY evict data under pressure.",
+    "usage": "using {{mb}} MB",
+    "protect": "Protect data",
+    "nag": "It has been over 7 days since your last progress backup.",
+    "nagGo": "Back up now"
+  },
+  "media": {
+    "title": "Audio pack (human recordings)",
+    "hint": "Native-speaker recordings for 10,000+ Chinese and French words. One extra download (~{{mb}} MB); without it, words still speak via the synthetic voice (TTS).",
+    "installedHint": "Installed. Words with a recording play the human voice; remove any time without losing study data.",
+    "install": "Download audio pack (~{{mb}} MB)",
+    "installShort": "Download audio pack",
+    "remove": "Remove audio pack",
+    "wordHint": "Chinese/French words have human recordings in the audio pack (~{{mb}} MB).",
+    "dismiss": "Later",
+    "error": "Audio pack download failed",
+    "busy": {
+      "download": "Downloading audio pack…",
+      "verify": "Verifying…",
+      "install": "Installing…"
+    }
   },
   "search": {
     "placeholder": "Search: 你好 · hello · bonjour · ni hao…",

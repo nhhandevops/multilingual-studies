@@ -179,7 +179,13 @@ export async function getWordAudio(db: Db, wordId: string): Promise<WordAudioRow
       [wordId],
     ),
   );
-  return rows[0] ?? null;
+  const row = rows[0];
+  if (!row) return null;
+  // v0.9: word-audio BLOBS live in the optional media pack while the metadata stays in the
+  // core pack. Metadata without reachable bytes must present as "no recording" — the button
+  // then honestly shows the labelled TTS voice instead of a recorded voice that cannot play.
+  if (!(await db.audioHas(row.id))) return null;
+  return row;
 }
 
 export async function listSenses(db: Db, wordId: string): Promise<SenseRow[]> {
@@ -359,10 +365,12 @@ export async function listPinyinSyllables(db: Db): Promise<SyllableRow[]> {
   );
 }
 
-/** Audio bytes come back as a Uint8Array (SQLite BLOB) — kept out of the metadata queries. */
+/**
+ * Audio bytes via the worker's dedicated RPC, which looks in the optional media pack first
+ * and the core pack second (v0.9 split) — callers never know which file served the clip.
+ */
 export async function getAudioBytes(db: Db, id: string): Promise<Uint8Array | null> {
-  const rows = await db.query<{ bytes: Uint8Array }>(`SELECT bytes FROM audio_blobs WHERE audio_id = ?`, [id]);
-  return rows[0]?.bytes ?? null;
+  return db.audioBytes(id);
 }
 
 export interface PhoneRow {

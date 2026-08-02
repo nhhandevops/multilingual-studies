@@ -1,0 +1,72 @@
+# Deploy the PWA to GitHub Pages (project site: /multilingual-studies/).
+#
+# The content/media packs are NOT in git (gitignored, 100+ MB) — they are release assets.
+# This workflow builds the app shell from source, downloads the packs from the newest
+# release that carries them, and ships both as one Pages artifact.
+#
+# Trigger: manually, or on any version tag push (the tag's release must already have the
+# pack assets attached — see HANDOFF.md "Release flow").
+name: deploy-pages
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build web app (Pages base path)
+        run: MLS_BASE_PATH=/multilingual-studies/ pnpm --filter @mls/web build
+
+      - name: Download packs from the newest release with pack assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p apps/web/dist/packs
+          # newest release (by creation) that has a manifest.json asset
+          tag=$(gh release list --limit 20 --json tagName,createdAt \
+            --jq 'sort_by(.createdAt) | reverse | .[].tagName' | while read -r t; do
+              if gh release view "$t" --json assets --jq '.assets[].name' | grep -qx 'manifest.json'; then
+                echo "$t"; break
+              fi
+            done)
+          test -n "$tag" || { echo "no release with pack assets found"; exit 1; }
+          echo "using packs from release $tag"
+          gh release download "$tag" --dir apps/web/dist/packs \
+            --pattern 'manifest.json' --pattern 'content.pack' --pattern 'media.pack'
+          ls -la apps/web/dist/packs
+
+      - name: SPA fallback for client-side routes
+        run: cp apps/web/dist/index.html apps/web/dist/404.html
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: apps/web/dist
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -4,6 +4,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useDb } from '../db/provider';
 import { getWord, getWordAudio, haveStrokeData, listExamples, type ExampleRow, type WordAudioRow } from '../db/queries';
 import { SpeakButton } from '../components/speak-button';
+import { MediaHint } from '../components/media-pack';
 import { getCard } from '../db/user-queries';
 import { AddToDeck } from '../components/add-to-deck';
 
@@ -91,6 +92,8 @@ export function WordPage() {
         {word.level && <span className="badge">{word.level}</span>}
         <AddToDeck word={word} senses={senses} inDeck={inDeck} onChange={setInDeck} />
       </div>
+      {/* zh/fr word audio lives in the opt-in media pack (v0.9) — nudge where the value shows */}
+      {(word.lang === 'zh' || word.lang === 'fr') && <MediaHint />}
       <dl>
         {word.alt_form && word.alt_form !== word.headword && (
           <>

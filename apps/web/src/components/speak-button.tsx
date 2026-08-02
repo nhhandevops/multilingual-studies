@@ -51,7 +51,11 @@ export function SpeakButton({ db, audio, text, lang, variant = 'inline' }: Props
     // example sentence talks over the headword recording still playing beside it.
     if (audio !== null) {
       stopSpeech();
-      void playAudio(db, audio.id);
+      void playAudio(db, audio.id).then((played) => {
+        // Media pack removed between lookup and click (v0.9): degrade to the synthetic voice
+        // rather than a dead button. The stale-window is one page; the next lookup labels it TTS.
+        if (!played && tts) speak(text, lang);
+      });
     } else {
       stopAudio();
       speak(text, lang);
