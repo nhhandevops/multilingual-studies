@@ -1,6 +1,11 @@
 # HANDOFF — continue the work from any machine
 
-> **TL;DR (tiếng Việt):** Dự án đang ở **v0.9** (đã xong — **ứng dụng cài được, học offline**).
+> **🌐 App đang chạy thật tại <https://nhhandevops.github.io/multilingual-studies/>** —
+> mở trên điện thoại, "Thêm vào màn hình chính" là cài được; sau lần mở đầu tiên thì
+> học offline hoàn toàn. Gói dữ liệu nằm trên GitHub Releases (CC BY-SA 4.0).
+>
+> **TL;DR (tiếng Việt):** Dự án đang ở **v0.9** (đã xong — **ứng dụng cài được, học offline**),
+> và phần **triển khai thật của v1.0 đã xong** (Pages + Releases, xem "Current state").
 > Cài vào màn hình chính điện thoại rồi học khi không có mạng: service worker giữ vỏ ứng dụng,
 > dữ liệu nằm sẵn trong máy. **Gói dữ liệu tách đôi**: bản chính còn **56 MB** (trước là 130 MB) —
 > đủ tra từ, câu ví dụ, ngữ pháp, tập viết, bảng pinyin có tiếng; **gói âm thanh 74 MB** (giọng
@@ -57,6 +62,40 @@ working session, and commit it with the session's push. It is the single source 
 "where were we?" on a fresh clone.
 
 ## Current state (updated 2026-08-03)
+
+- **v1.0's deploy half is DONE — the app is live.** <https://nhhandevops.github.io/multilingual-studies/>
+  serves pack `2026.08.03-1` from GitHub Pages; packs are release assets on
+  `pack-2026.08.03-1` (see "Release flow" below). The first-ever `deploy-pages` run went
+  green in 35 s — but only because a pre-flight adversarial review (12 agents) caught four
+  real defects in the never-run pipeline first, all fixed in `fb047b1`:
+  - **`createdAt` is the TAG COMMIT's date, not the publish date** — the release-selection
+    jq provably picked v0.9's stale packs over the newer `pack-2026.08.03-1` (both carry
+    `manifest.json`; the inversion already existed in the live repo). Now `publishedAt`.
+  - **A release mid-upload passes a manifest-only check**: `manifest.json` (750 B) finishes
+    uploading long before the 74 MB `media.pack`, and `gh release download` exits 0 on a
+    partial match. Selection now requires all three assets in `state == "uploaded"`, and the
+    downloaded files are asserted non-empty.
+  - **workbox's precache glob is case-sensitive on Linux** (`nocase` defaults false on
+    posix): the Windows build precached `licenses/ARPHICPL.TXT`, the ubuntu-latest deploy
+    build silently dropped it — the Arphic licence text 404'd offline, exactly the file the
+    licence obliges us to ship. `TXT` added to the glob; single entry on both platforms.
+  - **The needsAppUpdate banner was a dead-looking two-click update**: it polled
+    `getNeedRefresh()` right after `reg.update()` resolves — which is at "installing",
+    before the new SW precaches and reaches "waiting" — so the check was always false and
+    the reload re-served the OLD shell. `checkForUpdate()` now reports whether an SW
+    handled it; the banner reloads only when none did (dev/unsupported).
+  - **One repo SETTING is still owed** (permission-gated, one line, see "Release flow"):
+    the auto-created `github-pages` environment only allows branch `main`, so a
+    tag-triggered deploy is REJECTED at the environment gate until a `v*` tag rule is
+    added. Manual `workflow_dispatch` from main deploys fine — that is how the first
+    deploy ran.
+  - **Verified live**: `tools/e2e/verify-v10-live.mjs` — packs served next to the shell, a
+    COLD deep link to `/stats` boots through Pages' `404.html` fallback and the router
+    resolves it under the non-root base (a path no local script runs at), the SW takes
+    control after reload, 0 off-origin requests, and the only console entry is the
+    document-level 404 that IS how Pages serves a SPA fallback. `verify-v09.mjs` re-run
+    green against the patched shell. **What remains of v1.0 is the gate itself**: the
+    30-day habit, plus the real-iPhone test.
 
 - **v0.9 shipped — "Real PWA".** The app installs to a home screen, boots and runs a full
   session with no network, and the 130 MB pack is finally split. Pack `2026.08.03-2`.
@@ -772,13 +811,45 @@ So 1.0 is mostly a month of using the app, with `/curate-pack` weekly to catch s
 
 Two things worth doing before/while that month runs:
 
-1. **Deploy it for real.** `.github/workflows/deploy.yml` exists but has never run — it needs a
-   release carrying `manifest.json` + `content.pack` + `media.pack`, then GitHub Pages enabled
-   with "GitHub Actions" as the source. Until that runs, "install on your phone" means running
-   `pnpm dev` on the PC and opening it over the LAN.
+1. ~~**Deploy it for real.**~~ **DONE 2026-08-03** — live at
+   <https://nhhandevops.github.io/multilingual-studies/>, verified by
+   `tools/e2e/verify-v10-live.mjs`. See "Current state" for the four pipeline defects fixed
+   first, and "Release flow" below for how to cut the next release. One repo setting still
+   owed: the `v*` tag rule on the `github-pages` environment (until then, deploys are
+   manual `gh workflow run deploy-pages --ref main`). Lighthouse's installability audit is
+   also still unrun (manual step; the criteria themselves are asserted by verify-v09).
 2. **Test the real iPhone path.** The Add-to-Home overlay, the standalone display mode, and the
    ~50 MB Cache-API caveat are all coded and reasoned from documentation; none has met an actual
-   iPhone. That is the last unverified claim in the version.
+   iPhone. That is the last unverified claim in the version. The live URL makes this testable
+   on any iPhone now — no LAN setup needed.
+
+## Release flow (referenced by deploy.yml)
+
+Cutting a release that the deploy workflow will pick up:
+
+1. Build + verify + publish locally: `pnpm pack:build` → `pnpm pack:verify` →
+   `pnpm ingest pack publish` (stop `pnpm dev` first — Windows EBUSY).
+2. Create the release with ALL THREE assets from `apps/web/public/packs/` (the exact
+   basenames are the contract with deploy.yml):
+   `gh release create pack-<packVersion> --target main --title "Content pack <packVersion>" --notes-file <notes> apps/web/public/packs/manifest.json apps/web/public/packs/content.pack apps/web/public/packs/media.pack`
+   The notes must carry the CC BY-SA statement and the credits pointer (see the
+   `pack-2026.08.03-1` release for the template). A `pack-*` tag deliberately does NOT
+   trigger the deploy workflow (its trigger is `v*`) — so a half-uploaded release can
+   never deploy itself; the workflow also refuses any release whose three assets are not
+   all `state == "uploaded"`.
+3. Deploy: `gh workflow run deploy-pages --ref main` (or push a `v*` tag once the
+   environment rule below is in place). The workflow picks the newest PUBLISHED
+   non-draft, non-prerelease release carrying all three assets.
+4. Verify: `cd tools/e2e && node verify-v10-live.mjs` — drives the public URL, needs
+   nothing local.
+
+One-time repo settings (already done unless the repo is re-created — both are outside git,
+so a fork must repeat them):
+
+- Enable Pages with Actions as the source: `gh api -X POST repos/<owner>/<repo>/pages -f build_type=workflow` ✅ done 2026-08-03
+- Allow tag deploys through the auto-created environment (without this, every `v*`
+  tag-triggered run is REJECTED at the environment gate — the auto-created policy only
+  allows branch `main`): `gh api -X POST "repos/<owner>/<repo>/environments/github-pages/deployment-branch-policies" -f name='v*' -f type=tag` ⚠️ still owed
 
 Carried forward from 0.9, none blocking:
 

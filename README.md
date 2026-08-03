@@ -3,6 +3,10 @@
 Local-first app for studying **English, Mandarin Chinese, and French** (Japanese planned) —
 built for a Vietnamese learner, from beginner to fluent. Web PWA now, iOS/Android via Capacitor later.
 
+**Live app:** <https://nhhandevops.github.io/multilingual-studies/> — installable, works fully
+offline after the first visit. Content packs are distributed as GitHub Release assets
+(compilation licensed CC BY-SA 4.0; per-source credits on the in-app Licenses screen).
+
 **Every version ships something you can study that day.** No infrastructure without content.
 
 ## How it works

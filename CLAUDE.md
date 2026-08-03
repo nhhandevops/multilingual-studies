@@ -24,6 +24,8 @@ scripts run against the STATIC SERVER, not `pnpm dev`: `pnpm --filter @mls/web b
 `node static-server.mjs &`, then `MLS_BASE=http://localhost:5199 node verify-v09.mjs`. (Anything
 that swaps the pack file mid-run — `verify-v09`, `verify-upgrade-v02-to-v03` — must, because
 Vite's watcher dies with EBUSY on Windows when `content.pack` is overwritten.)
+Deployed site (v1.0): live at https://nhhandevops.github.io/multilingual-studies/ — cut releases
+per HANDOFF's "Release flow"; `node verify-v10-live.mjs` checks the public URL, needs nothing local.
 
 Operational traps worth knowing before they cost an hour: stop `pnpm dev` before
 `pnpm ingest pack publish` (Windows kills the watcher with `EBUSY`); bump a seed's
