@@ -24,9 +24,12 @@ export default defineConfig({
         // Precache the app shell ONLY. The content/media packs are versioned and
         // verified through packs/manifest.json into OPFS — a SW cache of them would
         // double-store 100+ MB and could poison downloads (see docs/RESEARCH-SOURCES.md).
-        // png: the icons; txt: LICENSES/ARPHICPL.TXT, which the Licenses screen links to and
-        // which must stay readable offline (Arphic's licence requires shipping its text).
-        globPatterns: ['**/*.{js,css,html,svg,png,txt,wasm,woff2}'],
+        // png: the icons; txt AND TXT: licenses/ARPHICPL.TXT, which the Licenses screen
+        // links to and which must stay readable offline (Arphic's licence requires shipping
+        // its text). The uppercase variant is not decoration — workbox's glob is
+        // case-sensitive on Linux (nocase defaults false on posix), so a Windows build
+        // precached the file and the ubuntu-latest deploy build silently dropped it.
+        globPatterns: ['**/*.{js,css,html,svg,png,txt,TXT,wasm,woff2}'],
         globIgnores: ['**/packs/**'],
         maximumFileSizeToCacheInBytes: 6_000_000, // sqlite wasm is ~1–2 MB
         navigateFallback: 'index.html',

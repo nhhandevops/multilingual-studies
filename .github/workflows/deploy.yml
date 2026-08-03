@@ -48,17 +48,30 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p apps/web/dist/packs
-          # newest release (by creation) that has a manifest.json asset
-          tag=$(gh release list --limit 20 --json tagName,createdAt \
-            --jq 'sort_by(.createdAt) | reverse | .[].tagName' | while read -r t; do
-              if gh release view "$t" --json assets --jq '.assets[].name' | grep -qx 'manifest.json'; then
-                echo "$t"; break
-              fi
+          # Newest PUBLISHED release whose three pack assets are ALL fully uploaded.
+          # publishedAt, not createdAt: createdAt is the date of the TAG'S COMMIT, so a
+          # pack release cut from an older commit sorts below an old release and stale
+          # packs deploy silently. And all three assets must be state=uploaded: a release
+          # lists manifest.json (750 B, finishes first) while the 74 MB media.pack is
+          # still uploading, and gh release download exits 0 on a partial match.
+          tag=$(gh release list --limit 20 --exclude-drafts --exclude-pre-releases \
+            --json tagName,publishedAt \
+            --jq 'sort_by(.publishedAt) | reverse | .[].tagName' | while read -r t; do
+              names=$(gh release view "$t" --json assets \
+                --jq '.assets[] | select(.state == "uploaded") | .name')
+              ok=1
+              for f in manifest.json content.pack media.pack; do
+                echo "$names" | grep -qx "$f" || ok=0
+              done
+              if [ "$ok" = 1 ]; then echo "$t"; break; fi
             done)
-          test -n "$tag" || { echo "no release with pack assets found"; exit 1; }
+          test -n "$tag" || { echo "no release with all three pack assets found"; exit 1; }
           echo "using packs from release $tag"
           gh release download "$tag" --dir apps/web/dist/packs \
             --pattern 'manifest.json' --pattern 'content.pack' --pattern 'media.pack'
+          for f in manifest.json content.pack media.pack; do
+            test -s "apps/web/dist/packs/$f" || { echo "missing pack asset: $f"; exit 1; }
+          done
           ls -la apps/web/dist/packs
 
       - name: SPA fallback for client-side routes

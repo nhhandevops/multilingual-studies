@@ -33,13 +33,20 @@ export const pwa = {
    * Ask the browser to look for a new service worker NOW. Needed when the app itself is
    * too old for the server's pack: in prompt mode a plain reload keeps serving the old
    * precached shell, so something has to go fetch the new one first.
+   *
+   * Returns whether a registration HANDLED the check. reg.update() resolves at
+   * "installing" — before precaching finishes and onNeedRefresh fires — so the caller
+   * must not poll getNeedRefresh() right after it; when this returns true, wait for the
+   * needRefresh flip instead of reloading (a reload here re-serves the OLD shell).
    */
-  async checkForUpdate(): Promise<void> {
+  async checkForUpdate(): Promise<boolean> {
     try {
       const reg = await navigator.serviceWorker?.getRegistration();
-      await reg?.update();
+      if (!reg) return false;
+      await reg.update();
+      return true;
     } catch {
-      // no SW (dev, or unsupported) — the caller's reload is then the whole story
+      return false; // no SW (dev, or unsupported) — the caller's reload is then the whole story
     }
   },
 };
