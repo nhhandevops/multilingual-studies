@@ -63,6 +63,52 @@ working session, and commit it with the session's push. It is the single source 
 
 ## Current state (updated 2026-08-03)
 
+- **UX pass shipped — four reported defects, and the three worse ones under them.** A user
+  reported: no active-tab highlight, no per-screen guidance, blank frames while loading,
+  overflowing IPA chips. Auditing each against the code (and measuring the header in a real
+  Chrome) found every one sitting on something more serious. Plan and reasoning:
+  [docs/UX-FIXES.md](docs/UX-FIXES.md). Script: `tools/e2e/verify-ux.mjs`.
+  - **The app was stating something FALSE, not merely looking unfinished.** Six screens
+    initialised list state to `[]` and treated emptiness as "there is nothing here", so the
+    pack's genuine empty-state message rendered during the first query: `/write` said "Không có
+    chữ nào cho lựa chọn này" (the reporter's screenshot), and **`/review` told a learner who
+    HAS cards that their deck is empty** — `[].every()` is vacuously true. `null` now means
+    "not answered yet", `[]` means "genuinely empty". The pattern already existed here
+    (ipa/pinyin/tones used `T[] | null`; today.tsx even carried a comment explaining this exact
+    bug class) and was simply never applied uniformly.
+  - **Every null sentinel got a failure path.** Without one a rejected query turns a
+    wrong-but-terminal message into a PERMANENT spinner. write.tsx caught only to set `tooOld`;
+    browse/grammar/today/review/tech had no `catch` at all.
+  - **On a phone, four tabs were unreachable.** `header.top nav` had no wrap and no overflow, so
+    the strip's intrinsic 593px sat in a 358px column: the page scrolled sideways **219px** at
+    390px and the last four tabs were off-screen. Now a horizontal scroller that auto-centres
+    the lit tab — **0px overflow at 360/390/430/780/1280**. `overflow-x: auto` is load-bearing
+    beyond scrolling (it releases the min-content floor), which the CSS says so a later cleanup
+    cannot silently undo it.
+  - **The IPA chart had 13 indistinguishable buttons, not 7 overflowing ones.** Six glyphs are
+    duplicated — ǃ×3, s/ʃ/z ×2 (apical vs laminal), voiceless×2, pulmonic×2 — and the four
+    consonant collisions are **correct IPA that no data fix could separate**, so the view now
+    carries a short caption. The seven word-glyphs get Vietnamese names via `t(key, packFallback)`.
+    `aria-label` goes only on captioned chips: on a word chip it would replace the visible
+    Vietnamese with raw English (WCAG 2.5.3, and the Vietnamese-first rule reversed for AT users).
+  - Also fixed in passing: **white on the dark-theme accent is 2.2:1** — a contrast failure on
+    every active chip in the app, not just IPA.
+  - **`verify-ux.mjs` closes a gap nothing else checked: vi/en key parity** (234 keys). A key
+    landing in one file only would have shipped the literal string `browse.intro` to the other
+    language while every existing script passed.
+  - **Two test-quality lessons, both earned.** The first "no data while loading" check passed on
+    an EMPTY deck, where the message is simply true — it now seeds a card first. And
+    `verify-v06` waited on the ABSENCE of "đang trống", a predicate that only worked while the
+    loading state rendered the empty message; the spinner satisfied it instantly. A predicate
+    that passes on a state you are not waiting for is not a wait.
+  - **Suite status: 14 of 19 green.** The 5 that fail were measured as PRE-EXISTING by restoring
+    `apps/web/src` + `tools/e2e` to the commit before this work and re-running — three are a
+    blocked `download` event, two assume a word recording that v0.9 moved into the optional
+    media pack. Recorded in [tools/e2e/README.md](tools/e2e/README.md) with the fix for each,
+    along with the trap that cost a full run: the pre-v0.9 scripts hardcode `localhost:5173` in
+    their off-origin allow-list, so running them against the static server reports the server's
+    own URLs as off-origin.
+
 - **v1.0's deploy half is DONE — the app is live.** <https://nhhandevops.github.io/multilingual-studies/>
   serves pack `2026.08.03-1` from GitHub Pages; packs are release assets on
   `pack-2026.08.03-1` (see "Release flow" below). The first-ever `deploy-pages` run went

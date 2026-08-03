@@ -1,5 +1,13 @@
 # UX fixes — four reported defects, and the three worse ones underneath them
 
+> **✅ ALL FOUR PHASES SHIPPED 2026-08-03** — commits `8cbe01d` (A), `110f4ef` (B), `4c4e13a`
+> (C), `2891181` (D), `4afe498` (e2e repair). Backed by `tools/e2e/verify-ux.mjs`. Measured
+> after: 0px page overflow at every width (was 219px at 390px), 51 IPA chips all distinct (was
+> 13 ambiguous), no screen claims "no data" while loading, every screen opens with one real
+> sentence in both languages, and vi/en key parity is now enforced at 234 keys.
+> The plan below is kept as written — including the corrections the verify pass caught — because
+> the reasoning is the record.
+
 > **TL;DR (tiếng Việt):** Bốn vấn đề người dùng báo (không biết đang ở tab nào · không có hướng
 > dẫn ngắn · đang tải thì màn hình trắng · bảng IPA tràn chữ) đều sửa được, tổng cộng khoảng
 > **một buổi làm việc**. Nhưng khi đo trên code và trên Chrome thật, mỗi vấn đề lại lộ ra một
