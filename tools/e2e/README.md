@@ -35,9 +35,26 @@ pnpm --filter @mls/web build && node static-server.mjs &
 MLS_BASE=http://localhost:5199 node ./verify-upgrade-v02-to-v03.mjs
 ```
 
-All 19 pass on v1.0 (2026-08-03: `verify-ux` and `verify-v10-live` added this day; the rest
-re-run after the UX work — `verify-v06`'s news-date wait was retargeted in the same commit
-that changed the loader it used to key on).
+Status on v1.0 (2026-08-03, after the UX pass): **14 of 19 pass**, and the 5 that do not were
+measured as PRE-EXISTING — the same five fail identically on the commit before the UX work
+(checked by restoring `apps/web/src` and `tools/e2e` to that commit and re-running):
+
+| Failing | Symptom | Almost certainly |
+|---|---|---|
+| `verify-v02`, `verify-v03-p3`, `verify-v04-p1` | `waitForEvent('download')` times out | the browser profile blocks the `user.db` backup download; nothing to do with the assertion under test |
+| `verify-v04-p2` | `.word-detail button.speak` never appears | v0.9 split word audio into the optional `media.pack`; a fresh profile has not installed it, and this pre-split script assumes a bundled recording |
+| `verify-v04-p3-p4` | "a word WITH a recording must not fall back to TTS" | same cause — the recording is in `media.pack`, absent by design until installed |
+
+They are not silently tolerated: fix them by teaching v04-p2/p3-p4 to install the media pack
+first (as `verify-v09` does), and by checking the download permission for the three others.
+
+The other 14 — including `verify-v06`, whose two waits this pass had to repair — pass green.
+
+⚠️ **Runner matters.** The pre-v0.9 scripts hardcode `http://localhost:5173` in their
+off-origin allow-list (e.g. `verify-v05-p1-p2.mjs:88`), so they must run against `pnpm dev`;
+only `verify-v09` and `verify-upgrade-v02-to-v03` need the static server. Running the old ones
+at `MLS_BASE=…:5199` reports the server's own URLs as "off-origin", which looks like a product
+bug and is not one.
 
 ## What each one proves
 

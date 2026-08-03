@@ -127,6 +127,12 @@ await page.waitForSelector('input.searchbox', { timeout: 300000 });
 await page.click('nav a[href="/today"]');
 await page.waitForSelector('.today .today-block', { timeout: 60000 });
 
+// Wait for the chips themselves, not for the block that always renders around them: the news
+// section exists before the language query answers, so reading the chips on its appearance is a
+// race this assertion used to win by luck. A timeout here still reports the real shortage.
+await page.waitForFunction(
+  () => document.querySelectorAll('.today .chips.langs button').length >= 3,
+  null, { timeout: 60000 });
 const langChips = await page.$$eval('.today .chips.langs button', els => els.map(e => e.textContent.trim()));
 log(`/today language chips: ${langChips.join(' | ')}`);
 if (langChips.length < 3) fail('expected a chip per language with daily content');
@@ -172,16 +178,16 @@ await page.waitForSelector('.today .words li .deck-btn.in-deck', { timeout: 1500
 log('added the first word of the day to the deck');
 
 // And it is really in the QUEUE, not just a green tick. `deckEmpty` is computed from an async
-// summary, so poll for it to clear rather than reading once — the first read lands on the
-// still-loading empty state and would "prove" the card was never added.
+// summary, so wait for the RESOLVED overview rather than reading once.
+//
+// The wait targets `.review-summary`, not the absence of "đang trống". That negative predicate
+// worked only while the loading state happened to render the empty-deck message — the very bug
+// the UX pass fixed. Once loading became a spinner, "not empty yet" was satisfied instantly and
+// this read landed on "Đang tải…", which contains no digit and failed the assertion below. A
+// predicate that passes on a state you are not waiting for is not a wait.
 await page.click('nav a[href="/review"]');
 await page.waitForSelector('main', { timeout: 30000 });
-await page.waitForFunction(
-  () => {
-    const m = document.querySelector('main');
-    return m && !/đang trống|deck is empty/i.test(m.textContent);
-  },
-  null, { timeout: 30000 });
+await page.waitForSelector('main .review-summary', { timeout: 30000 });
 const reviewText = (await page.textContent('main')).replace(/\s+/g, ' ');
 log(`/review after adding: ${reviewText.slice(0, 130)}…`);
 if (!/[1-9]/.test(reviewText)) fail('the review screen shows no cards after adding the word of the day');
