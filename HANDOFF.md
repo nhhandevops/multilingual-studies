@@ -84,11 +84,11 @@ working session, and commit it with the session's push. It is the single source 
     before the new SW precaches and reaches "waiting" — so the check was always false and
     the reload re-served the OLD shell. `checkForUpdate()` now reports whether an SW
     handled it; the banner reloads only when none did (dev/unsupported).
-  - **One repo SETTING is still owed** (permission-gated, one line, see "Release flow"):
-    the auto-created `github-pages` environment only allows branch `main`, so a
-    tag-triggered deploy is REJECTED at the environment gate until a `v*` tag rule is
-    added. Manual `workflow_dispatch` from main deploys fine — that is how the first
-    deploy ran.
+  - **The auto-created `github-pages` environment only allowed branch `main`**, so a
+    tag-triggered deploy was REJECTED at the environment gate — the `v*` tag rule was
+    added by hand (2026-08-03, see "Release flow"; the API call is permission-gated, so
+    the owner ran it). The first deploy ran via manual `workflow_dispatch`; the `v1.0`
+    tag push then exercised the tag-triggered path for real.
   - **Verified live**: `tools/e2e/verify-v10-live.mjs` — packs served next to the shell, a
     COLD deep link to `/stats` boots through Pages' `404.html` fallback and the router
     resolves it under the non-root base (a path no local script runs at), the SW takes
@@ -814,10 +814,10 @@ Two things worth doing before/while that month runs:
 1. ~~**Deploy it for real.**~~ **DONE 2026-08-03** — live at
    <https://nhhandevops.github.io/multilingual-studies/>, verified by
    `tools/e2e/verify-v10-live.mjs`. See "Current state" for the four pipeline defects fixed
-   first, and "Release flow" below for how to cut the next release. One repo setting still
-   owed: the `v*` tag rule on the `github-pages` environment (until then, deploys are
-   manual `gh workflow run deploy-pages --ref main`). Lighthouse's installability audit is
-   also still unrun (manual step; the criteria themselves are asserted by verify-v09).
+   first, and "Release flow" below for how to cut the next release. Both one-time repo
+   settings are in place (Pages enabled; `v*` tag rule on the environment), so a `v*` tag
+   push deploys automatically. Lighthouse's installability audit is still unrun (manual
+   step; the criteria themselves are asserted by verify-v09).
 2. **Test the real iPhone path.** The Add-to-Home overlay, the standalone display mode, and the
    ~50 MB Cache-API caveat are all coded and reasoned from documentation; none has met an actual
    iPhone. That is the last unverified claim in the version. The live URL makes this testable
@@ -849,7 +849,7 @@ so a fork must repeat them):
 - Enable Pages with Actions as the source: `gh api -X POST repos/<owner>/<repo>/pages -f build_type=workflow` ✅ done 2026-08-03
 - Allow tag deploys through the auto-created environment (without this, every `v*`
   tag-triggered run is REJECTED at the environment gate — the auto-created policy only
-  allows branch `main`): `gh api -X POST "repos/<owner>/<repo>/environments/github-pages/deployment-branch-policies" -f name='v*' -f type=tag` ⚠️ still owed
+  allows branch `main`): `gh api -X POST "repos/<owner>/<repo>/environments/github-pages/deployment-branch-policies" -f name='v*' -f type=tag` ✅ done 2026-08-03 (run by the owner — the call is permission-gated for the agent)
 
 Carried forward from 0.9, none blocking:
 
