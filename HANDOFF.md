@@ -6,6 +6,11 @@
 >
 > **TL;DR (tiếng Việt):** Dự án đang ở **v0.9** (đã xong — **ứng dụng cài được, học offline**),
 > và phần **triển khai thật của v1.0 đã xong** (Pages + Releases, xem "Current state").
+> Ngay sau đó là một **đợt sửa UX** (2026-08-03, cùng ngày): tab đang mở giờ có highlight,
+> mỗi màn hình có một câu hướng dẫn, màn hình **không còn báo sai "không có dữ liệu"** lúc đang
+> tải (trước đây `/review` từng nói "bộ thẻ trống" với người ĐANG có thẻ), thanh điều hướng
+> không còn tràn ngang trên điện thoại (219px ở màn 390px → 0px), và bảng IPA hết chồng chữ +
+> hết 13 nút trùng nhau không phân biệt được. Chi tiết: [docs/UX-FIXES.md](docs/UX-FIXES.md).
 > Cài vào màn hình chính điện thoại rồi học khi không có mạng: service worker giữ vỏ ứng dụng,
 > dữ liệu nằm sẵn trong máy. **Gói dữ liệu tách đôi**: bản chính còn **56 MB** (trước là 130 MB) —
 > đủ tra từ, câu ví dụ, ngữ pháp, tập viết, bảng pinyin có tiếng; **gói âm thanh 74 MB** (giọng
