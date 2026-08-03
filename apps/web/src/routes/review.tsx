@@ -297,6 +297,9 @@ export function Review() {
   return (
     <main className="review">
       <h2>{t('review.title')}</h2>
+      {/* Gated on a non-empty deck: it explains how to answer cards, and with no cards the
+          emptyDeck line below is the guidance that actually applies. */}
+      {!deckEmpty && <p className="hint screen-intro">{t('review.intro')}</p>}
       {offsetBadge}
       {notice && <p className="hint">{notice}</p>}
       {streakDays > 0 && <p>{t('review.streak', { n: streakDays })}</p>}

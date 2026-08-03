@@ -78,7 +78,7 @@ export function WriteIndex() {
     <main>
       <h2>{t('write.title')}</h2>
       {tooOld && <p className="error">{t('db.packTooOld')}</p>}
-      <p className="hint">{t('write.intro')}</p>
+      <p className="hint screen-intro">{t('write.intro')}</p>
       <div className="chips script">
         <button className={script === 'hanzi' ? 'active' : ''} onClick={() => setScript('hanzi')}>
           {t('write.scriptHanzi')}

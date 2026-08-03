@@ -48,7 +48,7 @@ export function Home() {
         placeholder={t('search.placeholder')}
         onChange={(e) => setParams(e.target.value ? { q: e.target.value } : {}, { replace: true })}
       />
-      <p className="hint">{t('search.hint')}</p>
+      <p className="hint screen-intro">{t('search.hint')}</p>
       {results !== null && results.length === 0 && <p>{t('search.noResults', { q })}</p>}
       {results && <WordList words={results} glosses={glosses} />}
     </main>

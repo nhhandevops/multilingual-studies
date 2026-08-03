@@ -110,6 +110,7 @@ export function Stats() {
   return (
     <main className="stats">
       <h2>{t('stats.title')}</h2>
+      <p className="hint screen-intro">{t('stats.intro')}</p>
 
       <section className="stats-block">
         <h3>{t('stats.progressTitle')}</h3>

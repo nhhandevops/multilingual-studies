@@ -125,6 +125,7 @@ export function Today() {
   return (
     <main className="today">
       <h2>{t('today.title')}</h2>
+      <p className="hint screen-intro">{t('today.intro')}</p>
       <div className="chips langs">
         {langs.map((l) => (
           <button key={l.lang} className={l.lang === lang ? 'active' : ''} onClick={() => setLang(l.lang)}>

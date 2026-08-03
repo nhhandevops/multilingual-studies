@@ -91,7 +91,7 @@ export function ToneDrill() {
   return (
     <main className="tone-drill">
       <h2>{t('tones.title')}</h2>
-      <p className="hint">{t('tones.intro', { n: bases.length })}</p>
+      <p className="hint screen-intro">{t('tones.intro', { n: bases.length })}</p>
       <p className="hint">
         {t('tones.score', { right: score.right, asked: score.asked })}
         {score.streak > 1 && ` · ${t('tones.streak', { n: score.streak })}`}

@@ -77,6 +77,7 @@ export function Browse() {
   return (
     <main>
       <h2>{t('browse.title')}</h2>
+      <p className="hint screen-intro">{t('browse.intro')}</p>
       <div className="chips">
         {LANGS.map((l) => (
           <button key={l} className={lang === l ? 'active' : ''} onClick={() => setLang(l)}>

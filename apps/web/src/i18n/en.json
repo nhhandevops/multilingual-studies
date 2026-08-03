@@ -60,7 +60,8 @@
       "month": "{{n}}mo"
     },
     "glyphDetail": "Open character page →",
-    "techDetail": "Term page →"
+    "techDetail": "Term page →",
+    "intro": "Each day the app picks the cards that are due. Answer honestly — choosing \"Hard\" or \"Again\" is what makes it stick."
   },
   "write": {
     "title": "Hanzi writing practice",
@@ -189,7 +190,8 @@
     "title": "Browse vocabulary",
     "allLevels": "All",
     "noLevels": "No levels yet (HSK/CEFR land in the next update) — ordered by frequency.",
-    "more": "Load more"
+    "more": "Load more",
+    "intro": "Browse words by HSK/CEFR level. Tap ＋ to add one to your review deck."
   },
   "word": {
     "traditional": "Traditional",
@@ -233,7 +235,8 @@
     "noBody": "No explanation is bundled for this point.",
     "readMore": "Read more",
     "notFound": "Grammar topic not found.",
-    "back": "← Back to grammar"
+    "back": "← Back to grammar",
+    "intro": "Read grammar points by level, offline. Pick a language, then a level below."
   },
   "today": {
     "title": "Today",
@@ -251,7 +254,8 @@
     "back": "← Back to Today",
     "noBody": "This item has no bundled text.",
     "readOriginal": "Read the original",
-    "listenAtSource": "Listen at the source"
+    "listenAtSource": "Listen at the source",
+    "intro": "Real news and graded reading, plus the day’s words. The pack is downloaded, so this is the newest day it holds."
   },
   "tech": {
     "title": "Professional vocabulary (IoT)",
@@ -282,6 +286,7 @@
     "anchorCefr": "CEFR (Cambridge guided learning hours): A2 ≈ 180–200h · B1 ≈ 350–400h · B2 ≈ 500–600h · C1 ≈ 700–800h · C2 ≈ 1,000–1,200h",
     "anchorFsiFr": "FSI — French: ~600–750 class hours to professional working proficiency",
     "anchorFsiZh": "FSI — Mandarin: ~2,200 hours for an English speaker — for a Vietnamese speaker this is an upper bound",
-    "anchorsCredit": "Sources: Cambridge English (guided learning hours) · FSI, US State Department (public domain)."
+    "anchorsCredit": "Sources: Cambridge English (guided learning hours) · FSI, US State Department (public domain).",
+    "intro": "Your vocabulary against the HSK/CEFR tables, and a forecast of daily review time at your chosen pace."
   }
 }

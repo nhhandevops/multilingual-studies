@@ -79,6 +79,7 @@ export function GrammarIndex() {
   return (
     <main className="grammar-index">
       <h2>{t('grammar.title')}</h2>
+      <p className="hint screen-intro">{t('grammar.intro')}</p>
       <div className="chips langs">
         {langs.map((l) => (
           <button key={l.lang} className={l.lang === lang ? 'active' : ''} onClick={() => setLang(l.lang)}>

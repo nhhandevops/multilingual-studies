@@ -94,7 +94,7 @@ export function TechIndex() {
   return (
     <main className="tech-index">
       <h2>{t('tech.title')}</h2>
-      <p className="hint">{t('tech.subtitle')}</p>
+      <p className="hint screen-intro">{t('tech.subtitle')}</p>
       {domains.length > 1 && (
         <div className="chips domains">
           <button className={domain === undefined ? 'active' : ''} onClick={() => setDomain(undefined)}>

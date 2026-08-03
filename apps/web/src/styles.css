@@ -54,6 +54,9 @@ header.top .ui-lang button.active { background: var(--accent); color: #fff; bord
 .searchbox { width: 100%; font-size: 1.15rem; padding: 0.6rem 0.8rem; border: 1px solid var(--border);
   border-radius: 6px; background: var(--bg-soft); color: var(--fg); }
 .hint { color: var(--fg-soft); font-size: 0.85rem; }
+/* One sentence under each screen's heading saying what the screen is for. Inherits .hint's
+   colour so it stays secondary to the content; max-width keeps it to a readable measure. */
+.screen-intro { margin: 0.2rem 0 0.9rem; max-width: 62ch; }
 
 ul.words { list-style: none; padding: 0; margin: 1rem 0; }
 ul.words li { border-bottom: 1px solid var(--border); }

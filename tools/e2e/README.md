@@ -35,9 +35,9 @@ pnpm --filter @mls/web build && node static-server.mjs &
 MLS_BASE=http://localhost:5199 node ./verify-upgrade-v02-to-v03.mjs
 ```
 
-All 18 pass on v1.0 (2026-08-03: `verify-v10-live` against the real GitHub Pages deploy;
-`verify-v09` re-run locally after the deploy-hardening shell fixes; the 16 others are
-untouched by those changes and were green on v0.9).
+All 19 pass on v1.0 (2026-08-03: `verify-ux` and `verify-v10-live` added this day; the rest
+re-run after the UX work — `verify-v06`'s news-date wait was retargeted in the same commit
+that changed the loader it used to key on).
 
 ## What each one proves
 
@@ -60,6 +60,7 @@ untouched by those changes and were green on v0.9).
 | `verify-v08.mjs` | 0.8 | stats+forecast: attested cognates (大学=đại học, 手机 has NONE), dashboard denominators equal the pack, the FSRS simulator is deterministic and lands in the 8-12× band, and the reach date matches the arithmetic |
 | `verify-v09.mjs` | 0.9 | the media split (core holds no word blobs, media holds exactly them, no reference dangles across the pair, sampled blobs are real mp3), an in-place upgrade from a v0.8-format pack, media-absent → labelled TTS + nudge, media-installed → the recording plays, webmanifest + service-worker control, and a full offline session (needs `static-server.mjs`) |
 | `verify-v10-live.mjs` | 1.0 | the DEPLOYED site (GitHub Pages, base `/multilingual-studies/` — a path no local script runs at): packs served next to the shell, a cold deep link boots through Pages' `404.html` fallback and the router resolves it, the SW takes control, 0 off-origin. Needs nothing local — it drives the public URL (`MLS_LIVE` to point elsewhere) |
+| `verify-ux.mjs` | 1.0 | the four reported UX defects: the current tab is lit with `aria-current` (and a nested route keeps its parent lit) · **0px page overflow at 360–1280** with the lit tab scrolled into view · every screen opens with exactly one real `.screen-intro` in BOTH languages · **no screen claims "no data" before its query answers** (asserted with a SEEDED deck — with an empty deck the message is simply true) · no IPA chip overflows, overlaps or duplicates another · **vi.json/en.json key parity**, which nothing else in the suite checked |
 | `verify-upgrade-v02-to-v03.mjs` | 0.3 | an in-place pack upgrade preserves all SRS state (needs `static-server.mjs`, not `pnpm dev`) |
 | `audit-v04-fixes.cjs` | 0.4 | data-level audit of the sentence corpus (no browser; reads `build/staging.db`) |
 

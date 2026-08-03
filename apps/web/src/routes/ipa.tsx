@@ -112,7 +112,7 @@ export function IpaChart() {
   return (
     <main className="ipa-chart">
       <h2>{t('ipa.title')}</h2>
-      <p className="hint">{t('ipa.intro', { n: phones.length })}</p>
+      <p className="hint screen-intro">{t('ipa.intro', { n: phones.length })}</p>
 
       {groups.map((g) => {
         // Widen the whole group if ANY chip in it carries a word or a caption — a grid track is

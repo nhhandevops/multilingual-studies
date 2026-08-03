@@ -85,7 +85,7 @@ export function PinyinChart() {
     <main>
       <h2>{t('pinyin.title')}</h2>
       {tooOld && <p className="error">{t('db.packTooOld')}</p>}
-      <p className="hint">{t('pinyin.intro', { n: rows.length })}</p>
+      <p className="hint screen-intro">{t('pinyin.intro', { n: rows.length })}</p>
       <div className="chips">
         {TONES.map((n) => (
           <button key={n} className={tone === n ? 'active' : ''} onClick={() => setTone(n)}>

@@ -16,7 +16,7 @@ export function Licenses() {
   return (
     <main>
       <h2>{t('licenses.title')}</h2>
-      <p>{t('licenses.intro')}</p>
+      <p className="hint screen-intro">{t('licenses.intro')}</p>
       {sources.map((s) => (
         <div className="card" key={s.id}>
           <h3>

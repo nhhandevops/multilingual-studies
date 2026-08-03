@@ -60,7 +60,8 @@
       "month": "{{n}} tháng"
     },
     "glyphDetail": "Xem chi tiết chữ →",
-    "techDetail": "Xem thuật ngữ →"
+    "techDetail": "Xem thuật ngữ →",
+    "intro": "Mỗi ngày ứng dụng chọn sẵn thẻ đến hạn. Trả lời thật lòng — chọn “Khó” hay “Học lại” giúp bạn nhớ lâu hơn."
   },
   "write": {
     "title": "Tập viết chữ Hán",
@@ -189,7 +190,8 @@
     "title": "Duyệt từ vựng",
     "allLevels": "Tất cả",
     "noLevels": "Chưa có cấp độ (HSK/CEFR sẽ có ở bản cập nhật tiếp theo) — đang xếp theo tần suất.",
-    "more": "Xem thêm"
+    "more": "Xem thêm",
+    "intro": "Xem từ theo cấp độ HSK/CEFR. Bấm ＋ để thêm từ vào bộ thẻ ôn tập."
   },
   "word": {
     "traditional": "Phồn thể",
@@ -233,7 +235,8 @@
     "noBody": "Điểm ngữ pháp này chưa có phần giải thích đi kèm.",
     "readMore": "Đọc thêm",
     "notFound": "Không tìm thấy chủ điểm ngữ pháp.",
-    "back": "← Quay lại ngữ pháp"
+    "back": "← Quay lại ngữ pháp",
+    "intro": "Đọc điểm ngữ pháp theo cấp độ, offline. Chọn ngôn ngữ rồi chọn cấp độ ở dưới."
   },
   "today": {
     "title": "Hôm nay",
@@ -251,7 +254,8 @@
     "back": "← Quay lại Hôm nay",
     "noBody": "Mục này không có nội dung kèm theo.",
     "readOriginal": "Đọc bản gốc",
-    "listenAtSource": "Nghe trên trang gốc"
+    "listenAtSource": "Nghe trên trang gốc",
+    "intro": "Tin tức và bài đọc thật, cùng từ của ngày. Gói dữ liệu tải sẵn nên ngày hiển thị là ngày mới nhất trong gói."
   },
   "tech": {
     "title": "Từ vựng nghề (IoT)",
@@ -282,6 +286,7 @@
     "anchorCefr": "CEFR (Cambridge, giờ học có hướng dẫn): A2 ≈ 180–200h · B1 ≈ 350–400h · B2 ≈ 500–600h · C1 ≈ 700–800h · C2 ≈ 1.000–1.200h",
     "anchorFsiFr": "FSI — tiếng Pháp: ~600–750 giờ lớp học đến trình độ làm việc chuyên nghiệp",
     "anchorFsiZh": "FSI — tiếng Trung: ~2.200 giờ cho người nói tiếng Anh — với người Việt đây là mức trần",
-    "anchorsCredit": "Nguồn: Cambridge English (guided learning hours) · FSI, Bộ Ngoại giao Hoa Kỳ (công vụ, miền công cộng)."
+    "anchorsCredit": "Nguồn: Cambridge English (guided learning hours) · FSI, Bộ Ngoại giao Hoa Kỳ (công vụ, miền công cộng).",
+    "intro": "Vốn từ của bạn so với thang HSK/CEFR, và dự báo thời gian ôn mỗi ngày nếu học theo nhịp đã chọn."
   }
 }
