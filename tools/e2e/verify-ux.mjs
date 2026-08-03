@@ -48,8 +48,13 @@ const consoleErrors = [];
 page.on('console', (m) => { if (m.type() === 'error') consoleErrors.push(m.text()); });
 
 await page.goto(`${BASE}/`, { waitUntil: 'domcontentloaded' });
+// `footer.pack`, not `nav a`: the header renders OUTSIDE the `state === 'ready'` gate, so the
+// tabs exist while the pack is still downloading. Waiting on them passes instantly on a warm
+// profile and then clicks into routes that are not mounted yet on a cold one — which is exactly
+// how this script first failed against the live site's 56 MB first visit.
 await page.waitForSelector('header.top nav a', { timeout: 600_000 });
-log('app booted');
+await page.waitForSelector('footer.pack', { timeout: 900_000 });
+log('app booted and the pack is installed');
 
 const activeTab = () =>
   page.$$eval('header.top nav a', (as) => {
