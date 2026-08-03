@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDb } from '../db/provider';
 import { listSources, type SourceRow } from '../db/queries';
+import { assetUrl } from '../lib/url';
 
 export function Licenses() {
   const { t } = useTranslation();
@@ -27,7 +28,7 @@ export function Licenses() {
           <p className="hint">
             {t('licenses.license')}:{' '}
             {s.license_url ? (
-              <a href={s.license_url} target="_blank" rel="noreferrer">
+              <a href={assetUrl(s.license_url)} target="_blank" rel="noreferrer">
                 {s.license}
               </a>
             ) : (

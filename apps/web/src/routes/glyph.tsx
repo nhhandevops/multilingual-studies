@@ -5,6 +5,7 @@ import { useDb } from '../db/provider';
 import { getGrapheme, haveStrokeData, wordsWithChar, type GraphemeDetail, type WordRow } from '../db/queries';
 import { addGraphemeCard, getCard, removeCard } from '../db/user-queries';
 import { StrokeWriter } from '../components/stroke-writer';
+import { assetUrl } from '../lib/url';
 import { srsNow } from '../srs/clock';
 
 /** U+2FF0–U+2FFB: the ideographic description operators inside an IDS like '⿰女子'. */
@@ -191,7 +192,7 @@ export function GlyphPage() {
         <a href={source.url} target="_blank" rel="noreferrer">
           {source.name}
         </a>{' '}
-        ({source.license_url ? <a href={source.license_url}>{source.license}</a> : source.license})
+        ({source.license_url ? <a href={assetUrl(source.license_url)}>{source.license}</a> : source.license})
         {infoSource && (
           <>
             {' · '}

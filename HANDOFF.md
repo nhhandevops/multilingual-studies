@@ -1,6 +1,15 @@
 # HANDOFF — continue the work from any machine
 
-> **TL;DR (tiếng Việt):** Dự án đang ở **v0.8** (đã xong — **thống kê & dự báo**).
+> **TL;DR (tiếng Việt):** Dự án đang ở **v0.9** (đã xong — **ứng dụng cài được, học offline**).
+> Cài vào màn hình chính điện thoại rồi học khi không có mạng: service worker giữ vỏ ứng dụng,
+> dữ liệu nằm sẵn trong máy. **Gói dữ liệu tách đôi**: bản chính còn **56 MB** (trước là 130 MB) —
+> đủ tra từ, câu ví dụ, ngữ pháp, tập viết, bảng pinyin có tiếng; **gói âm thanh 74 MB** (giọng
+> người thật cho ~10.000 từ Trung/Pháp) là **tuỳ chọn**, tải thêm khi muốn, xoá lúc nào cũng được.
+> Chưa tải thì từ vẫn đọc bằng giọng máy có nhãn TTS — không bao giờ giả vờ là giọng thật.
+> Kèm: nhắc sao lưu hằng tuần, xin quyền lưu trữ bền vững, biểu ngữ báo có bản mới, và hướng dẫn
+> "Thêm vào MH chính" cho iPhone/iPad.
+>
+> Trước đó, v0.8 — **thống kê & dự báo**:
 > Mục `/stats`: vốn từ của bạn so với **thang HSK/CEFR** (thanh tiến độ theo từng cấp), và **mô
 > phỏng tải ôn tập** chạy bằng chính FSRS-6 — kéo thanh trượt "7 từ mới/ngày" là thấy ngay:
 > ~68 lượt ôn/ngày ≈ 15 phút, phủ hết từ vựng HSK1–3 khoảng **tháng 6 2027**. Kèm mốc giờ
@@ -39,15 +48,57 @@
 > đọc bằng giọng máy (TTS), kể cả câu ví dụ — nên **không từ nào là câm**.
 > v0.3 trước đó: xem 好 tự viết rồi tự tô · tô chữ `é` · nghe đủ 1.707 âm tiết pinyin ·
 > luyện thanh điệu · bảng IPA có hình cắt dọc.
-> ⚠️ Gói dữ liệu giờ **130,4 MB** (tải một lần). Muốn nhỏ lại: sửa hằng số `LEVELS` trong
-> [fr/word-audio.ts](apps/ingest/src/sources/fr/word-audio.ts) — xem "Pack size" bên dưới.
+> ⚠️ Gói dữ liệu nay **tách đôi**: bản chính **56 MB** (bắt buộc) + gói âm thanh **74 MB**
+> (tuỳ chọn) — xem "Pack size" bên dưới.
 > Trên máy mới: `pnpm install` → `pnpm ingest seed:all` → `pnpm pack:build` → `pnpm ingest pack publish` → `pnpm dev`.
 
 Keep this file current: update the **Current state** and **Next up** sections at the end of every
 working session, and commit it with the session's push. It is the single source of truth for
 "where were we?" on a fresh clone.
 
-## Current state (updated 2026-08-01)
+## Current state (updated 2026-08-03)
+
+- **v0.9 shipped — "Real PWA".** The app installs to a home screen, boots and runs a full
+  session with no network, and the 130 MB pack is finally split. Pack `2026.08.03-2`.
+  - **The split, and where the line falls.** Word-pronunciation blobs (9,991 clips, 78 MB raw)
+    move to an optional `media.pack`; everything else stays in `content.pack`, which drops
+    **130.5 → 56.4 MB gz**. The line is `audio.kind`, chosen so no core surface goes silent:
+    the 1,707 pinyin-chart syllables and Tex's grammar clips stay in core (v0.3's acceptance
+    asserts the chart plays, and a silent chart would be a regression), as do the sagittal SVGs.
+    The whole `audio` METADATA table stays in core too — the app must know a recording exists to
+    offer the download, and the CC BY credit has to ship wherever the clip is referenced.
+    It is a build-time decision only ([build.ts](packages/content-pack/src/build.ts)): staging
+    keeps every blob, no seed re-ran, no schema changed, and audio IDs are untouched, so the two
+    files stay joinable and `pack verify` checks them as a PAIR (ATTACHed, cross-file).
+  - **The TTS label cannot lie.** `getWordAudio` now confirms the blob is actually reachable
+    before reporting a recording, so a metadata row whose bytes are not installed presents as
+    "no recording" and the button shows the labelled synthetic voice. The media nudge appears
+    only on words that really have a recording we cannot currently play.
+  - **A real dead-end was found and fixed, not documented away.** Playing a word and then
+    reloading left the app on the storage-locked screen — the outgoing document keeps the pool's
+    exclusive OPFS handles for ~20 s (measured), and once `installOpfsSAHPoolVfs` has failed once,
+    retrying inside that document never succeeds. The app now releases audio on `pagehide`, asks
+    its worker to terminate on a real unload, and — the part that actually works — reloads itself
+    once, guarded by `sessionStorage`. `verify-v09.mjs` plays a clip before its reload precisely
+    so this stays fixed.
+  - **Service worker precaches the app shell ONLY** (18 entries, 1.8 MB: JS/CSS/wasm/icons/
+    ARPHICPL.TXT). `/packs/*` is NetworkOnly and excluded from precache and from the SPA
+    fallback — OPFS is the pack cache, and a second copy of 130 MB in the Cache API would be
+    both wasteful and a way to poison a verified download. `registerType: 'prompt'`, so a new
+    shell never swaps mid-review; the update banner offers it.
+  - Also: `storage.persist()` requested on the first user.db WRITE (not at boot — a new learner
+    has nothing to lose and the prompt is noise), a weekly backup nag that clears itself when
+    you actually export, a post-boot update check (visibility + 15-min tick, throttled hourly),
+    runtime `minAppVersion` enforcement with its own screen, an iOS Add-to-Home overlay, and
+    `.github/workflows/deploy.yml` for GitHub Pages (never run yet — see "Next up").
+  - **Verified**: `verify-v09.mjs` (pack-split gates incl. mp3 magic on sampled blobs, in-place
+    upgrade from the v0.8-format pack with cards/streak intact, media absent → labelled TTS,
+    media installed → real voice plays, webmanifest + SW control, a full offline session, zero
+    off-origin requests) and `verify-v08.mjs` re-run green against the split pack.
+  - 15 findings from an adversarial review of the client-side commit were fixed first, including
+    one that broke the production build outright (`workbox-window` was never declared) and two
+    that only bite under a deploy base path (`./favicon.svg` resolves against the current ROUTE;
+    `license_url` values are root-relative and need `import.meta.env.BASE_URL`).
 
 - **v0.8 shipped — "Stats + forecast".** A `/stats` screen (dashboard · simulator · anchors) and
   **8,342 attested Sino-Vietnamese cognates** on the zh vocabulary — the `sv_cognate` column that
@@ -710,15 +761,45 @@ working session, and commit it with the session's push. It is the single source 
 - Pack `2026.07.29-2` is published on [GitHub Releases (v0.1)](https://github.com/nhhandevops/multilingual-studies/releases/tag/v0.1) under CC BY-SA 4.0 — see "The database" below.
 - 2026-07-30: git history was rewritten (force-push) to purge 142 MB of accidentally committed pack duplicates; `.gitignore` now blanket-ignores `*.gz`. If an old clone exists somewhere, delete and re-clone instead of pulling.
 
-## Next up: v0.9 — Real PWA
+## Next up: v1.0 — "Daily driver" (an acceptance gate, not a feature version)
 
-v0.8 is complete. See [docs/PLAN.md](docs/PLAN.md) for the 0.9 row (service worker + full offline
-+ storage.persist() + pack update UI + backup nag + deploy to Cloudflare/GitHub Pages + iOS
-Add-to-Home tested — "install on phone; study on the bus offline"). Its verify clauses in PLAN:
-Lighthouse installable; a full airplane-mode session; pack N-1→N preserves all cards. **This is
-also the version that forces the pack-size decision** deferred since v0.4: 130 MB is a heavy
-first paint for a phone install, and splitting media into an optional second pack has been "the
-real answer" in this file for four versions.
+v0.9 is complete. [docs/PLAN.md](docs/PLAN.md)'s 1.0 row is a GATE with no new features:
+30 consecutive days of real use (≥25 `/daily-pull` runs), ≥1,500 studyable words per language
+with level + example and ≥60% human audio, a daily loop under 45 minutes, `pack verify` green,
+the pack published on GitHub Releases under CC BY-SA, and a proven backup/restore on a second
+browser profile. Most of those are already true; **the one that is not is the habit itself.**
+So 1.0 is mostly a month of using the app, with `/curate-pack` weekly to catch source rot.
+
+Two things worth doing before/while that month runs:
+
+1. **Deploy it for real.** `.github/workflows/deploy.yml` exists but has never run — it needs a
+   release carrying `manifest.json` + `content.pack` + `media.pack`, then GitHub Pages enabled
+   with "GitHub Actions" as the source. Until that runs, "install on your phone" means running
+   `pnpm dev` on the PC and opening it over the LAN.
+2. **Test the real iPhone path.** The Add-to-Home overlay, the standalone display mode, and the
+   ~50 MB Cache-API caveat are all coded and reasoned from documentation; none has met an actual
+   iPhone. That is the last unverified claim in the version.
+
+Carried forward from 0.9, none blocking:
+
+1. **The storage-lock takeover protocol is still not implemented** — but its worst symptom is
+   gone. Measured this session: a document that has been playing audio keeps the pool's
+   exclusive OPFS handles for ~20 s past a reload, and once `installOpfsSAHPoolVfs` has failed
+   once, retrying *inside that document* never succeeds (sqlite-wasm logs "removeVfs() failed
+   with no recovery strategy"). Only a fresh document recovers. So the app now reloads itself
+   once, guarded by a `sessionStorage` flag ([app.tsx](apps/web/src/app.tsx)), and the outgoing
+   page releases audio + asks its worker to terminate ([provider.tsx](apps/web/src/db/provider.tsx)).
+   A genuine second tab still gets the manual screen, which is correct. A real takeover protocol
+   would remove even the one reload.
+2. **The media pack is all-or-nothing** — 74 MB for zh + fr together. Per-language media packs
+   are a natural next step (the split is keyed on `audio.kind` in
+   [build.ts](packages/content-pack/src/build.ts); keying on `audio.lang` too is a small change).
+3. **`minAppVersion` is now enforced but has never fired in anger.** The path is covered by code
+   and by an i18n string (`db.appTooOld`), not by an acceptance test — testing it needs a pack
+   built with a deliberately-too-high requirement.
+4. **Lighthouse's installability audit has not been run** — the app satisfies its criteria
+   (manifest with 192+512 icons, standalone display, service worker controlling the page, all
+   asserted in `verify-v09.mjs`), but the audit itself is a manual step for the deploy.
 
 Carried forward from 0.8, none blocking:
 
@@ -850,7 +931,7 @@ Notes:
 - The pack in `apps/web/public/packs/` is **gitignored** — every machine builds its own from sources (same stable IDs ⇒ same user progress compatibility).
 - Acceptance scripts live in [tools/e2e/](tools/e2e/) (`cd tools/e2e && npm install`, then
   `node verify-v06.mjs` with `pnpm dev` running). They need an installed Chrome; set
-  `CHROME=/path/to/chrome` if it is not in a standard location. **All 16 pass on v0.8.** One of
+  `CHROME=/path/to/chrome` if it is not in a standard location. **All 17 pass on v0.9.** One of
   them, `verify-upgrade-v02-to-v03.mjs`, must run against `static-server.mjs` rather than
   `pnpm dev` — see [tools/e2e/README.md](tools/e2e/README.md); running it in a blanket loop
   always "fails", which is how a real v0.4 bug stayed hidden until v0.6.
@@ -863,11 +944,17 @@ Notes:
 > `apps/ingest` rồi build lại pack. File này không nằm trong git; máy khác lấy nó bằng cách
 > tự build (cách A) hoặc tải từ GitHub Releases (cách B).
 
-> **Size as of v0.8: 130.6 MB gz** (…128.9 in v0.4 → 130.1 in v0.5 → 130.4 in v0.6/v0.7 → 130.6). v0.9 forces the split-media decision.
-> Roughly 86 MB of that is audio blobs and 30 MB is stroke JSON. The published v0.1 release asset
-> is still the old 27.7 MB pack: it works, but has no `graphemes`/`hanzi_info`/`audio`/`sentences`,
-> so `/write`, `/pinyin`, examples and every 🔊 will be empty. Rebuild from sources (way A) to get
-> the writing, sentence and audio features. See the pack-size levers under "Current state".
+> **Size as of v0.9: the pack is SPLIT.** `content.pack` **56.4 MB gz** (was 130.5 as one file:
+> 87.6 in v0.4 → 130.1 in v0.5 → 130.4 in v0.6/v0.7 → 130.6 in v0.8) plus an OPTIONAL
+> `media.pack` **74.1 MB gz** holding the 9,991 word recordings. A first install downloads only
+> the core; the audio pack is offered where its value shows and can be removed any time.
+> Roughly 30 MB of the core is stroke JSON — the largest remaining payload.
+> Both files sit under the GitHub Pages 100 MB/file cap, which is what makes the deploy possible.
+> Further levers if the core still needs to shrink: restrict stroke data to HSK + top-N, and the
+> `LEVELS` constant in [fr/word-audio.ts](apps/ingest/src/sources/fr/word-audio.ts) (which now
+> only changes the MEDIA pack). The published v0.1 release asset is still the old 27.7 MB pack:
+> it works, but has no `graphemes`/`hanzi_info`/`audio`/`sentences`, so `/write`, `/pinyin`,
+> examples and every 🔊 will be empty — rebuild from sources (way A) or use the v0.9 release.
 
 **What it is.** `content.db` is a read-only SQLite database holding all study content
 (tables: `words`, `senses`, `graphemes`, `hanzi_info`, `audio`, `audio_blobs`, `sources`, `meta`,

@@ -4,7 +4,7 @@ import { Link, Route, Routes } from 'react-router-dom';
 import { setUiLang } from './i18n';
 import { useDb } from './db/provider';
 import { ensurePersisted } from './storage/persist';
-import { countCards } from './db/user-queries';
+import { pwa } from './pwa';
 import { UpdateBanner } from './components/update-banner';
 import { BackupNag } from './components/backup-nag';
 import { IosA2hs } from './components/ios-a2hs';
@@ -27,19 +27,34 @@ export function App() {
   const { t, i18n } = useTranslation();
   const db = useDb();
 
-  // Ask for durable storage once the learner has something to lose (any card), and again on
-  // PWA install (Chrome grants installed origins near-automatically). Fire-and-forget: the
-  // result renders in the review screen's storage block, not here.
-  const ready = db.status.state === 'ready';
+  // Durable storage is requested on the first user.db WRITE (see provider) — by then the
+  // learner has something to lose and the browser prompt makes sense. Here we only cover
+  // the install event: Chrome grants installed origins near-automatically.
   useEffect(() => {
-    if (!ready) return;
-    void countCards(db).then((n) => {
-      if (n > 0) void ensurePersisted();
-    });
     const onInstalled = () => void ensurePersisted();
     window.addEventListener('appinstalled', onInstalled);
     return () => window.removeEventListener('appinstalled', onInstalled);
-  }, [ready, db]);
+  }, []);
+
+  // Storage-lock auto-recovery.
+  //
+  // The outgoing document can hold the exclusive OPFS handles for ~20 s after a reload
+  // (measured, worst case: it had been playing audio), and once this document's pool install
+  // has failed, retrying inside it never succeeds — only a FRESH document does. So reload
+  // ourselves, once, instead of dead-ending on a button the learner has to find. The
+  // sessionStorage guard makes it exactly one attempt: a genuine second tab still gets the
+  // manual screen rather than an infinite reload loop.
+  const errorMessage = db.status.state === 'error' ? db.status.message : null;
+  useEffect(() => {
+    if (!errorMessage?.startsWith('storage-locked')) return;
+    if (sessionStorage.getItem('mls_lock_recovery') === '1') return;
+    sessionStorage.setItem('mls_lock_recovery', '1');
+    const timer = setTimeout(() => window.location.reload(), 2000);
+    return () => clearTimeout(timer);
+  }, [errorMessage]);
+  useEffect(() => {
+    if (db.status.state === 'ready') sessionStorage.removeItem('mls_lock_recovery');
+  }, [db.status.state]);
 
   return (
     <div className="shell">
@@ -77,7 +92,23 @@ export function App() {
         </p>
       )}
       {db.status.state === 'error' &&
-        (db.status.message.startsWith('storage-locked') ? (
+        (db.status.message.startsWith('app-too-old') ? (
+          // The server's pack needs a newer app and there is no installed pack to fall back
+          // on. A bare reload would re-serve the OLD precached shell, so activate the waiting
+          // service worker when there is one — that is what actually escapes this state.
+          <div className="status">
+            <p className="error">{t('db.appTooOld')}</p>
+            <button
+              className="more"
+              onClick={() => {
+                if (pwa.getNeedRefresh()) void pwa.applyUpdate();
+                else void pwa.checkForUpdate().then(() => window.location.reload());
+              }}
+            >
+              {t('db.reload')}
+            </button>
+          </div>
+        ) : db.status.message.startsWith('storage-locked') ? (
           // Another document (a second tab, or a page frozen in the back/forward cache) holds
           // the exclusive OPFS handles. Reloading takes them over; the raw error helps nobody.
           <div className="status">

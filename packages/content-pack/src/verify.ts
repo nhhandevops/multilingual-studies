@@ -39,10 +39,66 @@ export function verifyPack(packDir: string, packsDir?: string): VerifyIssue[] {
   if (sha !== manifest.dbSha256) err('sha256', `manifest ${manifest.dbSha256} != actual ${sha}`);
   if (dbBytes.length !== manifest.dbBytes) err('bytes', `manifest ${manifest.dbBytes} != actual ${dbBytes.length}`);
 
+  // v0.9: the optional media pack. Verified as a PAIR — the split is only correct if every
+  // reference still resolves in core ∪ media, so it is ATTACHed for the duration.
+  const mediaPath = join(packDir, 'media.db');
+  if (manifest.media) {
+    if (!existsSync(mediaPath)) {
+      err('media-pack', `manifest declares a media pack but ${mediaPath} is missing`);
+    } else {
+      const mediaBytes = readFileSync(mediaPath);
+      const mediaSha = createHash('sha256').update(mediaBytes).digest('hex');
+      if (mediaSha !== manifest.media.sha256)
+        err('media-pack', `manifest ${manifest.media.sha256} != actual ${mediaSha}`);
+      if (mediaBytes.length !== manifest.media.bytes)
+        err('media-pack', `manifest ${manifest.media.bytes} != actual ${mediaBytes.length}`);
+    }
+  } else if (existsSync(mediaPath)) {
+    warn('media-pack', 'media.db exists but the manifest does not declare it');
+  }
+
   const db = new Database(dbPath, { readonly: true });
+  const hasMedia = manifest.media !== undefined && existsSync(mediaPath);
+  if (hasMedia) db.exec(`ATTACH DATABASE '${mediaPath.replaceAll("'", "''")}' AS media`);
+  /** Blobs reachable by the app: core plus, when installed, the media pack. */
+  const allBlobs = hasMedia
+    ? `(SELECT audio_id FROM audio_blobs UNION ALL SELECT audio_id FROM media.audio_blobs)`
+    : `(SELECT audio_id FROM audio_blobs)`;
   try {
     const integrity = db.pragma('integrity_check') as { integrity_check: string }[];
     if (integrity[0]?.integrity_check !== 'ok') err('integrity', JSON.stringify(integrity));
+
+    if (hasMedia) {
+      const mediaIntegrity = db.pragma('media.integrity_check') as { integrity_check: string }[];
+      if (mediaIntegrity[0]?.integrity_check !== 'ok') err('media-pack', JSON.stringify(mediaIntegrity));
+      const mediaMeta = Object.fromEntries(
+        (db.prepare('SELECT key, value FROM media.meta').all() as { key: string; value: string }[])
+          .map((r) => [r.key, r.value]),
+      );
+      if (mediaMeta['pack_version'] !== manifest.packVersion)
+        err('media-pack', `media pack_version ${mediaMeta['pack_version']} != core ${manifest.packVersion}`);
+      const mediaCount = (db.prepare('SELECT COUNT(*) AS n FROM media.audio_blobs').get() as { n: number }).n;
+      if (mediaCount !== manifest.media!.blobCount)
+        err('media-pack', `media blobs ${mediaCount} != manifest.media.blobCount ${manifest.media!.blobCount}`);
+      // Every media blob must have its metadata (and therefore its CREDIT) in the core pack:
+      // the attribution has to ship wherever the recording is referenced.
+      const uncredited = (db.prepare(
+        `SELECT COUNT(*) AS n FROM media.audio_blobs b
+          WHERE NOT EXISTS (SELECT 1 FROM audio a WHERE a.id = b.audio_id)`,
+      ).get() as { n: number }).n;
+      if (uncredited > 0) err('media-pack', `${uncredited} media blobs have no metadata/credit in the core pack`);
+      // The split must be complete: no word blob left behind, none of the core-only kinds moved.
+      const wordBlobsInCore = (db.prepare(
+        `SELECT COUNT(*) AS n FROM audio_blobs b JOIN audio a ON a.id = b.audio_id WHERE a.kind = 'word'`,
+      ).get() as { n: number }).n;
+      if (wordBlobsInCore > 0) err('media-pack', `${wordBlobsInCore} word blobs remain in the core pack`);
+      const coreKindsMissing = (db.prepare(
+        `SELECT COUNT(*) AS n FROM audio a WHERE a.kind != 'word'
+          AND NOT EXISTS (SELECT 1 FROM audio_blobs b WHERE b.audio_id = a.id)`,
+      ).get() as { n: number }).n;
+      if (coreKindsMissing > 0)
+        err('media-pack', `${coreKindsMissing} non-word blobs (syllables/phones/sentences) left the core pack`);
+    }
 
     const one = (sql: string): number => (db.prepare(sql).get() as { n: number }).n;
 
@@ -111,9 +167,11 @@ export function verifyPack(packDir: string, packsDir?: string): VerifyIssue[] {
       WHERE NOT EXISTS (SELECT 1 FROM graphemes g WHERE g.id = i.grapheme_id)`);
     if (orphanInfo > 0) err('hanzi-info', `${orphanInfo} hanzi_info rows reference a missing grapheme`);
     // Dangling media references render as a broken pane, so fail the build instead.
+    // Graphemes (the pinyin chart, IPA phones) must resolve in the CORE pack alone — those
+    // surfaces have to work on a core-only install.
     const danglingAudio = one(`SELECT COUNT(*) AS n FROM graphemes g WHERE g.audio_id IS NOT NULL
       AND NOT EXISTS (SELECT 1 FROM audio_blobs b WHERE b.audio_id = g.audio_id)`);
-    if (danglingAudio > 0) err('media', `${danglingAudio} graphemes point at audio with no blob`);
+    if (danglingAudio > 0) err('media', `${danglingAudio} graphemes point at audio with no CORE blob`);
     const danglingDiagram = one(`SELECT COUNT(*) AS n FROM graphemes g WHERE g.diagram_ref IS NOT NULL
       AND NOT EXISTS (SELECT 1 FROM asset_blobs a WHERE a.id = g.diagram_ref)`);
     if (danglingDiagram > 0) err('media', `${danglingDiagram} graphemes point at a missing diagram asset`);
@@ -138,9 +196,10 @@ export function verifyPack(packDir: string, packsDir?: string): VerifyIssue[] {
     if (untranslated > 0) warn('sentences', `${untranslated} non-English sentences have no English translation`);
     const zhNoReading = one(`SELECT COUNT(*) AS n FROM sentences WHERE lang = 'zh' AND (reading IS NULL OR reading = '')`);
     if (zhNoReading > 0) err('sentences', `${zhNoReading} zh sentences have no pinyin reading`);
+    // Word audio may live in either file (v0.9 split), so this resolves across the pair.
     const orphanWordAudio = one(`SELECT COUNT(*) AS n FROM word_audio wa
       WHERE NOT EXISTS (SELECT 1 FROM words w WHERE w.id = wa.word_id)
-         OR NOT EXISTS (SELECT 1 FROM audio_blobs b WHERE b.audio_id = wa.audio_id)`);
+         OR wa.audio_id NOT IN ${allBlobs}`);
     if (orphanWordAudio > 0) err('media', `${orphanWordAudio} word_audio rows point at a missing word or blob`);
 
     // the daily pull (v0.6) ------------------------------------------------------------------
@@ -277,6 +336,13 @@ export function verifyPack(packDir: string, packsDir?: string): VerifyIssue[] {
       }
     }
   } finally {
+    if (hasMedia) {
+      try {
+        db.exec('DETACH DATABASE media');
+      } catch {
+        // never attached / already gone — closing below releases it either way
+      }
+    }
     db.close();
   }
   return issues;

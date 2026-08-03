@@ -27,7 +27,8 @@ interface AudioHasMsg { id: number; type: 'audio-has'; audioId: string }
 interface InstallMediaMsg { id: number; type: 'install-media' }
 interface RemoveMediaMsg { id: number; type: 'remove-media' }
 interface CheckUpdateMsg { id: number; type: 'check-update' }
-interface SuspendMsg { id: number; type: 'suspend' }
+/** `final` = the page is really going away (not bfcache): release handles, then self-terminate. */
+interface SuspendMsg { id: number; type: 'suspend'; final?: boolean }
 interface ResumeMsg { id: number; type: 'resume' }
 type InMsg =
   | InitMsg | QueryMsg | UserQueryMsg | UserExecMsg | UserExportMsg | UserImportMsg
@@ -143,6 +144,12 @@ export const STORAGE_LOCKED = 'storage-locked';
  *     recover. The real fix is a takeover protocol (see HANDOFF "Next up").
  */
 async function installPool(sqlite3: Sqlite3Static): Promise<NonNullable<typeof poolUtil>> {
+  // Retrying is cheap but does NOT rescue the hard case: once installOpfsSAHPoolVfs has
+  // failed, sqlite-wasm's own cleanup logs "removeVfs() failed with no recovery strategy"
+  // and later attempts in the same document keep failing even after the holder lets go.
+  // Measured: a document that had been playing audio holds the handles ~21 s past a reload,
+  // and only a FRESH document recovers. So the ladder stays short (it wins the ordinary
+  // teardown race) and the UI performs one automatic recovery reload — see app.tsx.
   const DELAYS_MS = [0, 60, 120, 250, 500, 900, 1500, 2500, 2500];
   let lastError: unknown;
   for (const delay of DELAYS_MS) {
@@ -242,8 +249,6 @@ async function init(base: string): Promise<{ packVersion: string; media: MediaSt
     // depend on the network). With no installed pack there is nothing to open — rethrow.
     if (installed === null) throw e;
   }
-  lastManifest = manifest;
-
   // v0.9: a pack may require a newer app (manifest.minAppVersion, enforced at last).
   // With an install: keep serving it — the update banner explains. Without one there is
   // nothing usable to open; surface a recognisable error instead of broken screens.
@@ -254,6 +259,9 @@ async function init(base: string): Promise<{ packVersion: string; media: MediaSt
     console.warn(`[sqlite.worker] pack ${manifest.packVersion} needs app ${manifest.minAppVersion} — keeping installed pack`);
     manifest = null; // do not install; installed pack keeps serving
   }
+  // AFTER the gate, never before: lastManifest drives install-media, so retaining a gated
+  // manifest would let the user install media belonging to a core pack we just refused.
+  lastManifest = manifest;
 
   // Which version we actually end up serving — updated only when an install succeeds.
   let effective = installed;
@@ -317,9 +325,14 @@ async function checkUpdate(): Promise<UpdateCheck> {
     const res = await fetch(`${basePath}packs/manifest.json`, { cache: 'no-cache' });
     if (!res.ok) return none;
     const manifest = (await res.json()) as Manifest;
-    lastManifest = manifest; // newer media availability propagates to install-media
-    if (manifest.packVersion === effectiveVersion) return none;
+    if (manifest.packVersion === effectiveVersion) {
+      lastManifest = manifest; // same pack: refreshed media availability is safe to keep
+      return none;
+    }
+    // Gated manifests must NOT reach lastManifest — see init(). install-media would
+    // otherwise pair a too-new media pack with the core pack we are still serving.
     if (!minAppOk(manifest)) return { ...none, needsAppUpdate: true, packVersion: manifest.packVersion };
+    lastManifest = manifest;
     return {
       available: true,
       packVersion: manifest.packVersion,
@@ -333,10 +346,25 @@ async function checkUpdate(): Promise<UpdateCheck> {
 }
 
 /** Opt in: download + verify + install the media pack, then open it. */
+let mediaInstallInFlight: Promise<MediaState> | null = null;
+
 async function installMedia(): Promise<MediaState> {
+  // Two taps on the button must not run two downloads into the same pool file.
+  if (mediaInstallInFlight) return mediaInstallInFlight;
+  mediaInstallInFlight = doInstallMedia().finally(() => {
+    mediaInstallInFlight = null;
+  });
+  return mediaInstallInFlight;
+}
+
+async function doInstallMedia(): Promise<MediaState> {
   if (!poolUtil) throw new Error('not initialized');
   if (mediaDb) return mediaState(); // already installed
-  const media = lastManifest?.media;
+  const manifest = lastManifest;
+  // Defense in depth: the gate above already withholds a too-new manifest, so this can only
+  // fire if that ever regresses — better a clear error than a silently skewed media pack.
+  if (manifest && !minAppOk(manifest)) throw new Error('app-too-old: cannot install this media pack');
+  const media = manifest?.media;
   if (!media) throw new Error('no media pack in the current manifest');
   const bytes = await fetchVerifiedPack(media.file, { sha256: media.sha256, bytes: media.bytes }, (phase) =>
     post({ type: 'media-progress', phase }),
@@ -527,7 +555,16 @@ self.onmessage = async (ev: MessageEvent<InMsg>) => {
   try {
     if (msg.type === 'suspend') {
       suspend();
-      // Held until 'resume' arrives so in-flight queries queue instead of erroring.
+      if (msg.final) {
+        // A real unload/reload. The document may linger (a page that has played media lingers
+        // for ~20 s, measured), and while this worker lives it holds the pool's EXCLUSIVE OPFS
+        // handles, so the next document cannot open the database. Terminating now hands them
+        // over immediately — there is nothing left to serve: the page that owns us is gone.
+        post({ id: msg.id, ok: true, rows: [] });
+        self.close();
+        return;
+      }
+      // bfcache: stay alive, paused. Held until 'resume' so in-flight queries queue.
       let release = (): void => {};
       suspension = new Promise<void>((r) => { release = r; });
       releaseSuspension = release;

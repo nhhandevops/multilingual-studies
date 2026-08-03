@@ -19,12 +19,17 @@ Commands: `pnpm dev` (web), `pnpm ingest seed:all`, `pnpm pack:build`, `pnpm pac
 `pnpm ingest pack publish`, `pnpm -r typecheck`.
 Daily (v0.6, driven by the `/daily-pull` skill): `pnpm ingest daily:all`, `daily:candidates`,
 `daily:select --file f.json`, `tips:add --file t.json`.
-Acceptance: `cd tools/e2e && npm install`, then `node verify-v08.mjs` with `pnpm dev` running.
-`verify-upgrade-v02-to-v03.mjs` is the exception — it swaps the pack file, so it needs
-`static-server.mjs` and `MLS_BASE=http://localhost:5199`, never `pnpm dev`.
+Acceptance: `cd tools/e2e && npm install`, then `node verify-v09.mjs`. From v0.9 the acceptance
+scripts run against the STATIC SERVER, not `pnpm dev`: `pnpm --filter @mls/web build`, then
+`node static-server.mjs &`, then `MLS_BASE=http://localhost:5199 node verify-v09.mjs`. (Anything
+that swaps the pack file mid-run — `verify-v09`, `verify-upgrade-v02-to-v03` — must, because
+Vite's watcher dies with EBUSY on Windows when `content.pack` is overwritten.)
 
-Two operational traps worth knowing before they cost an hour: stop `pnpm dev` before
-`pnpm ingest pack publish` (Windows kills the watcher with `EBUSY`), and bump a seed's
-`PARSER_VERSION` when you fix its parser, or the corrected run is skipped as "unchanged".
+Operational traps worth knowing before they cost an hour: stop `pnpm dev` before
+`pnpm ingest pack publish` (Windows kills the watcher with `EBUSY`); bump a seed's
+`PARSER_VERSION` when you fix its parser, or the corrected run is skipped as "unchanged";
+and remember `vite build` WIPES `dist/`, so re-copy the packs into `apps/web/dist/packs/`
+(or re-run `pack publish`, since `public/packs/` is what `dist` is seeded from) before any
+acceptance run.
 A first `seed:all` takes ~2.5 h — `seed:fr-word-audio` alone is ~2 h of throttled Commons
 downloads, checkpointed and resumable.

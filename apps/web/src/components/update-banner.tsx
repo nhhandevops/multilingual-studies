@@ -26,8 +26,18 @@ export function UpdateBanner() {
       : t('update.pack', { version: update?.packVersion, mb: packMb });
 
   const apply = () => {
-    if (needRefresh) void pwa.applyUpdate(); // activates the waiting SW, then reloads
-    else window.location.reload(); //           boot path installs the new pack
+    if (needRefresh) {
+      void pwa.applyUpdate(); // activates the waiting SW, then reloads
+    } else if (update?.needsAppUpdate) {
+      // The pack needs a newer APP. Reloading would re-serve the old precached shell, so
+      // fetch the new service worker first; when it reaches waiting, this banner flips to
+      // the needRefresh branch, whose applyUpdate() genuinely swaps the shell.
+      void pwa.checkForUpdate().then(() => {
+        if (!pwa.getNeedRefresh()) window.location.reload();
+      });
+    } else {
+      window.location.reload(); // boot path installs the new pack
+    }
   };
 
   return (

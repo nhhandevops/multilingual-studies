@@ -188,6 +188,18 @@ export async function getWordAudio(db: Db, wordId: string): Promise<WordAudioRow
   return row;
 }
 
+/**
+ * Does the PACK claim a recording for this word, regardless of whether its bytes are
+ * installed? True + getWordAudio()===null is exactly the "install the media pack to hear
+ * this" case — the only place the media nudge is honest.
+ */
+export async function wordAudioInPack(db: Db, wordId: string): Promise<boolean> {
+  const rows = await tolerant<{ n: number }>(() =>
+    db.query<{ n: number }>(`SELECT COUNT(*) AS n FROM word_audio WHERE word_id = ?`, [wordId]),
+  );
+  return (rows[0]?.n ?? 0) > 0;
+}
+
 export async function listSenses(db: Db, wordId: string): Promise<SenseRow[]> {
   return db.query<SenseRow>(
     `SELECT ord, pos, gloss_en, gloss_vi, examples FROM senses WHERE word_id = ? ORDER BY ord`,

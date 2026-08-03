@@ -1,6 +1,9 @@
 /** React context over the SQLite worker: init lifecycle + promise-based query RPC. */
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { MediaState, UpdateCheck } from './sqlite.worker';
+import { ensurePersisted } from '../storage/persist';
+import { releaseAudio } from '../audio/player';
+import { stopSpeech } from '../audio/tts';
 
 export type DbStatus =
   | { state: 'loading'; phase: string; mb?: number }
@@ -99,18 +102,30 @@ export function DbProvider({ children }: { children: ReactNode }) {
     });
     worker.postMessage({ id, type: 'init', base: import.meta.env.BASE_URL });
 
-    // Back/forward cache: a frozen page keeps this worker alive, and opfs-sahpool handles are
-    // exclusive per origin — so a second document could never open the DB, and pressing Back
-    // would restore a page whose worker had lost the race. Hand the handles back while frozen.
-    const send = (type: 'suspend' | 'resume') => {
+    // opfs-sahpool handles are EXCLUSIVE per origin, so every page transition is a handover.
+    //
+    // Two cases, one action. Back/forward cache: a frozen page keeps this worker alive, so it
+    // must hand the handles back or the next document can never open the DB. Real unload: the
+    // worker does die with us — but not synchronously, and the next document's worker starts
+    // immediately. Measured: with a service worker serving the shell from cache the new page
+    // boots fast enough to lose that race routinely, landing on the storage-locked screen.
+    // So we release on EVERY pagehide; only a bfcache restore needs the matching resume.
+    const send = (type: 'suspend' | 'resume', final = false) => {
       const w = workerRef.current;
       if (!w) return;
       const rpcId = nextId.current++;
       pending.current.set(rpcId, { resolve: () => {}, reject: () => {} });
-      w.postMessage({ id: rpcId, type });
+      w.postMessage({ id: rpcId, type, final });
     };
     const onPageHide = (e: PageTransitionEvent) => {
-      if (e.persisted) send('suspend'); //  a real unload needs nothing: the worker dies with us
+      // Release playback FIRST. A page that has been playing media is not discarded promptly,
+      // so its worker keeps the exclusive OPFS handles and the next document lands on the
+      // storage-locked screen — measured: play a word, reload, and the app refuses to open.
+      releaseAudio();
+      stopSpeech();
+      // persisted → bfcache: pause and keep the worker for the Back button.
+      // otherwise → a real unload: the worker releases the handles AND terminates itself.
+      send('suspend', !e.persisted);
     };
     const onPageShow = (e: PageTransitionEvent) => {
       if (e.persisted) send('resume');
@@ -125,7 +140,15 @@ export function DbProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const db = useMemo<Db>(() => {
+  /**
+   * The RPC methods are built ONCE and never re-created.
+   *
+   * They close over refs and setState only, so there is nothing to refresh — and a churning
+   * identity is actively harmful: consumers key effects on `db`, so re-creating these on every
+   * media-progress tick re-ran storage.persist() (a real permission prompt in Firefox) and
+   * re-fired every data-loading effect in the app. Data lives in the context value below.
+   */
+  const methods = useMemo(() => {
     const request = <T,>(msg: Record<string, unknown>, transfer?: Transferable[]) =>
       new Promise<T>((resolve, reject) => {
         const worker = workerRef.current;
@@ -136,31 +159,48 @@ export function DbProvider({ children }: { children: ReactNode }) {
       });
     type Reply = { rows?: unknown; bytes?: ArrayBuffer | null; has?: boolean; media?: MediaState; update?: UpdateCheck };
 
-    const doCheckUpdate = async () => {
-      lastCheck.current = Date.now();
-      const r = await request<Reply>({ type: 'check-update' });
-      if (r.update && (r.update.available || r.update.needsAppUpdate)) setUpdate(r.update);
+    // Durability is requested on the FIRST WRITE, not at boot: at boot a new learner has
+    // nothing to lose and the prompt is noise. Once per session; ensurePersisted is idempotent.
+    let persistAsked = false;
+    const askPersistOnce = () => {
+      if (persistAsked) return;
+      persistAsked = true;
+      void ensurePersisted();
     };
 
     return {
-      status,
-      media,
-      update,
-      checkUpdate: doCheckUpdate,
+      checkUpdate: async () => {
+        lastCheck.current = Date.now();
+        const r = await request<Reply>({ type: 'check-update' });
+        const u = r.update;
+        if (!u || (!u.available && !u.needsAppUpdate)) return;
+        // Only re-render when something actually changed — an unapplied update must not
+        // churn every context consumer once an hour.
+        setUpdate((prev) =>
+          prev &&
+          prev.available === u.available &&
+          prev.needsAppUpdate === u.needsAppUpdate &&
+          prev.packVersion === u.packVersion
+            ? prev
+            : u,
+        );
+      },
       query: <T,>(sql: string, params: unknown[] = []) =>
         request<Reply>({ type: 'query', sql, params }).then((r) => r.rows as T[]),
       userQuery: <T,>(sql: string, params: unknown[] = []) =>
         request<Reply>({ type: 'user-query', sql, params }).then((r) => r.rows as T[]),
-      userExec: async (statements) => {
+      userExec: async (statements: { sql: string; params?: unknown[] }[]) => {
         await request<Reply>({ type: 'user-exec', statements });
+        askPersistOnce(); // the learner now has data worth keeping
       },
       userExport: () => request<Reply>({ type: 'user-export' }).then((r) => r.bytes as ArrayBuffer),
-      userImport: async (bytes) => {
+      userImport: async (bytes: ArrayBuffer) => {
         await request<Reply>({ type: 'user-import', bytes }, [bytes]);
+        askPersistOnce();
       },
-      audioBytes: (audioId) =>
+      audioBytes: (audioId: string) =>
         request<Reply>({ type: 'audio-bytes', audioId }).then((r) => (r.bytes ? new Uint8Array(r.bytes) : null)),
-      audioHas: (audioId) => request<Reply>({ type: 'audio-has', audioId }).then((r) => r.has === true),
+      audioHas: (audioId: string) => request<Reply>({ type: 'audio-has', audioId }).then((r) => r.has === true),
       installMedia: async () => {
         setMedia((m) => ({ ...m, busy: 'download' }));
         try {
@@ -176,23 +216,29 @@ export function DbProvider({ children }: { children: ReactNode }) {
         if (r.media) setMedia({ ...r.media, busy: null });
       },
     };
-  }, [status, media, update]);
+  }, []);
 
-  // Long-lived PWA sessions: look for a newer pack when the tab becomes visible, at most hourly.
-  // The boot path already self-updates, so this only matters for sessions that never reload.
+  const db = useMemo<Db>(() => ({ ...methods, status, media, update }), [methods, status, media, update]);
+
+  // Long-lived PWA sessions: re-check for a newer pack on visibility and on a slow tick,
+  // throttled to once an hour. The boot path self-updates, so this only matters for
+  // sessions that never reload — which is exactly what an installed PWA is.
   useEffect(() => {
     if (status.state !== 'ready') return;
     const check = () => {
-      if (Date.now() - lastCheck.current > 60 * 60 * 1000) void db.checkUpdate().catch(() => {});
+      if (Date.now() - lastCheck.current > 60 * 60 * 1000) void methods.checkUpdate().catch(() => {});
     };
     check();
     const onVisible = () => {
       if (document.visibilityState === 'visible') check();
     };
     document.addEventListener('visibilitychange', onVisible);
-    return () => document.removeEventListener('visibilitychange', onVisible);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- db identity churns with status; keyed on readiness
-  }, [status.state]);
+    const timer = setInterval(check, 15 * 60 * 1000); // ticks are cheap; the throttle decides
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      clearInterval(timer);
+    };
+  }, [status.state, methods]);
 
   return <DbContext.Provider value={db}>{children}</DbContext.Provider>;
 }

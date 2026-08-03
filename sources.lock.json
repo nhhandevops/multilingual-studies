@@ -99,11 +99,11 @@
     },
     "lingualibre:fra/A1+A2+B1": {
       "url": "https://commons.wikimedia.org/wiki/Category:Lingua_Libre_pronunciation-fra",
-      "sha256": "abaab6b7c58c5de15b6cca5aad27198bd9fcd6f8ea84e2111902e042555efdcd",
-      "bytes": 50488596,
-      "retrievedAt": "2026-07-31T08:43:37.896Z",
+      "sha256": "6ba703961ba749b8f348c0178fccecde66a2a0910683d09a173ab8796bf4d976",
+      "bytes": 50454877,
+      "retrievedAt": "2026-08-02T16:24:57.842Z",
       "license": "CC0 / CC BY / CC BY-SA, per clip (Lingua Libre speakers, via Wikimedia Commons)",
-      "notes": "2782 French word mp3 transcodes for levels A1/A2/B1; license verified per file via the Commons API, never inferred from the filename"
+      "notes": "2780 French word mp3 transcodes for levels A1/A2/B1; license verified per file via the Commons API, never inferred from the filename"
     },
     "mmah:ARPHICPL.TXT": {
       "url": "https://raw.githubusercontent.com/chanind/hanzi-writer-data/master/ARPHICPL.TXT",

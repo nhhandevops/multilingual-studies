@@ -133,7 +133,8 @@
     "packVersion": "Gói dữ liệu {{version}}",
     "locked": "Dữ liệu đang được một tab hoặc trang khác của ứng dụng sử dụng. Hãy tải lại trang này để tiếp tục.",
     "reload": "Tải lại trang",
-    "packTooOld": "Gói dữ liệu đang cài đặt cũ hơn phiên bản ứng dụng nên chưa có phần này. Hãy kết nối mạng và tải lại trang để cập nhật gói dữ liệu."
+    "packTooOld": "Gói dữ liệu đang cài đặt cũ hơn phiên bản ứng dụng nên chưa có phần này. Hãy kết nối mạng và tải lại trang để cập nhật gói dữ liệu.",
+    "appTooOld": "Gói dữ liệu trên máy chủ cần phiên bản ứng dụng mới hơn. Hãy tải lại để cập nhật ứng dụng."
   },
   "ios": {
     "hint": "Cài ứng dụng vào màn hình chính để học offline và dữ liệu không bị trình duyệt tự xoá.",
@@ -142,7 +143,7 @@
   "update": {
     "app": "Ứng dụng có bản mới.",
     "pack": "Gói dữ liệu {{version}} đã sẵn sàng ({{mb}} MB).",
-    "needsApp": "Gói dữ liệu mới cần phiên bản ứng dụng mới hơn — hãy tải lại trang.",
+    "needsApp": "Gói dữ liệu mới cần phiên bản ứng dụng mới hơn.",
     "apply": "Cập nhật"
   },
   "storage": {

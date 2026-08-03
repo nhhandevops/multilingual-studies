@@ -5,7 +5,7 @@
  *  - `pack …`  build / verify / publish the content pack
  */
 import { Command } from 'commander';
-import { cpSync, mkdirSync, readdirSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { buildPack, nextPackVersion, verifyPack } from '@mls/content-pack';
 import { openStaging } from './lib/staging';
@@ -116,7 +116,10 @@ pack
     // Neutral extension on purpose: servers special-case *.gz (Content-Encoding) and corrupt
     // the byte stream; .pack is served as opaque bytes everywhere. Still gzip inside.
     cpSync(join(PACKS_DIR, version, 'content.db.gz'), join(WEB_PACKS_DIR, 'content.pack'));
-    console.log(`✓ published pack ${version} → apps/web/public/packs/`);
+    // v0.9: the optional media pack ships beside it, same naming rule.
+    const mediaGz = join(PACKS_DIR, version, 'media.db.gz');
+    if (existsSync(mediaGz)) cpSync(mediaGz, join(WEB_PACKS_DIR, 'media.pack'));
+    console.log(`✓ published pack ${version} → apps/web/public/packs/${existsSync(mediaGz) ? ' (+ media.pack)' : ''}`);
   });
 
 function newestPack(): string {

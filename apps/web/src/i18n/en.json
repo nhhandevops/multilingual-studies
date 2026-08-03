@@ -133,7 +133,8 @@
     "packVersion": "Content pack {{version}}",
     "locked": "The database is held by another tab or page of this app. Reload this page to continue.",
     "reload": "Reload page",
-    "packTooOld": "The installed data pack predates this feature. Reconnect and reload to update the pack."
+    "packTooOld": "The installed data pack predates this feature. Reconnect and reload to update the pack.",
+    "appTooOld": "The content pack on the server needs a newer version of the app. Reload to update the app."
   },
   "ios": {
     "hint": "Install to your Home Screen to study offline and keep data safe from browser eviction.",
@@ -142,7 +143,7 @@
   "update": {
     "app": "A new version of the app is ready.",
     "pack": "Content pack {{version}} is available ({{mb}} MB).",
-    "needsApp": "The new content pack needs a newer app — reload the page.",
+    "needsApp": "The new content pack needs a newer version of the app.",
     "apply": "Update"
   },
   "storage": {

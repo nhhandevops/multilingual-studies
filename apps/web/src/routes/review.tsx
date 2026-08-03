@@ -20,6 +20,7 @@ import {
   type TodayStats,
 } from '../db/user-queries';
 import { StorageStateLine } from '../components/storage-state';
+import { BACKUP_DONE_EVENT } from '../components/backup-nag';
 import { clockOffsetMs, localDateStr, srsNow } from '../srs/clock';
 
 // 'all' is a real deck, not a placeholder: script graphemes that belong to no single language
@@ -114,6 +115,7 @@ export function Review() {
     URL.revokeObjectURL(url);
     // Feeds the weekly backup nag. Written AFTER the download was offered, never before.
     await setSetting(db, 'last_backup_at', new Date(srsNow()).toISOString());
+    window.dispatchEvent(new Event(BACKUP_DONE_EVENT)); // the nag re-reads and clears itself
   };
 
   const onImportFile = async (file: File) => {

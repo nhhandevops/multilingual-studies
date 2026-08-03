@@ -35,7 +35,7 @@ pnpm --filter @mls/web build && node static-server.mjs &
 MLS_BASE=http://localhost:5199 node ./verify-upgrade-v02-to-v03.mjs
 ```
 
-All 16 pass on v0.8.
+All 17 pass on v0.9.
 
 ## What each one proves
 
@@ -56,6 +56,7 @@ All 16 pass on v0.8.
 | `verify-v06.mjs` | 0.6 | the daily pull: pulling twice does not duplicate, a dying source degrades to a partial report, and the word of the day reaches the SRS deck |
 | `verify-v07.mjs` | 0.7 | the tech module: zh labels all simplified, no English-as-Vietnamese, no disambiguation QIDs (live-sampled), 固件 finds Firmware, and the tech card reviews with its labels |
 | `verify-v08.mjs` | 0.8 | stats+forecast: attested cognates (大学=đại học, 手机 has NONE), dashboard denominators equal the pack, the FSRS simulator is deterministic and lands in the 8-12× band, and the reach date matches the arithmetic |
+| `verify-v09.mjs` | 0.9 | the media split (core holds no word blobs, media holds exactly them, no reference dangles across the pair, sampled blobs are real mp3), an in-place upgrade from a v0.8-format pack, media-absent → labelled TTS + nudge, media-installed → the recording plays, webmanifest + service-worker control, and a full offline session (needs `static-server.mjs`) |
 | `verify-upgrade-v02-to-v03.mjs` | 0.3 | an in-place pack upgrade preserves all SRS state (needs `static-server.mjs`, not `pnpm dev`) |
 | `audit-v04-fixes.cjs` | 0.4 | data-level audit of the sentence corpus (no browser; reads `build/staging.db`) |
 
@@ -79,3 +80,11 @@ Every one of these cost real debugging time; HANDOFF's "Testing recipe" section 
 - **A stub kinder than the real API is a test that passes for the wrong reason** — the
   `speechSynthesis` stub in `verify-v04-p3-p4.mjs` must start with an empty voice list and deliver
   voices via `voiceschanged`, the way Chrome actually does.
+- **Audio playback delays document teardown.** A page that has played a clip keeps the SQLite
+  pool's exclusive OPFS handles for ~20 s past a reload, so anything that plays then reloads is
+  really testing the storage-lock recovery path. `verify-v09.mjs` does this deliberately.
+- **`vite build` empties `dist/`**, packs included. Re-publish (or re-copy) `manifest.json`,
+  `content.pack` and `media.pack` into `apps/web/dist/packs/` after every build, or the static
+  server serves whatever stale pack `public/packs/` happened to hold.
+- Derive the off-origin allow-pattern from `BASE`, never a hardcoded port — these scripts run on
+  5173 (dev) and 5199 (static server).

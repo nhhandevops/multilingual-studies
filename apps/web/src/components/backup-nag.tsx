@@ -13,6 +13,9 @@ import { srsNow } from '../srs/clock';
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 const SNOOZE_MS = 24 * 60 * 60 * 1000;
 
+/** Dispatched by the export flow so the nag re-evaluates instead of lingering. */
+export const BACKUP_DONE_EVENT = 'mls:backup-done';
+
 export function BackupNag() {
   const { t } = useTranslation();
   const db = useDb();
@@ -21,16 +24,22 @@ export function BackupNag() {
 
   useEffect(() => {
     let cancelled = false;
-    void (async () => {
+    const evaluate = async () => {
       const cards = await countCards(db);
-      if (cards === 0) return;
+      if (cards === 0) return setDue(false);
       const now = srsNow().getTime();
       const last = Date.parse((await getSetting(db, 'last_backup_at')) ?? '') || 0;
       const snoozed = Date.parse((await getSetting(db, 'backup_nag_snoozed_at')) ?? '') || 0;
       if (!cancelled) setDue(now - last > WEEK_MS && now - snoozed > SNOOZE_MS);
-    })();
+    };
+    void evaluate();
+    // Re-read from user.db rather than blindly hiding: a failed settings write must not
+    // silence the reminder, and this is the only signal the export path can send.
+    const onDone = () => void evaluate();
+    window.addEventListener(BACKUP_DONE_EVENT, onDone);
     return () => {
       cancelled = true;
+      window.removeEventListener(BACKUP_DONE_EVENT, onDone);
     };
   }, [db]);
 

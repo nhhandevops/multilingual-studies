@@ -30,6 +30,25 @@ export function stopAudio(): void {
 }
 
 /**
+ * Fully release playback resources — called when the page is going away.
+ *
+ * Pausing is not enough: a document that has been playing media is kept alive noticeably
+ * longer (measured ~21 s), and while it lives its worker keeps the exclusive OPFS handles,
+ * so the next document lands on the storage-locked screen. Detaching the source and
+ * revoking the object URLs lets the document go.
+ */
+export function releaseAudio(): void {
+  if (current) {
+    current.pause();
+    current.src = '';
+    current.load();
+    current = null;
+  }
+  for (const url of urls.values()) URL.revokeObjectURL(url);
+  urls.clear();
+}
+
+/**
  * Play a clip, stopping whatever was playing. Resolves once playback has started.
  * Returns false when the clip's bytes are unreachable (e.g. media pack removed after this
  * page looked the metadata up) so the caller can fall back to the labelled TTS voice.

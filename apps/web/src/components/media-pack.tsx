@@ -60,6 +60,7 @@ export function MediaHint() {
   const { t } = useTranslation();
   const db = useDb();
   const [dismissed, setDismissed] = useState(dismissedThisSession);
+  const [error, setError] = useState<string | null>(null);
   const { installed, availableBytes, busy } = db.media;
 
   if (installed || availableBytes === null || dismissed) return null;
@@ -72,7 +73,13 @@ export function MediaHint() {
         t(`media.busy.${busy}`, t('media.busy.download'))
       ) : (
         <>
-          <button className="linklike" onClick={() => void db.installMedia().catch(() => {})}>
+          <button
+            className="linklike"
+            onClick={() => {
+              setError(null);
+              void db.installMedia().catch((e: Error) => setError(e.message));
+            }}
+          >
             {t('media.installShort')}
           </button>{' '}
           <button
@@ -86,6 +93,7 @@ export function MediaHint() {
           </button>
         </>
       )}
+      {error && <span className="error"> {t('media.error')}</span>}
     </p>
   );
 }

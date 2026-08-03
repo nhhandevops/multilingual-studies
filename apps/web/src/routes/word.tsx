@@ -2,7 +2,15 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useDb } from '../db/provider';
-import { getWord, getWordAudio, haveStrokeData, listExamples, type ExampleRow, type WordAudioRow } from '../db/queries';
+import {
+  getWord,
+  getWordAudio,
+  haveStrokeData,
+  listExamples,
+  wordAudioInPack,
+  type ExampleRow,
+  type WordAudioRow,
+} from '../db/queries';
 import { SpeakButton } from '../components/speak-button';
 import { MediaHint } from '../components/media-pack';
 import { getCard } from '../db/user-queries';
@@ -23,6 +31,8 @@ export function WordPage() {
   const [examples, setExamples] = useState<ExampleRow[]>([]);
   // undefined = lookup in flight, null = no recording exists. See SpeakButton.
   const [audio, setAudio] = useState<WordAudioRow | null | undefined>(undefined);
+  // The pack lists a recording for this word — but its bytes are in the optional media pack.
+  const [audioInPack, setAudioInPack] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -30,6 +40,7 @@ export function WordPage() {
     setDrawable(new Set());
     setExamples([]);
     setAudio(undefined);
+    setAudioInPack(false);
     if (id) {
       const rawId = id; // React Router v7 already percent-decodes params — never decode twice
       void getWord(db, rawId).then(async (d) => {
@@ -48,6 +59,9 @@ export function WordPage() {
       });
       void getWordAudio(db, rawId).then((a) => {
         if (!cancelled) setAudio(a);
+      });
+      void wordAudioInPack(db, rawId).then((v) => {
+        if (!cancelled) setAudioInPack(v);
       });
     }
     return () => {
@@ -92,8 +106,9 @@ export function WordPage() {
         {word.level && <span className="badge">{word.level}</span>}
         <AddToDeck word={word} senses={senses} inDeck={inDeck} onChange={setInDeck} />
       </div>
-      {/* zh/fr word audio lives in the opt-in media pack (v0.9) — nudge where the value shows */}
-      {(word.lang === 'zh' || word.lang === 'fr') && <MediaHint />}
+      {/* Nudge ONLY when this word really has a recording we cannot currently play —
+          otherwise the hint promises a voice the media pack does not contain either. */}
+      {audioInPack && audio === null && <MediaHint />}
       <dl>
         {word.alt_form && word.alt_form !== word.headword && (
           <>

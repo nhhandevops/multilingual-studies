@@ -29,4 +29,17 @@ export const pwa = {
   getNeedRefresh: (): boolean => needRefresh,
   /** Activate the waiting SW and reload with the new shell. */
   applyUpdate: (): Promise<void> => update(true),
+  /**
+   * Ask the browser to look for a new service worker NOW. Needed when the app itself is
+   * too old for the server's pack: in prompt mode a plain reload keeps serving the old
+   * precached shell, so something has to go fetch the new one first.
+   */
+  async checkForUpdate(): Promise<void> {
+    try {
+      const reg = await navigator.serviceWorker?.getRegistration();
+      await reg?.update();
+    } catch {
+      // no SW (dev, or unsupported) — the caller's reload is then the whole story
+    }
+  },
 };

@@ -59,7 +59,9 @@ const page = await ctx.newPage();
 const errors = [], off = [];
 page.on('pageerror', e => errors.push(String(e).slice(0, 140)));
 page.on('console', m => { if (m.type() === 'error') errors.push(m.text().slice(0, 140)); });
-page.on('request', r => { if (!/^(http:\/\/localhost:5173|data:|blob:)/.test(r.url())) off.push(r.url()); });
+// derived from BASE, not hardcoded: this script also runs against static-server on :5199
+const originOk = new RegExp(`^(${BASE.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}|data:|blob:)`);
+page.on('request', r => { if (!originOk.test(r.url())) off.push(r.url()); });
 
 await page.goto(BASE, { waitUntil: 'domcontentloaded' });
 await page.waitForSelector('input.searchbox', { timeout: 300000 });

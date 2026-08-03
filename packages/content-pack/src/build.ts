@@ -1,6 +1,19 @@
 /**
- * Pack builder: build/staging.db → packs/<version>/{content.db.gz, manifest.json}
- * Steps: copy → strip ingest-only tables → rebuild FTS → optimize → VACUUM → gzip → manifest.
+ * Pack builder: build/staging.db → packs/<version>/{content.db.gz, media.db.gz, manifest.json}
+ * Steps: copy → strip ingest-only tables → SPLIT MEDIA → rebuild FTS → VACUUM → gzip → manifest.
+ *
+ * The split (v0.9): word-pronunciation blobs — ~78 MB of the 130 MB pack — move into an
+ * optional second file so a phone install is ~52 MB instead of 130. It is a PACKAGING
+ * decision made here, at build time: staging keeps every blob, no seed re-runs, no schema
+ * change, and the audio IDs are untouched (invariant 1), so the two files stay joinable.
+ *
+ * What stays in core, deliberately:
+ *  - syllable blobs (7.5 MB): the pinyin chart is a core learning surface and v0.3's
+ *    acceptance asserts all 1,707 syllables play. A silent chart would be a regression.
+ *  - sentence blobs (1 MB): Tex's French Grammar clips, tied to grammar pages.
+ *  - asset_blobs (sagittal SVGs): tiny, and the IPA chart is core.
+ *  - the whole `audio` METADATA table: the app must know a recording exists (to offer the
+ *    media pack) and its credit must ship wherever it is referenced — a licence obligation.
  */
 import Database from 'better-sqlite3';
 import { createHash } from 'node:crypto';
@@ -10,7 +23,11 @@ import { gzipSync } from 'node:zlib';
 import type { PackManifest } from '@mls/shared';
 
 export const SCHEMA_VERSION = 1;
-export const MIN_APP_VERSION = '0.1.0';
+/** v0.9 splits the media pack; older apps would show silent buttons for word audio. */
+export const MIN_APP_VERSION = '0.9.0';
+/** Audio kinds whose blobs move to the optional media pack. */
+const MEDIA_KINDS = ['word'] as const;
+export const MEDIA_FILE = 'media.pack';
 
 const COUNTED_TABLES = [
   'words', 'senses', 'sentences', 'word_sentences', 'graphemes', 'hanzi_info',
@@ -84,9 +101,13 @@ export function buildPack(opts: {
     db.close();
   }
 
+  const mediaDbPath = join(outDir, 'media.db');
+  const mediaBlobCount = splitMedia(contentDbPath, mediaDbPath, packVersion);
+
   const dbBytes = readFileSync(contentDbPath);
-  const gz = gzipSync(dbBytes, { level: 9 });
-  writeFileSync(join(outDir, 'content.db.gz'), gz);
+  writeFileSync(join(outDir, 'content.db.gz'), gzipSync(dbBytes, { level: 9 }));
+  const mediaBytes = readFileSync(mediaDbPath);
+  writeFileSync(join(outDir, 'media.db.gz'), gzipSync(mediaBytes, { level: 9 }));
 
   const countsDb = new Database(contentDbPath, { readonly: true });
   const counts: Record<string, number> = {};
@@ -97,6 +118,7 @@ export function buildPack(opts: {
   } finally {
     countsDb.close();
   }
+  counts['media_blobs'] = mediaBlobCount;
 
   const manifest: PackManifest = {
     packVersion,
@@ -105,8 +127,72 @@ export function buildPack(opts: {
     dbSha256: createHash('sha256').update(dbBytes).digest('hex'),
     dbBytes: dbBytes.length,
     counts,
+    media: {
+      file: MEDIA_FILE,
+      sha256: createHash('sha256').update(mediaBytes).digest('hex'),
+      bytes: mediaBytes.length,
+      blobCount: mediaBlobCount,
+    },
   };
   writeFileSync(join(outDir, 'manifest.json'), JSON.stringify(manifest, null, 2));
-  // content.db (uncompressed) is kept beside the gz for local inspection/verify.
+  // content.db / media.db (uncompressed) are kept beside the gz files for verify + inspection.
   return { manifest, outDir };
+}
+
+/**
+ * Move word-audio blobs out of `content.db` into a fresh `media.db`, and VACUUM the hole shut.
+ * Returns the number of blobs moved. The media file carries only what it needs to be
+ * self-identifying (meta.pack_version, so a skewed pair is detectable) plus the blobs.
+ */
+function splitMedia(contentDbPath: string, mediaDbPath: string, packVersion: string): number {
+  rmSync(mediaDbPath, { force: true });
+  const media = new Database(mediaDbPath);
+  let moved = 0;
+  try {
+    media.pragma('journal_mode = DELETE');
+    media.exec(`
+      CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+      CREATE TABLE audio_blobs (
+        audio_id TEXT PRIMARY KEY,
+        bytes    BLOB NOT NULL
+      ) WITHOUT ROWID;`);
+    const setMeta = media.prepare(`INSERT INTO meta (key, value) VALUES (?, ?)`);
+    setMeta.run('pack_version', packVersion); // must equal core's — verify checks the pair
+    setMeta.run('media_schema_version', '1');
+    setMeta.run('built_at', new Date().toISOString());
+
+    const kinds = MEDIA_KINDS.map(() => '?').join(',');
+    media.exec(`ATTACH DATABASE '${contentDbPath.replaceAll("'", "''")}' AS core`);
+    try {
+      const info = media
+        .prepare(
+          `INSERT INTO audio_blobs (audio_id, bytes)
+           SELECT b.audio_id, b.bytes FROM core.audio_blobs b
+             JOIN core.audio a ON a.id = b.audio_id
+            WHERE a.kind IN (${kinds})`,
+        )
+        .run(...MEDIA_KINDS);
+      moved = info.changes;
+      media
+        .prepare(
+          `DELETE FROM core.audio_blobs
+            WHERE audio_id IN (SELECT id FROM core.audio WHERE kind IN (${kinds}))`,
+        )
+        .run(...MEDIA_KINDS);
+    } finally {
+      media.exec('DETACH DATABASE core');
+    }
+    media.exec('VACUUM;');
+  } finally {
+    media.close();
+  }
+
+  // Reclaim the pages the moved blobs occupied — without this the core file keeps its size.
+  const core = new Database(contentDbPath);
+  try {
+    core.exec('VACUUM;');
+  } finally {
+    core.close();
+  }
+  return moved;
 }

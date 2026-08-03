@@ -9,7 +9,11 @@ import { useTranslation } from 'react-i18next';
 
 const KEY = 'mls_ios_a2hs_dismissed';
 
-const isIos = (): boolean => /iPad|iPhone|iPod/.test(navigator.userAgent);
+// iPadOS 13+ Safari reports a desktop 'Macintosh' UA; maxTouchPoints separates it from a
+// real Mac (which reports 0). Without the second clause, iPads never see this hint.
+const isIos = (): boolean =>
+  /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+  (navigator.userAgent.includes('Macintosh') && navigator.maxTouchPoints > 1);
 const isStandalone = (): boolean =>
   (navigator as unknown as { standalone?: boolean }).standalone === true ||
   window.matchMedia('(display-mode: standalone)').matches;
