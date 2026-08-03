@@ -117,6 +117,15 @@
       "vowel": "Nguyên âm",
       "glottis": "Thanh môn",
       "airstream": "Luồng hơi"
+    },
+    "phone": {
+      "glottis_modal": "giọng thường",
+      "glottis_creaky": "giọng kẹt",
+      "glottis_murmur": "giọng thở",
+      "glottis_voiceless_narrow": "vô thanh (hẹp)",
+      "glottis_voiceless_wide": "vô thanh (rộng)",
+      "pulmonic_1": "hơi phổi 1",
+      "pulmonic_2": "hơi phổi 2"
     }
   },
   "db": {

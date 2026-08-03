@@ -213,12 +213,32 @@ button.tone-btn:disabled { opacity: 1; } /* answered buttons must stay readable,
 
 /* --- IPA chart (v0.3 P4c) -------------------------------------------------- */
 ul.phone-grid { grid-template-columns: repeat(auto-fill, minmax(58px, 1fr)); }
-button.phone-btn { width: 100%; display: flex; justify-content: center; padding: 0.45rem 0.2rem;
+/* Wider track for groups whose chips carry a word label or a disambiguating caption. Sized on
+   the caption too, not just the word: a 58px track turns "rarefaction" into "rarefac / tion",
+   which is the same overflow bug in smaller type on the very chips the caption exists to tell
+   apart. */
+ul.phone-grid.wide { grid-template-columns: repeat(auto-fill, minmax(116px, 1fr)); }
+button.phone-btn { width: 100%; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 0.1rem; min-width: 0; padding: 0.45rem 0.2rem;
   border: 1px solid var(--border); border-radius: 8px; background: var(--bg-soft); color: var(--fg);
   cursor: pointer; }
 button.phone-btn:hover { border-color: var(--accent); }
 button.phone-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
-button.phone-btn .glyph { font-size: 1.35rem; line-height: 1.2; }
+button.phone-btn .glyph { font-size: 1.35rem; line-height: 1.2; max-width: 100%; }
+/* Seven of the 51 "glyphs" are whole words (glottal states, airstream mechanisms — they have no
+   IPA symbol). At 1.35rem a word has no break opportunity, so its ~100px min-content ran straight
+   out of a 58px chip and over its neighbour. Specificity must beat `button.phone-btn .glyph`
+   (0,2,1), so this selector keeps the element qualifier. */
+button.phone-btn .glyph.word { font-size: 0.82rem; line-height: 1.25; white-space: normal;
+  word-break: break-word; overflow-wrap: anywhere; }
+.phone-tag { font-size: 0.62rem; line-height: 1.15; opacity: 0.85; max-width: 100%;
+  overflow-wrap: anywhere; }
+@media (prefers-color-scheme: dark) {
+  /* The dark accent is a LIGHT green (#4cc38a): white on it is 2.2:1, dark ink 7.4:1. Must come
+     AFTER the .active rules above — a media query adds no specificity, so an equal-specificity
+     override placed earlier would silently lose. */
+  button.phone-btn.active, .chips button.active { color: #10231b; }
+}
 .ipa-chart section { margin-bottom: 1.2rem; }
 .ipa-chart .diagram-pane h3 .hint { font-weight: 400; font-size: 0.85rem; }
 /* Line art on transparency: it needs a light surface in BOTH themes — inverting it in dark

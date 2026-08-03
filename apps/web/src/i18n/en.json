@@ -117,6 +117,15 @@
       "vowel": "Vowels",
       "glottis": "Glottis states",
       "airstream": "Airstream"
+    },
+    "phone": {
+      "glottis_modal": "modal",
+      "glottis_creaky": "creaky",
+      "glottis_murmur": "breathy",
+      "glottis_voiceless_narrow": "voiceless (narrow)",
+      "glottis_voiceless_wide": "voiceless (wide)",
+      "pulmonic_1": "pulmonic 1",
+      "pulmonic_2": "pulmonic 2"
     }
   },
   "db": {

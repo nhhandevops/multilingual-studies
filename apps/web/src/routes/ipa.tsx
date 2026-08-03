@@ -15,6 +15,36 @@ function describe(row: PhoneRow): { name: string; category: string } {
   return { name, category };
 }
 
+/**
+ * Seven of the 51 rows have a WORD where the others have an IPA symbol — glottal states and
+ * airstream mechanisms simply have no single character. Their pack value is English, so the chip
+ * asks i18next for a Vietnamese name and falls back to the pack's own text, the same
+ * `t(key, packFallback)` shape this file already uses for category headings.
+ *
+ * Keyed on the id's last segment, which is the sagittal filename stem and is stable by
+ * construction (ids.ts forbids ':' inside the key), never on the glyph — two rows share the
+ * glyph "voiceless" and two share "pulmonic".
+ */
+const isWord = (row: PhoneRow): boolean => [...row.glyph].length > 1;
+const stemOf = (row: PhoneRow): string => row.id.split(':').pop() ?? row.id;
+
+/**
+ * A short caption that tells two chips with the SAME glyph apart. Six glyphs are duplicated
+ * across 13 buttons: ǃ×3 (the three phases of a click) and s/ʃ/z ×2 (apical vs laminal) are
+ * correct IPA that no data fix could ever separate, so the view has to carry the distinction.
+ *
+ * Deliberately short. "2. rarefaction" does not fit a chip, and a caption that wraps mid-word
+ * re-creates the overflow it exists to cure — the full phrase stays in the tooltip.
+ */
+function tagOf(row: PhoneRow): string | null {
+  const { name } = describe(row);
+  const phase = /—\s*(\d+)/.exec(name); //  "alveolar click — 2. rarefaction" → "2"
+  if (phase) return phase[1]!;
+  const paren = /\(([^)]+)\)\s*$/.exec(name); //  "… fricative (apical)" → "apical"
+  if (paren) return paren[1]!;
+  return null;
+}
+
 export function IpaChart() {
   const { t } = useTranslation();
   const db = useDb();
@@ -63,6 +93,13 @@ export function IpaChart() {
     return CATEGORIES.map((c) => ({ category: c, rows: byCategory.get(c) ?? [] })).filter((g) => g.rows.length > 0);
   }, [phones]);
 
+  /** Glyphs that appear on more than one chip — those are the ones needing a caption. */
+  const duplicated = useMemo(() => {
+    const seen = new Map<string, number>();
+    for (const p of phones ?? []) seen.set(p.glyph, (seen.get(p.glyph) ?? 0) + 1);
+    return new Set([...seen].filter(([, n]) => n > 1).map(([g]) => g));
+  }, [phones]);
+
   if (!phones) return <Loading />;
   if (phones.length === 0)
     return (
@@ -77,27 +114,51 @@ export function IpaChart() {
       <h2>{t('ipa.title')}</h2>
       <p className="hint">{t('ipa.intro', { n: phones.length })}</p>
 
-      {groups.map((g) => (
-        <section key={g.category}>
-          <h3>{t(`ipa.category.${g.category}`, g.category)}</h3>
-          <ul className="glyph-grid phone-grid">
-            {g.rows.map((p) => {
-              const { name } = describe(p);
-              return (
-                <li key={p.id}>
-                  <button
-                    className={`phone-btn${selected?.id === p.id ? ' active' : ''}`}
-                    onClick={() => setSelected(p)}
-                    title={name}
-                  >
-                    <span className="glyph">{p.glyph}</span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      ))}
+      {groups.map((g) => {
+        // Widen the whole group if ANY chip in it carries a word or a caption — a grid track is
+        // per-group, and a mixed group sized for symbols would clip its labelled members.
+        const wide = g.rows.some((p) => isWord(p) || (duplicated.has(p.glyph) && tagOf(p)));
+        return (
+          <section key={g.category}>
+            <h3>{t(`ipa.category.${g.category}`, g.category)}</h3>
+            <ul className={`glyph-grid phone-grid${wide ? ' wide' : ''}`}>
+              {g.rows.map((p) => {
+                const { name } = describe(p);
+                const word = isWord(p);
+                const label = word ? t(`ipa.phone.${stemOf(p)}`, p.glyph) : p.glyph;
+                // A word chip already reads uniquely, so it needs no caption; without this gate
+                // "pulmonic 1" would sit above a redundant "1".
+                const tag = !word && duplicated.has(p.glyph) ? tagOf(p) : null;
+                return (
+                  <li key={p.id}>
+                    <button
+                      className={`phone-btn${selected?.id === p.id ? ' active' : ''}`}
+                      onClick={() => setSelected(p)}
+                      title={name}
+                      // Only where the visible text is ambiguous. Never on a word chip: aria-label
+                      // REPLACES the contents, so the chip would show Vietnamese and announce raw
+                      // English — a WCAG 2.5.3 Label-in-Name failure, and the Vietnamese-first
+                      // rule quietly reversed for anyone using a screen reader.
+                      aria-label={tag ? name : undefined}
+                    >
+                      {/* lang="en" on pack-derived English so a Vietnamese-language document does
+                          not hand it to a Vietnamese speech engine. */}
+                      <span className={`glyph${word ? ' word' : ''}`} lang={word ? undefined : 'en'}>
+                        {label}
+                      </span>
+                      {tag && (
+                        <span className="phone-tag" lang="en">
+                          {tag}
+                        </span>
+                      )}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        );
+      })}
 
       {selected && (
         <section className="diagram-pane">
