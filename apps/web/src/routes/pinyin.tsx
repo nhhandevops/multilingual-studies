@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Loading } from '../components/loading';
 import { useDb } from '../db/provider';
 import { listPinyinSyllables, type SyllableRow } from '../db/queries';
 import { playAudio } from '../audio/player';
@@ -78,7 +79,7 @@ export function PinyinChart() {
     window.setTimeout(() => setPlaying((p) => (p === r.id ? null : p)), 600);
   };
 
-  if (!rows) return <p className="status">…</p>;
+  if (!rows) return <Loading />;
 
   return (
     <main>

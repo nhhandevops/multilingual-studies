@@ -20,6 +20,7 @@ import {
   type TodayStats,
 } from '../db/user-queries';
 import { StorageStateLine } from '../components/storage-state';
+import { Loading } from '../components/loading';
 import { BACKUP_DONE_EVENT } from '../components/backup-nag';
 import { clockOffsetMs, localDateStr, srsNow } from '../srs/clock';
 
@@ -49,7 +50,10 @@ export function Review() {
   const { t } = useTranslation();
   const db = useDb();
   const [phase, setPhase] = useState<'overview' | 'session' | 'done'>('overview');
-  const [summaries, setSummaries] = useState<LangQueueSummary[]>([]);
+  // `null` until the first queueSummary answers. It cannot start as []: `[].every()` is
+  // vacuously TRUE, so an empty array made `deckEmpty` true and the overview told a learner
+  // who has cards that their deck is empty — for as long as the three queries took.
+  const [summaries, setSummaries] = useState<LangQueueSummary[] | null>(null);
   const [stats, setStats] = useState<TodayStats>({ new_count: 0, review_count: 0, seconds: 0 });
   const [streakDays, setStreakDays] = useState(0);
   const [queue, setQueue] = useState<UserCardRow[]>([]);
@@ -62,10 +66,14 @@ export function Review() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const refresh = useCallback(async () => {
-    const now = srsNow();
-    setSummaries(await queueSummary(db, [...LANGS], now));
-    setStats(await todayStats(db, localDateStr(now)));
-    setStreakDays(await streak(db, now));
+    try {
+      const now = srsNow();
+      setSummaries(await queueSummary(db, [...LANGS], now));
+      setStats(await todayStats(db, localDateStr(now)));
+      setStreakDays(await streak(db, now));
+    } catch {
+      setSummaries([]); //  a failed refresh must land somewhere, or the screen spins forever
+    }
   }, [db]);
 
   useEffect(() => {
@@ -274,6 +282,15 @@ export function Review() {
   }
 
   // --------------------------------------------------------------- overview
+  // Nothing below may be judged before the summaries arrive — see the useState comment.
+  if (summaries === null)
+    return (
+      <main className="review">
+        <h2>{t('review.title')}</h2>
+        <Loading />
+      </main>
+    );
+
   const totalDue = summaries.reduce((n, s) => n + s.dueCount, 0);
   const totalNew = summaries.reduce((n, s) => n + s.newAvailable, 0);
   const deckEmpty = summaries.every((s) => s.totalCards === 0);

@@ -6,6 +6,7 @@ import { useDb } from './db/provider';
 import { ensurePersisted } from './storage/persist';
 import { pwa } from './pwa';
 import { UpdateBanner } from './components/update-banner';
+import { Loading } from './components/loading';
 import { BackupNag } from './components/backup-nag';
 import { IosA2hs } from './components/ios-a2hs';
 import { Home } from './routes/home';
@@ -87,9 +88,12 @@ export function App() {
       </header>
 
       {db.status.state === 'loading' && (
-        <p className="status">
-          {t(`db.phase.${db.status.phase}`, { defaultValue: t('db.loading'), mb: db.status.mb ?? '…' })}
-        </p>
+        // The boot loader keeps its richer line (which phase, how many MB) and borrows the
+        // spinner. Both t() options are load-bearing: `defaultValue` covers a phase with no
+        // string yet, and `mb` fills {{mb}} in db.phase.download.
+        <Loading
+          label={t(`db.phase.${db.status.phase}`, { defaultValue: t('db.loading'), mb: db.status.mb ?? '…' })}
+        />
       )}
       {db.status.state === 'error' &&
         (db.status.message.startsWith('app-too-old') ? (

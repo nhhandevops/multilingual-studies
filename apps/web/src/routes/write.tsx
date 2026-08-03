@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { useDb } from '../db/provider';
 import { browseHanzi, browseLetters, hanziStrokeCounts, type GraphemeRow, type HanziListRow } from '../db/queries';
+import { Loading } from '../components/loading';
 
 const LEVELS = ['HSK1', 'HSK2', 'HSK3', 'HSK4', 'HSK5', 'HSK6', 'HSK7-9'] as const;
 const PAGE = 60;
@@ -16,8 +17,11 @@ export function WriteIndex() {
   const [script, setScript] = useState<Script>('hanzi');
   const [filter, setFilter] = useState<Filter>({ level: 'HSK1' });
   const [counts, setCounts] = useState<{ ord: number; n: number }[]>([]);
-  const [rows, setRows] = useState<HanziListRow[]>([]);
-  const [letters, setLetters] = useState<GraphemeRow[]>([]);
+  // `null` = the query has not answered yet, `[]` = there genuinely are no characters. Conflating
+  // the two is what made this screen announce "no characters for this selection" for as long as
+  // the first query took — telling the learner the data is missing when it is merely on its way.
+  const [rows, setRows] = useState<HanziListRow[] | null>(null);
+  const [letters, setLetters] = useState<GraphemeRow[] | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [tooOld, setTooOld] = useState(false);
   const epoch = useRef(''); // identifies the filter the current list belongs to
@@ -33,18 +37,24 @@ export function WriteIndex() {
         setLetters(l);
         if (l.length === 0) setTooOld(true);
       })
-      .catch(() => setTooOld(true));
+      .catch(() => {
+        setLetters([]); //  resolve the sentinel, or the spinner never stops
+        setTooOld(true);
+      });
   }, [db]);
 
   useEffect(() => {
     let cancelled = false;
     epoch.current = `${filter.level ?? ''}|${filter.strokes ?? ''}`;
+    setRows(null); //  a new filter is loading again — do not judge it by the old list
     void browseHanzi(db, filter, 0, PAGE)
       .then((r) => {
         if (!cancelled) setRows(r);
       })
       .catch(() => {
-        if (!cancelled) setTooOld(true);
+        if (cancelled) return;
+        setRows([]); //  a failed query is an answer; leaving null spins forever
+        setTooOld(true);
       });
     return () => {
       cancelled = true;
@@ -56,9 +66,9 @@ export function WriteIndex() {
     setLoadingMore(true);
     const key = epoch.current;
     try {
-      const next = await browseHanzi(db, filter, rows.length, PAGE);
+      const next = await browseHanzi(db, filter, rows?.length ?? 0, PAGE);
       if (epoch.current !== key) return; // filter switched mid-flight — drop the result
-      setRows((r) => [...r, ...next]);
+      setRows((r) => [...(r ?? []), ...next]);
     } finally {
       setLoadingMore(false);
     }
@@ -74,20 +84,24 @@ export function WriteIndex() {
           {t('write.scriptHanzi')}
         </button>
         <button className={script === 'latin' ? 'active' : ''} onClick={() => setScript('latin')}>
-          {t('write.scriptLatin', { n: letters.length })}
+          {t('write.scriptLatin', { n: letters?.length ?? 0 })}
         </button>
       </div>
 
       {script === 'latin' ? (
-        <ul className="glyph-grid">
-          {letters.map((l) => (
-            <li key={l.id}>
-              <Link to={`/write/${encodeURIComponent(l.glyph)}`}>
-                <span className="glyph latin">{l.glyph}</span>
-              </Link>
-            </li>
-          ))}
-        </ul>
+        letters === null ? (
+          <Loading />
+        ) : (
+          <ul className="glyph-grid">
+            {letters.map((l) => (
+              <li key={l.id}>
+                <Link to={`/write/${encodeURIComponent(l.glyph)}`}>
+                  <span className="glyph latin">{l.glyph}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )
       ) : (
         <>
       <div className="chips levels">
@@ -111,7 +125,7 @@ export function WriteIndex() {
         ))}
       </div>
       <ul className="glyph-grid">
-        {rows.map((r) => (
+        {(rows ?? []).map((r) => (
           <li key={r.id}>
             <Link to={`/write/${encodeURIComponent(r.glyph)}`}>
               <span className="glyph">{r.glyph}</span>
@@ -121,8 +135,9 @@ export function WriteIndex() {
           </li>
         ))}
       </ul>
-      {rows.length === 0 && <p className="status">{t('write.empty')}</p>}
-      {rows.length >= PAGE && (
+      {rows === null && <Loading />}
+      {rows !== null && rows.length === 0 && <p className="status">{t('write.empty')}</p>}
+      {rows !== null && rows.length >= PAGE && (
         <button className="more" disabled={loadingMore} onClick={() => void more()}>
           {t('browse.more')}
         </button>

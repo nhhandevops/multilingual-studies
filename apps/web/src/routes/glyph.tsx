@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Loading } from '../components/loading';
 import { useDb } from '../db/provider';
 import { getGrapheme, haveStrokeData, wordsWithChar, type GraphemeDetail, type WordRow } from '../db/queries';
 import { addGraphemeCard, getCard, removeCard } from '../db/user-queries';
@@ -57,7 +58,7 @@ export function GlyphPage() {
     };
   }, [glyph, db]);
 
-  if (detail === 'loading') return <p className="status">…</p>;
+  if (detail === 'loading') return <Loading />;
   if (!detail)
     return (
       <main>

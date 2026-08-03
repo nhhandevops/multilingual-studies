@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Loading } from '../components/loading';
 import { useDb } from '../db/provider';
 import { listPinyinSyllables, type SyllableRow } from '../db/queries';
 import { playAudio } from '../audio/player';
@@ -84,7 +85,7 @@ export function ToneDrill() {
     if (row?.audio_id) void playAudio(db, row.audio_id);
   };
 
-  if (!rows) return <p className="status">…</p>;
+  if (!rows) return <Loading />;
   if (bases.length === 0) return <p className="status">{t('tones.noAudio')}</p>;
 
   return (

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Loading } from '../components/loading';
 import { useDb } from '../db/provider';
 import { getAssetSvg, listIpaPhones, type PhoneRow } from '../db/queries';
 
@@ -62,7 +63,7 @@ export function IpaChart() {
     return CATEGORIES.map((c) => ({ category: c, rows: byCategory.get(c) ?? [] })).filter((g) => g.rows.length > 0);
   }, [phones]);
 
-  if (!phones) return <p className="status">…</p>;
+  if (!phones) return <Loading />;
   if (phones.length === 0)
     return (
       <main className="ipa-chart">

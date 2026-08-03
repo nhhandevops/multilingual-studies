@@ -21,6 +21,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Markdown } from '../components/markdown';
 import { SpeakButton } from '../components/speak-button';
 import { AddToDeck } from '../components/add-to-deck';
+import { Loading } from '../components/loading';
 import { useDb } from '../db/provider';
 import {
   dailyLangs,
@@ -52,7 +53,8 @@ export function Today() {
   const [levels, setLevels] = useState<{ level: string; n: number }[]>([]);
   const [level, setLevel] = useState<string | undefined>();
   const [reading, setReading] = useState<DailyItemRow[]>([]);
-  const [words, setWords] = useState<PlannedWord[]>([]);
+  // `null` until the plan query answers — [] would render "no words for today" during the wait.
+  const [words, setWords] = useState<PlannedWord[] | null>(null);
   const [deck, setDeck] = useState<Set<string>>(new Set());
   const [tip, setTip] = useState<TipRow | null>(null);
   const [tooOld, setTooOld] = useState(false);
@@ -75,19 +77,27 @@ export function Today() {
     let cancelled = false;
     setLevel(undefined);
     setPullDate(undefined);
+    setWords(null);
     void (async () => {
-      const date = await latestPullDate(db, lang);
-      const items = date ? await listDailyNews(db, lang, date) : [];
-      const lv = await gradedLevels(db, lang);
-      const plan = await dailyPlanWords(db, lang, null);
-      const dayTip = await tipOfDay(db, lang, today);
-      if (cancelled) return;
-      setPullDate(date);
-      setNews(items);
-      setLevels(lv);
-      setWords(plan);
-      setTip(dayTip);
-      setDeck(await deckIds(db, plan.map((w) => w.id)));
+      try {
+        const date = await latestPullDate(db, lang);
+        const items = date ? await listDailyNews(db, lang, date) : [];
+        const lv = await gradedLevels(db, lang);
+        const plan = await dailyPlanWords(db, lang, null);
+        const dayTip = await tipOfDay(db, lang, today);
+        if (cancelled) return;
+        setPullDate(date);
+        setNews(items);
+        setLevels(lv);
+        setWords(plan);
+        setTip(dayTip);
+        setDeck(await deckIds(db, plan.map((w) => w.id)));
+      } catch {
+        // Land every sentinel this block owns, or the screen waits forever on a dead query.
+        if (cancelled) return;
+        setPullDate(null);
+        setWords([]);
+      }
     })();
     return () => {
       cancelled = true;
@@ -125,14 +135,17 @@ export function Today() {
 
       <section className="today-block">
         <h3>{t('today.news')}</h3>
+        {/* `news-date` marks the RESOLVED line only, never the loader. verify-v06 waits on it to
+            know the news query has answered; before this class it keyed on the loader's literal
+            "…", which meant the placeholder text was load-bearing for the test. */}
         {pullDate === undefined ? (
-          <p className="hint">…</p>
+          <Loading inline />
         ) : pullDate ? (
-          <p className="hint">
+          <p className="hint news-date">
             {pullDate === today ? t('today.freshToday') : t('today.freshFrom', { date: pullDate })}
           </p>
         ) : (
-          <p className="hint">{t('today.noNews')}</p>
+          <p className="hint news-date">{t('today.noNews')}</p>
         )}
         <ul className="daily-list">
           {news.map((n) => (
@@ -167,7 +180,9 @@ export function Today() {
 
       <section className="today-block">
         <h3>{t('today.words')}</h3>
-        {words.length === 0 ? (
+        {words === null ? (
+          <Loading inline />
+        ) : words.length === 0 ? (
           <p className="hint">{t('today.noWords')}</p>
         ) : (
           <ul className="words">
@@ -257,7 +272,7 @@ export function DailyItemPage() {
     };
   }, [id, db]);
 
-  if (row === 'loading') return <p className="status">…</p>;
+  if (row === 'loading') return <Loading />;
   if (!row)
     return (
       <main>

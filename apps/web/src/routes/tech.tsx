@@ -16,6 +16,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { SpeakButton } from '../components/speak-button';
+import { Loading } from '../components/loading';
 import { useDb } from '../db/provider';
 import {
   getTechTerm,
@@ -46,12 +47,16 @@ export function TechIndex() {
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const [list, doms] = await Promise.all([listTechTerms(db, domain), techDomains(db)]);
-      if (cancelled) return;
-      setTerms(list);
-      setDomains(doms);
-      setLoaded(true);
-      setDeck(await deckIds(db, list.map((x) => x.id)));
+      try {
+        const [list, doms] = await Promise.all([listTechTerms(db, domain), techDomains(db)]);
+        if (cancelled) return;
+        setTerms(list);
+        setDomains(doms);
+        setLoaded(true);
+        setDeck(await deckIds(db, list.map((x) => x.id)));
+      } catch {
+        if (!cancelled) setLoaded(true); //  a failure is an answer; never leave the spinner up
+      }
     })();
     return () => {
       cancelled = true;
@@ -108,7 +113,8 @@ export function TechIndex() {
         value={query}
         onChange={(e) => setQuery(e.target.value)}
       />
-      <p className="hint">{t('tech.count', { n: shown.length })}</p>
+      {!loaded && <Loading />}
+      {loaded && <p className="hint">{t('tech.count', { n: shown.length })}</p>}
       <ul className="tech-list">
         {shown.map((x) => (
           <li key={x.id}>
@@ -157,7 +163,7 @@ export function TechTermPage() {
     };
   }, [id, db]);
 
-  if (row === 'loading') return <p className="status">…</p>;
+  if (row === 'loading') return <Loading />;
   if (!row)
     return (
       <main>

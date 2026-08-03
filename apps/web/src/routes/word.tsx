@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Loading } from '../components/loading';
 import { useDb } from '../db/provider';
 import {
   getWord,
@@ -69,7 +70,7 @@ export function WordPage() {
     };
   }, [id, db]);
 
-  if (detail === 'loading') return <p className="status">…</p>;
+  if (detail === 'loading') return <Loading />;
   if (!detail) return (
     <main>
       <p>{t('word.notFound')}</p>

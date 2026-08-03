@@ -211,7 +211,8 @@
     "vi": "Vietnamese"
   },
   "ui": {
-    "language": "UI language"
+    "language": "UI language",
+    "loading": "Loading…"
   },
   "grammar": {
     "title": "Grammar",

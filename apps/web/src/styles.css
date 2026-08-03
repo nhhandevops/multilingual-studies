@@ -59,6 +59,19 @@ ul.words a:hover { background: var(--bg-soft); text-decoration: none; }
 .card { border: 1px solid var(--border); border-radius: 8px; padding: 0.8rem 1rem; margin-bottom: 0.8rem; }
 .card h3 { margin: 0 0 0.3rem; }
 .status { padding: 3rem 0; text-align: center; color: var(--fg-soft); }
+
+/* The shared loading indicator. Must come AFTER .status: the two have equal specificity where
+   a node carries both, and `display: flex` has to win. */
+.loading { display: flex; align-items: center; justify-content: center; gap: 0.6rem;
+  padding: 3rem 0; color: var(--fg-soft); }
+.loading.inline { padding: 0.4rem 0; justify-content: flex-start; font-size: 0.85rem; }
+.loading .spinner { width: 1.05em; height: 1.05em; flex: none; border-radius: 50%;
+  border: 2px solid var(--border); border-top-color: var(--accent); animation: mls-spin 0.7s linear infinite; }
+@keyframes mls-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  /* Kill the motion, keep the accent arc: a uniform grey ring would signal nothing at all. */
+  .loading .spinner { animation: none; }
+}
 .error { color: #c0392b; }
 button.more { margin: 0.5rem 0 2rem; padding: 0.4rem 1.2rem; cursor: pointer; }
 footer.pack { color: var(--fg-soft); font-size: 0.75rem; border-top: 1px solid var(--border);

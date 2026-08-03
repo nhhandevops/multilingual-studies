@@ -134,15 +134,12 @@ if (langChips.length < 3) fail('expected a chip per language with daily content'
 // The screen must say WHICH day it is showing — a pack is older than today by construction.
 // Wait for the query to land: reading the hint while it is still loading is the stale-read trap
 // this suite's README warns about, and it is what made this assertion fail the first time.
-await page.waitForFunction(
-  () => {
-    const h = document.querySelector('.today .today-block .hint');
-    return h && h.textContent.trim() !== '…' && h.textContent.trim().length > 1;
-  },
-  null,
-  { timeout: 60000 },
-);
-const dateLine = await page.textContent('.today .today-block .hint');
+// `.news-date` exists on the RESOLVED line only, so its presence IS the "query answered" signal.
+// It used to wait for the first `.hint` to stop being the literal "…", which made a placeholder
+// string load-bearing for the test — the loading indicator could not be improved without
+// breaking it, and the fallback target was the reading block's hint, which carries no date.
+await page.waitForSelector('.today .today-block p.news-date', { timeout: 60000 });
+const dateLine = await page.textContent('.today .today-block p.news-date');
 log(`date line: ${dateLine.trim().slice(0, 100)}`);
 if (!/\d{4}-\d{2}-\d{2}|hôm nay|today/i.test(dateLine)) fail('the news block must state the day it is showing');
 

@@ -15,6 +15,7 @@ import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Markdown } from '../components/markdown';
 import { SpeakButton } from '../components/speak-button';
+import { Loading } from '../components/loading';
 import { playAudio } from '../audio/player';
 import { useDb } from '../db/provider';
 import {
@@ -36,7 +37,9 @@ export function GrammarIndex() {
   const [lang, setLang] = useState<string | null>(null);
   const [levels, setLevels] = useState<{ level: string; n: number }[]>([]);
   const [level, setLevel] = useState<string | undefined>();
-  const [rows, setRows] = useState<GrammarRow[]>([]);
+  // `null` = still loading. Starting at [] made the count line read "0 chủ điểm" before the
+  // query returned, which is a statement about the pack rather than about the wait.
+  const [rows, setRows] = useState<GrammarRow[] | null>(null);
   const [tooOld, setTooOld] = useState(false);
 
   useEffect(() => {
@@ -58,9 +61,14 @@ export function GrammarIndex() {
   useEffect(() => {
     if (!lang) return;
     let cancelled = false;
-    void listGrammar(db, lang, level).then((r) => {
-      if (!cancelled) setRows(r);
-    });
+    setRows(null);
+    void listGrammar(db, lang, level)
+      .then((r) => {
+        if (!cancelled) setRows(r);
+      })
+      .catch(() => {
+        if (!cancelled) setRows([]); //  land the sentinel on failure
+      });
     return () => {
       cancelled = true;
     };
@@ -90,9 +98,10 @@ export function GrammarIndex() {
           ))}
         </div>
       )}
-      <p className="hint">{t('grammar.count', { n: rows.length })}</p>
+      {rows === null && <Loading />}
+      {rows !== null && <p className="hint">{t('grammar.count', { n: rows.length })}</p>}
       <ol className="grammar-list">
-        {rows.map((r) => (
+        {(rows ?? []).map((r) => (
           <li key={r.id}>
             <Link to={`/grammar/${encodeURIComponent(r.id)}`}>{r.title_vi ?? r.title_en}</Link>
             {r.level && <span className="badge">{r.level}</span>}
@@ -123,7 +132,7 @@ export function GrammarPage() {
     };
   }, [id, db]);
 
-  if (row === 'loading') return <p className="status">…</p>;
+  if (row === 'loading') return <Loading />;
   if (!row)
     return (
       <main>

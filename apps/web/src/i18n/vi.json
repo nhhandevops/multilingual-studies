@@ -211,7 +211,8 @@
     "vi": "Tiếng Việt"
   },
   "ui": {
-    "language": "Ngôn ngữ giao diện"
+    "language": "Ngôn ngữ giao diện",
+    "loading": "Đang tải…"
   },
   "grammar": {
     "title": "Ngữ pháp",

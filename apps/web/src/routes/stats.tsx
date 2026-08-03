@@ -23,6 +23,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { simulateLoad } from '@mls/shared/srs';
+import { Loading } from '../components/loading';
 import { useDb } from '../db/provider';
 import { levelsOf, listLevels } from '../db/queries';
 import { deckCards, measuredSecondsPerCard, newPerDay } from '../db/user-queries';
@@ -104,7 +105,7 @@ export function Stats() {
     };
   }, [db]);
 
-  if (!loaded) return <p className="status">…</p>;
+  if (!loaded) return <Loading />;
 
   return (
     <main className="stats">
