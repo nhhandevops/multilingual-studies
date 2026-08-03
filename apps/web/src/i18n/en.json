@@ -15,7 +15,8 @@
     "grammar": "Grammar",
     "today": "Today",
     "tech": "Tech vocab",
-    "stats": "Stats"
+    "stats": "Stats",
+    "label": "Main sections"
   },
   "deck": {
     "add": "Add to deck",

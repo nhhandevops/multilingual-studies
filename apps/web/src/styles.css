@@ -22,7 +22,28 @@ header.top {
   padding: 1rem 0; border-bottom: 1px solid var(--border); margin-bottom: 1rem;
 }
 header.top h1 { font-size: 1.1rem; margin: 0; }
-header.top nav { display: flex; gap: 0.9rem; flex: 1; }
+/* The tab strip is a single-line horizontal SCROLLER, not a wrapping row.
+   `overflow-x: auto` is load-bearing beyond the scrolling: it zeroes the flex item's automatic
+   minimum size, which is what releases the strip's ~593px min-content floor. Without it the nav
+   cannot shrink, and at 390px the whole PAGE scrolled sideways by 219px with the last four tabs
+   unreachable — measured, and the reason a "cleanup" must never move the overflow to a wrapper.
+   `flex-basis: 100%` gives the strip its own row; the negative margin + matching padding let it
+   bleed to the shell edge so a scrolled tab is not clipped mid-word. */
+header.top nav {
+  display: flex; gap: 0.9rem; flex: 1 1 100%; flex-wrap: nowrap;
+  overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none;
+  margin: 0 -1rem; padding: 0.1rem 1rem 0;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 1rem, #000 calc(100% - 1.6rem), transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0, #000 1rem, #000 calc(100% - 1.6rem), transparent 100%);
+}
+header.top nav::-webkit-scrollbar { display: none; }
+/* `flex: none` + `nowrap` stop the labels shredding across three lines ("Duyệt / từ / vựng"). */
+header.top nav a { flex: none; white-space: nowrap; color: var(--fg-soft);
+  padding: 0.45rem 0; border-bottom: 2px solid transparent; }
+header.top nav a:hover { color: var(--fg); text-decoration: none; }
+/* The current tab: accent underline rather than a filled pill — twelve pills would swamp the
+   header. Weight + rule + aria-current means the cue is not carried by colour alone. */
+header.top nav a.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
 header.top .ui-lang { margin-left: auto; }
 header.top .ui-lang button {
   border: 1px solid var(--border); background: var(--bg-soft); color: var(--fg);

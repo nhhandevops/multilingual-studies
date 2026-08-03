@@ -1,6 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, Route, Routes } from 'react-router-dom';
+import { Link, NavLink, Route, Routes, useLocation } from 'react-router-dom';
 import { setUiLang } from './i18n';
 import { useDb } from './db/provider';
 import { ensurePersisted } from './storage/persist';
@@ -27,6 +27,33 @@ import { Licenses } from './routes/licenses';
 export function App() {
   const { t, i18n } = useTranslation();
   const db = useDb();
+  const { pathname } = useLocation();
+  const navRef = useRef<HTMLElement>(null);
+
+  // A word page has no tab of its own, so the search tab claims it. This is a deliberate
+  // approximation, not a fact: /word/:id is also reached from Browse, Review, Today and glyph
+  // pages, so after a Browse click the lit tab is arguably wrong. Leaving NO tab lit is worse
+  // for the beginner this exists for — a highlight that sometimes over-claims still answers
+  // "where am I" better than a header with nothing lit at all.
+  const searchActive = pathname === '/' || pathname.startsWith('/word/');
+
+  // Keep the lit tab on screen. The strip is ~1103px wide inside a 390px (or 780px) viewport,
+  // so on arrival the highlight is frequently scrolled out of view — and a highlight you cannot
+  // see is not a fix. scrollBy on the strip, never scrollIntoView (which would also scroll the
+  // page vertically); rect-based, never offsetLeft (the nav is unpositioned, so the anchors'
+  // offsetParent is <body> and the math is wrong by the centred shell's margin above 780px).
+  // Instant, not smooth: animation on every navigation makes Playwright wait for stability
+  // across the suite's 50+ nav clicks.
+  useEffect(() => {
+    const nav = navRef.current;
+    // The header renders OUTSIDE the `state === 'ready'` gate, so this runs during loading and
+    // error states too, when no tab is lit.
+    const active = nav?.querySelector<HTMLAnchorElement>('a.active');
+    if (!nav || !active) return;
+    const a = active.getBoundingClientRect();
+    const n = nav.getBoundingClientRect();
+    nav.scrollBy({ left: a.left - n.left - (n.width - a.width) / 2 });
+  }, [pathname]);
 
   // Durable storage is requested on the first user.db WRITE (see provider) — by then the
   // learner has something to lose and the browser prompt makes sense. Here we only cover
@@ -63,20 +90,8 @@ export function App() {
         <h1>
           <Link to="/">{t('app.title')}</Link>
         </h1>
-        <nav>
-          <Link to="/">{t('nav.search')}</Link>
-          <Link to="/today">{t('nav.today')}</Link>
-          <Link to="/browse">{t('nav.browse')}</Link>
-          <Link to="/review">{t('nav.review')}</Link>
-          <Link to="/write">{t('nav.write')}</Link>
-          <Link to="/pinyin">{t('nav.pinyin')}</Link>
-          <Link to="/tones">{t('nav.tones')}</Link>
-          <Link to="/ipa">{t('nav.ipa')}</Link>
-          <Link to="/grammar">{t('nav.grammar')}</Link>
-          <Link to="/tech">{t('nav.tech')}</Link>
-          <Link to="/stats">{t('nav.stats')}</Link>
-          <Link to="/licenses">{t('nav.licenses')}</Link>
-        </nav>
+        {/* .ui-lang sits BEFORE the nav in the DOM because the nav now claims a full flex row;
+            leaving the toggle after it pushed the header onto a third line. */}
         <div className="ui-lang" title={t('ui.language')}>
           <button className={i18n.language === 'vi' ? 'active' : ''} onClick={() => setUiLang('vi')}>
             VI
@@ -85,6 +100,29 @@ export function App() {
             EN
           </button>
         </div>
+        <nav ref={navRef} aria-label={t('nav.label')}>
+          {/* Search stays a plain Link with a hand-computed active state. NavLink cannot express
+              this: `end` would go dark on /word/:id, and a NavLink with a custom className but
+              isActive=false drops aria-current — so it would highlight visually while telling a
+              screen reader nothing. The other eleven are NavLinks with NO `end`, because the
+              prefix match is exactly what keeps the parent tab lit on /write/:glyph,
+              /grammar/:id, /today/:id and /tech/:id. Prefix collisions are impossible: the
+              router requires a '/' boundary after the match, so /tones never lights /today. */}
+          <Link to="/" className={searchActive ? 'active' : ''} aria-current={searchActive ? 'page' : undefined}>
+            {t('nav.search')}
+          </Link>
+          <NavLink to="/today">{t('nav.today')}</NavLink>
+          <NavLink to="/browse">{t('nav.browse')}</NavLink>
+          <NavLink to="/review">{t('nav.review')}</NavLink>
+          <NavLink to="/write">{t('nav.write')}</NavLink>
+          <NavLink to="/pinyin">{t('nav.pinyin')}</NavLink>
+          <NavLink to="/tones">{t('nav.tones')}</NavLink>
+          <NavLink to="/ipa">{t('nav.ipa')}</NavLink>
+          <NavLink to="/grammar">{t('nav.grammar')}</NavLink>
+          <NavLink to="/tech">{t('nav.tech')}</NavLink>
+          <NavLink to="/stats">{t('nav.stats')}</NavLink>
+          <NavLink to="/licenses">{t('nav.licenses')}</NavLink>
+        </nav>
       </header>
 
       {db.status.state === 'loading' && (
