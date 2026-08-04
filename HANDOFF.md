@@ -11,8 +11,12 @@
 > bản sao lưu có thể không tồn tại** (bấm "Tải bản sao lưu" rồi huỷ tải là app im lặng suốt
 > 7 ngày). Giờ app hỏi lại "đã lưu được file chưa?" và chỉ ghi nhận khi bạn xác nhận;
 > xuất lỗi thì báo lỗi; trình duyệt từ chối quyền lưu trữ bền vững thì nói ra. Chi tiết trong
-> "Current state". **Việc còn nợ trên máy này: chạy `pnpm ingest daily:all` rồi build lại pack**
-> (máy này chưa từng chạy daily pull, nên `/today` chỉ có kho VOA và `verify-v06` chưa xanh).
+> "Current state". **Việc còn nợ TUỲ TỪNG MÁY** (dữ liệu daily nằm trong `build/staging.db`, bị
+> gitignore nên không đi theo repo): máy nào chưa từng chạy daily pull thì chạy
+> `pnpm ingest daily:all` rồi build lại pack; **máy Windows `d:\Non-work\multilingual-studies`
+> thì ĐÃ có bản pull tới 2026-08-03**, chỉ còn thiếu bước `pack:build` → `pack:verify` →
+> `pack publish` (gói đang xuất bản `2026.08.03-1` mới chỉ tới ngày 08-01). Cách tự kiểm tra máy
+> mình đang ở trường hợp nào: xem mục `verify-v06` trong "Current state".
 > Ngay sau đó là một **đợt sửa UX** (2026-08-03, cùng ngày): tab đang mở giờ có highlight,
 > mỗi màn hình có một câu hướng dẫn, màn hình **không còn báo sai "không có dữ liệu"** lúc đang
 > tải (trước đây `/review` từng nói "bộ thẻ trống" với người ĐANG có thẻ), thanh điều hướng
@@ -142,12 +146,24 @@ working session, and commit it with the session's push. It is the single source 
     bonus, exercises a longer upgrade path than before (v0.1-era pack → the v0.9 split pack).
     `verify-v04-p1` imported `newestPack` and never called it — the v0.7 stale-pack trap, still
     live in one file.
-  - **`verify-v06` is the one script that does not pass here, and it is a data prerequisite, not
-    a defect**: `build/staging.db` is gitignored, so this machine — which has only ever run
-    `seed:all` — holds the seeded VOA archive and zero rows from the `daily:*` modules. It now
-    fails with the command that fixes it (`pnpm ingest daily:all`, then rebuild the pack) instead
-    of "expected daily content in all three languages", which read like a regression. **Running
-    the daily pull and rebuilding the pack is the outstanding chore on this machine.**
+  - **`verify-v06` is a DATA PREREQUISITE, not a defect — and what it needs differs per clone.**
+    `build/staging.db` is gitignored, so daily content never travels with the repo: a clone that
+    has only run `seed:all` holds the seeded VOA archive and zero rows from the `daily:*`
+    modules. The script now fails with the command that fixes it (`pnpm ingest daily:all`, then
+    rebuild the pack) instead of "expected daily content in all three languages", which read
+    like a regression.
+    **Per-clone status, measured 2026-08-04 — check yours before believing either line:**
+    - *The clone that authored this section*: no `daily:*` rows at all. Owed: `daily:all` →
+      `pack:build` → `pack:verify` → `pack publish`.
+    - *The Windows clone at `d:\Non-work\multilingual-studies`*: the pull HAS run — staging holds
+      238 daily items over 2026-07-31 / 08-01 / **08-03**, from `global-voices`, `voa-chinese`
+      and `wikipedia-itn`, and `verify-v06` passed there during the UX session. What is owed
+      there is narrower: the published pack `2026.08.03-1` stops at **2026-08-01**, so the
+      08-03 pull is sitting in staging unshipped. Owed: `pack:build` → `pack:verify` →
+      `pack publish` (no re-pull needed), then redeploy if the live site should carry it.
+    A quick way to tell which case you are in, before running anything:
+    `node -e "const D=require('./apps/ingest/node_modules/better-sqlite3');const db=new D('build/staging.db',{readonly:true});console.log(db.prepare('SELECT source_id,count(*) n FROM daily_items GROUP BY source_id').all())"`
+    — a listing with only `voa-learning-english` is the seed-only case.
   - **Two testing lessons, both paid for.** The acceptance script now checks the export result is
     *in the viewport*, not merely in `main.review`'s `textContent` — the messages were rendering
     ~800 px above the button that produced them, which is the state-layer bug re-created in the
