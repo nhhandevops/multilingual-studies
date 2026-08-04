@@ -43,19 +43,25 @@ MLS_BASE=http://localhost:5199 node ./verify-upgrade-v02-to-v03.mjs
 node ./verify-v10-live.mjs
 ```
 
-Status (2026-08-04): **19 of 20 pass.** The five that were red after the UX pass are FIXED — and
-the earlier note here diagnosed one of them wrongly, which is worth keeping as a lesson:
+Status (2026-08-04, later the same day): **all 19 pass at once — the first time.** Seventeen
+against `pnpm dev`, plus `verify-v09` and `verify-upgrade-v02-to-v03` against the static server.
+`verify-v06` came green once this clone published a pack carrying its own daily pull (see the
+data-prerequisite note below); nothing is skipped or tolerated.
+
+The five that were red after the UX pass are FIXED — and the earlier note here diagnosed one of
+them wrongly, which is worth keeping as a lesson:
 
 | Was failing | Guessed cause | MEASURED cause | Fix |
 |---|---|---|---|
 | `verify-v02`, `verify-v03-p3`, `verify-v04-p1` | "the browser profile blocks the download" | **wrong.** `.backup button:first-of-type` is a DESCENDANT selector, so it started matching two buttons the day v0.9 put `StorageStateLine` inside `.backup`: its nested `button.linklike` is first-of-type inside its own `<p>` and precedes the export button, and `page.click()` is non-strict. The click landed on "Bảo vệ dữ liệu"; no download was ever requested. The download mechanism is fine (verified: 65,536-byte file, `SQLite format 3\0` header, headless AND headed) | the export button now carries `className="export-backup"` and the scripts aim at it |
 | `verify-v04-p2`, `verify-v04-p3-p4` | word audio moved to the optional `media.pack` | **right.** `audio_blobs JOIN audio WHERE kind='word'` = 0 rows in `content.db`, 9,991 in `media.db` | both install the media pack through the real UI first, via the shared [media.mjs](media.mjs) |
 
-`verify-v06` is the one that does not pass here, and it is a **data prerequisite, not a defect**:
-`build/staging.db` is gitignored, so a clone that has only run `seed:all` holds the seeded VOA
-archive and nothing from the `daily:*` modules. The script now says exactly that instead of
-failing with "expected daily content in all three languages", which read like a regression.
-Run `pnpm ingest daily:all` and rebuild the pack to make it pass.
+`verify-v06` is a **data prerequisite, not a defect**, and whether it passes is a property of
+YOUR CLONE, not of the product: `build/staging.db` is gitignored, so a clone that has only run
+`seed:all` holds the seeded VOA archive and nothing from the `daily:*` modules. The script says
+exactly that instead of failing with "expected daily content in all three languages", which read
+like a regression. Run `pnpm ingest daily:all` and rebuild the pack to make it pass.
+(It passes as of pack `2026.08.04-1`, which carries the 2026-08-03 pull — 5 EN · 10 FR · 11 ZH.)
 
 **Two scripts were machine-specific and are not any more.** `verify-upgrade-v02-to-v03` hardcoded
 pack versions `2026.07.30-1`/`-5`, which exist only on the machine that built them — a bare

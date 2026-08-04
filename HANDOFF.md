@@ -11,12 +11,12 @@
 > bản sao lưu có thể không tồn tại** (bấm "Tải bản sao lưu" rồi huỷ tải là app im lặng suốt
 > 7 ngày). Giờ app hỏi lại "đã lưu được file chưa?" và chỉ ghi nhận khi bạn xác nhận;
 > xuất lỗi thì báo lỗi; trình duyệt từ chối quyền lưu trữ bền vững thì nói ra. Chi tiết trong
-> "Current state". **Việc còn nợ TUỲ TỪNG MÁY** (dữ liệu daily nằm trong `build/staging.db`, bị
-> gitignore nên không đi theo repo): máy nào chưa từng chạy daily pull thì chạy
-> `pnpm ingest daily:all` rồi build lại pack; **máy Windows `d:\Non-work\multilingual-studies`
-> thì ĐÃ có bản pull tới 2026-08-03**, chỉ còn thiếu bước `pack:build` → `pack:verify` →
-> `pack publish` (gói đang xuất bản `2026.08.03-1` mới chỉ tới ngày 08-01). Cách tự kiểm tra máy
-> mình đang ở trường hợp nào: xem mục `verify-v06` trong "Current state".
+> "Current state". Gói dữ liệu mới nhất là **`2026.08.04-1`** (đã phát hành + deploy), có thêm
+> bản tin ngày **2026-08-03**; **toàn bộ 19 script kiểm thử xanh hết — lần đầu tiên**.
+> Lưu ý cho máy mới: dữ liệu daily nằm trong `build/staging.db`, **bị gitignore nên không đi theo
+> repo** — máy nào chưa từng chạy daily pull thì chạy `pnpm ingest daily:all` rồi build lại pack,
+> nếu không `/today` chỉ có kho VOA và `verify-v06` sẽ đỏ. Cách tự kiểm tra: xem mục `verify-v06`
+> trong "Current state".
 > Ngay sau đó là một **đợt sửa UX** (2026-08-03, cùng ngày): tab đang mở giờ có highlight,
 > mỗi màn hình có một câu hướng dẫn, màn hình **không còn báo sai "không có dữ liệu"** lúc đang
 > tải (trước đây `/review` từng nói "bộ thẻ trống" với người ĐANG có thẻ), thanh điều hướng
@@ -151,19 +151,24 @@ working session, and commit it with the session's push. It is the single source 
     has only run `seed:all` holds the seeded VOA archive and zero rows from the `daily:*`
     modules. The script now fails with the command that fixes it (`pnpm ingest daily:all`, then
     rebuild the pack) instead of "expected daily content in all three languages", which read
-    like a regression.
-    **Per-clone status, measured 2026-08-04 — check yours before believing either line:**
-    - *The clone that authored this section*: no `daily:*` rows at all. Owed: `daily:all` →
-      `pack:build` → `pack:verify` → `pack publish`.
-    - *The Windows clone at `d:\Non-work\multilingual-studies`*: the pull HAS run — staging holds
-      238 daily items over 2026-07-31 / 08-01 / **08-03**, from `global-voices`, `voa-chinese`
-      and `wikipedia-itn`, and `verify-v06` passed there during the UX session. What is owed
-      there is narrower: the published pack `2026.08.03-1` stops at **2026-08-01**, so the
-      08-03 pull is sitting in staging unshipped. Owed: `pack:build` → `pack:verify` →
-      `pack publish` (no re-pull needed), then redeploy if the live site should carry it.
-    A quick way to tell which case you are in, before running anything:
+    like a regression. **This is a property of a CLONE, not of the product** — do not write it
+    into this file as a fact about "this machine", which is what the first version of this note
+    did and what made it false on the very next machine to read it.
+    Tell which case your clone is in before running anything:
     `node -e "const D=require('./apps/ingest/node_modules/better-sqlite3');const db=new D('build/staging.db',{readonly:true});console.log(db.prepare('SELECT source_id,count(*) n FROM daily_items GROUP BY source_id').all())"`
-    — a listing with only `voa-learning-english` is the seed-only case.
+    — a listing with only `voa-learning-english` is the seed-only case, and it owes
+    `daily:all` → `pack:build` → `pack:verify` → `pack publish`.
+
+- **The outstanding pack chore is DONE, and the suite is 19/19 for the first time.** (2026-08-04)
+  The Windows clone had a 2026-08-03 pull sitting in staging that no published pack carried —
+  `2026.08.03-1` stopped at 08-01. Rebuilt, verified and published as **`2026.08.04-1`**
+  (daily items 212 → **238**; the 08-03 day is 5 EN · 10 FR · 11 ZH), released as
+  `pack-2026.08.04-1` and deployed. Core still 56.5 MB gz, media 74.1 MB gz.
+  - **Every acceptance script now passes at once — 19 of 19**, dev server for the seventeen and
+    the static server for `verify-v09` + `verify-upgrade-v02-to-v03`. The five that the UX
+    session had recorded as "pre-existing failures" are green on their real fixes (this session
+    only confirmed them), and `verify-v06` is green because this clone now ships the daily
+    content it needs. Nothing in the suite is skipped or tolerated.
   - **Two testing lessons, both paid for.** The acceptance script now checks the export result is
     *in the viewport*, not merely in `main.review`'s `textContent` — the messages were rendering
     ~800 px above the button that produced them, which is the state-layer bug re-created in the
