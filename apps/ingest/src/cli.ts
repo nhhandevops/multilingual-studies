@@ -5,11 +5,13 @@
  *  - `pack …`  build / verify / publish the content pack
  */
 import { Command } from 'commander';
-import { cpSync, existsSync, mkdirSync, readdirSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { buildPack, nextPackVersion, verifyPack } from '@mls/content-pack';
+import {
+  buildPack, dailyItemWarning, nextPackVersion, recordPublished, reservedVersions, verifyPack,
+} from '@mls/content-pack';
 import { openStaging } from './lib/staging';
-import { PACKS_DIR, STAGING_DB, WEB_PACKS_DIR } from './lib/paths';
+import { PACKS_DIR, PACKS_LOCK, STAGING_DB, WEB_PACKS_DIR } from './lib/paths';
 import { registerDaily } from './daily';
 
 const program = new Command('ingest');
@@ -83,7 +85,9 @@ pack
   .description('build packs/<version> from build/staging.db')
   .option('--version <v>', 'explicit pack version (default: next for today)')
   .action((opts: { version?: string }) => {
-    const version = opts.version ?? nextPackVersion(PACKS_DIR, new Date());
+    // Skip any version the committed ledger says has already been published — `build/` is
+    // gitignored, so the local directory alone cannot see another clone's releases.
+    const version = opts.version ?? nextPackVersion(PACKS_DIR, new Date(), reservedVersions(PACKS_LOCK));
     const { manifest, outDir } = buildPack({ stagingDbPath: STAGING_DB, packsDir: PACKS_DIR, packVersion: version });
     console.log(`✓ built pack ${manifest.packVersion} → ${outDir}`);
     console.log(`  db ${(manifest.dbBytes / 1024 / 1024).toFixed(1)} MB, counts: ${JSON.stringify(manifest.counts)}`);
@@ -111,8 +115,32 @@ pack
   .option('--version <v>', 'pack version to publish (default: newest)')
   .action((opts: { version?: string }) => {
     const version = opts.version ?? newestPack();
+    const manifestPath = join(PACKS_DIR, version, 'manifest.json');
+
+    // Record the publication in the committed ledger BEFORE copying anything. Reusing a version
+    // name for different bytes is the one failure the app cannot recover from on its own: the
+    // update check compares version strings, so a learner already holding that name would be
+    // told they are current forever. Refuse rather than ship it.
+    const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as {
+      dbSha256: string;
+      counts?: Record<string, number>;
+    };
+    const dailyItems = manifest.counts?.daily_items;
+    const shrink = dailyItems === undefined ? null : dailyItemWarning(PACKS_LOCK, dailyItems);
+    if (shrink) console.warn(`⚠ ${shrink}`);
+    const conflict = recordPublished(PACKS_LOCK, {
+      packVersion: version,
+      dbSha256: manifest.dbSha256,
+      publishedAt: new Date().toISOString().slice(0, 10),
+      ...(dailyItems === undefined ? {} : { dailyItems }),
+    });
+    if (conflict) {
+      console.error(`✗ refusing to publish: ${conflict}`);
+      process.exit(1);
+    }
+
     mkdirSync(WEB_PACKS_DIR, { recursive: true });
-    cpSync(join(PACKS_DIR, version, 'manifest.json'), join(WEB_PACKS_DIR, 'manifest.json'));
+    cpSync(manifestPath, join(WEB_PACKS_DIR, 'manifest.json'));
     // Neutral extension on purpose: servers special-case *.gz (Content-Encoding) and corrupt
     // the byte stream; .pack is served as opaque bytes everywhere. Still gzip inside.
     cpSync(join(PACKS_DIR, version, 'content.db.gz'), join(WEB_PACKS_DIR, 'content.pack'));

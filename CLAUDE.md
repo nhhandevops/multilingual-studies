@@ -10,6 +10,13 @@ Rules that override defaults:
 - Every version must ship something the user can study that day; no infrastructure without content (see PLAN's anti-"Sprint 0" rule).
 - Never break ID derivation in `packages/shared/src/ids.ts` (SRS progress depends on it).
 - Data may only enter the DB through `apps/ingest` modules that register a `sources` row; `pnpm pack:verify` must pass before publishing a pack.
+- **`git pull` before building a pack, and commit `packs.lock.json` with it.** Pack versions are
+  `YYYY.MM.DD-N` and the app's update check compares that string, but `build/` is gitignored — so
+  two clones once minted the same name for different content. The committed ledger is the only
+  thing that prevents it; `pack publish` refuses to reuse a name for different bytes.
+- **A daily pull can only ever fetch TODAY.** The sources are live feeds with no archive, so
+  `--date <past>` would file today's articles under an older day; the pull commands now refuse it.
+  A missed day is gone. (`daily:select` with `"keep": []` is the undo for a bad day's rows.)
 - **Verify a source's license per file when the source lets you.** A vetted entry in RESEARCH-SOURCES states what a corpus *usually* is, not what every file in it is — Lingua Libre is documented as CC BY-SA 4.0 and is actually 67% CC0. `pack verify` cannot catch a license string that is well-formed but untrue.
 - Every version's claims must be backed by a script in [tools/e2e/](tools/e2e/) that a fresh clone can run; add one per phase and keep it free of machine-specific paths.
 - Commit + push at the end of every working session; tag finished versions (`git tag -a v0.x`, push with `--follow-tags`); update HANDOFF.md's "Current state"/"Next up" before the final push.

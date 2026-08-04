@@ -149,3 +149,7 @@ Every one of these cost real debugging time; HANDOFF's "Testing recipe" section 
 - **A test that has never been seen RED proves nothing.** `verify-backup-honesty` was run against
   a deliberately reverted `onExport` and failed on the exact assertion it exists for, before it
   was believed.
+- **`verify-v06` writes to `build/staging.db`.** It injects a source failure and then restores by
+  re-running `daily:wiki-itn`, which re-adds that day's full uncurated set. Harmless for the test,
+  but re-run `daily:select` with the day's selection afterwards — otherwise the NEXT `pack build`
+  ships items nobody curated.

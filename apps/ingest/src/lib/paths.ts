@@ -9,4 +9,6 @@ export const STAGING_DB = join(BUILD_DIR, 'staging.db');
 export const PACKS_DIR = join(BUILD_DIR, 'packs');
 export const WEB_PACKS_DIR = join(REPO_ROOT, 'apps', 'web', 'public', 'packs');
 export const SOURCES_LOCK = join(REPO_ROOT, 'sources.lock.json');
+/** Committed ledger of published pack versions — the only part of the pack pipeline in git. */
+export const PACKS_LOCK = join(REPO_ROOT, 'packs.lock.json');
 export const SCHEMA_SQL = join(REPO_ROOT, 'packages', 'content-pack', 'src', 'schema.sql');

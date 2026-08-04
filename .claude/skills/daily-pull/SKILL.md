@@ -11,12 +11,30 @@ Target: **under 10 minutes**, most of it yours rather than the network's.
 
 ## Before you start
 
-- Run from the repo root (`d:\Non-work\multilingual-studies` on this machine).
+- Run from the repo root. (Do not hardcode a path here — clones live in different places, which
+  is the same rule `tools/e2e/paths.mjs` exists to enforce.)
+- **`git pull` first.** The pack-version ledger `packs.lock.json` is committed, and it is the only
+  thing stopping two clones from minting the same `YYYY.MM.DD-N` for different content. Pulling
+  stale means building a name someone else already published.
 - **Stop `pnpm dev` before `pack publish`.** On Windows, overwriting `content.pack` while Vite
   watches it kills the dev server with `EBUSY`.
 - Everything below is idempotent per date. Running twice on one day **replaces**, never doubles:
   item ids are date-scoped and each module clears its own (source, lang, date) window first.
-- Use `--date YYYY-MM-DD` on every command if you are re-running for a past day.
+- ⚠️ **`--date` cannot fetch a past day, and the pull commands now refuse to try.** Every source
+  is a live feed with no archive, so `--date` only decides which day the CURRENT fetch is filed
+  under: `daily:all --date <yesterday>` files today's articles under yesterday. That produced 27
+  false rows on 2026-08-04 before the guard existed. A missed day is gone — pull today's and move
+  on. (`daily:select` and `daily:candidates` still accept a past date: they edit or inspect rows
+  that already exist, and inventing nothing is the difference.)
+- ⚠️ **`build/staging.db` is gitignored and does NOT travel between machines.** Whichever clone
+  builds the pack publishes only the daily history *it* pulled. `pack publish` warns when the
+  daily-item count drops below the last published pack — read that warning, do not scroll past it.
+  It has been wrong before and nobody noticed: 212 → 166 between `2026.08.03-1` and `2026.08.03-2`.
+- ⚠️ **`pnpm ingest <cmd> --file X` does not work on every machine.** The root `ingest` script ends
+  in `--`, which some pnpm versions forward literally; commander then reads `--file` as an operand
+  and reports it missing. Bypass the wrapper for anything that takes a flag:
+  `cd apps/ingest && pnpm exec tsx src/cli.ts <cmd> --file <path>`. Bare subcommands
+  (`daily:all`, `pack build`) are unaffected.
 
 ## 1. Pull
 
@@ -37,7 +55,7 @@ Today screen works even if you stop here. Step 3 replaces it.
 ## 2. Curate
 
 ```sh
-pnpm ingest daily:candidates > candidates.json
+pnpm ingest daily:candidates > candidates.json   # strip pnpm's two `$ …` banner lines first
 ```
 
 Read it. For **each language** choose:
@@ -75,7 +93,7 @@ actionable in one sitting.
 ```
 
 ```sh
-pnpm ingest tips:add --file tip.json
+cd apps/ingest && pnpm exec tsx src/cli.ts tips:add --file tip.json   # see the --file note above
 ```
 
 ## 4. Apply the curation
@@ -94,8 +112,12 @@ pnpm ingest tips:add --file tip.json
 ```
 
 ```sh
-pnpm ingest daily:select --file selection.json
+cd apps/ingest && pnpm exec tsx src/cli.ts daily:select --file selection.json
 ```
+
+`daily:select` is also the **undo**: a selection with `"keep": []` for a date drops every pulled
+item for that date and clears its word plan. That is how mis-dated rows get removed without
+touching the database by hand.
 
 It prints what it kept, dropped, annotated and planned, plus `unknownWords` — any word id that is
 not in the pack. **If `unknownWords` is non-empty, fix the ids and re-run**; a plan row pointing at
@@ -117,10 +139,14 @@ covers material produced *exclusively* by VOA; adapted wire copy is not ours to 
 ## 6. Commit and push
 
 ```sh
-git add sources.lock.json docs/ .claude/ apps/ packages/
+git add sources.lock.json packs.lock.json docs/ .claude/ apps/ packages/
 git commit -m "daily-pull: YYYY-MM-DD"
 git push
 ```
+
+**`packs.lock.json` must be in the commit.** It is the ledger of published pack versions, and it
+is the only reason a second clone cannot reuse a name that is already live — the app's update
+check compares version strings, so a reused name tells a learner they are current forever.
 
 Built packs are gitignored — they ship via GitHub Releases, not git history.
 

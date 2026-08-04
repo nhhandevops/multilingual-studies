@@ -34,11 +34,25 @@ const COUNTED_TABLES = [
   'grammar_topics', 'tech_terms', 'daily_items', 'tips', 'audio', 'audio_blobs', 'asset_blobs', 'word_audio', 'sources',
 ] as const;
 
-/** '2026.07.29-1', bumping -N if the same date already exists in packsDir. */
-export function nextPackVersion(packsDir: string, today: Date): string {
+/**
+ * '2026.07.29-1', bumping -N past anything already built HERE or already published ANYWHERE.
+ *
+ * `packsDir` alone is not enough, and the gap is not theoretical: `build/` is gitignored, so a
+ * second clone that pulls the repo sees none of the first clone's builds and mints `-1` again.
+ * On 2026-08-04 that produced two different packs both calling themselves `2026.08.04-1` — and
+ * because the app's update check compares this string, a learner holding one of them would have
+ * been told they were up to date while the other shipped.
+ *
+ * `reserved` is the published ledger (packs.lock.json), which IS committed, so a clone that
+ * pulls before building cannot reuse a name. Two clones that both build without syncing can
+ * still collide — that is a workflow the ledger cannot fix, only make visible.
+ */
+export function nextPackVersion(packsDir: string, today: Date, reserved: Iterable<string> = []): string {
   const date = today.toISOString().slice(0, 10).replaceAll('-', '.');
+  const taken = new Set(reserved);
   for (let n = 1; ; n++) {
     const candidate = `${date}-${n}`;
+    if (taken.has(candidate)) continue;
     try {
       readFileSync(join(packsDir, candidate, 'manifest.json'));
     } catch {

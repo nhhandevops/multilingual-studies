@@ -28,6 +28,37 @@ export function assertIsoDate(d: string): string {
   return d;
 }
 
+/**
+ * The date a PULL may run for. Stricter than `assertIsoDate`, and the difference cost real data.
+ *
+ * Every daily source is a live feed with no historical access: VOA, Global Voices and Wikipedia's
+ * current-events page all return what is current NOW. `--date` does not select a day's news — it
+ * only decides which day the fetched items are FILED under. So `daily:all --date <yesterday>`
+ * silently stamps today's articles with yesterday's date. On 2026-08-04 that produced 27 items
+ * dated 2026-08-03 that had never appeared on 2026-08-03; they had to be deleted with
+ * `daily:select` (empty `keep`) before the pack could be built.
+ *
+ * Missed a day? It is gone — the feed does not keep it. Pull today's and move on.
+ *
+ * `daily:select`, `daily:candidates` and `tips:add` are deliberately NOT restricted this way:
+ * curating or correcting a past day operates on rows that already exist and invents nothing.
+ */
+export function assertPullDate(d: string, now = new Date()): string {
+  const date = assertIsoDate(d);
+  const today = todayIso(now);
+  if (date > today)
+    throw new Error(`daily: --date ${date} is in the future (today is ${today}) — nothing to pull yet`);
+  if (date < today)
+    throw new Error(
+      `daily: refusing to pull for ${date} (today is ${today}).\n`
+      + `  The sources are live feeds with no archive, so this would file TODAY's articles under\n`
+      + `  ${date} — data that is well-formed and untrue. A missed day cannot be recovered.\n`
+      + `  Run \`daily:all\` for today instead. (To fix a PAST day's curation, use daily:select,\n`
+      + `  which only edits rows that already exist.)`,
+    );
+  return date;
+}
+
 export interface DailyItem {
   lang: IdLang;
   date: string; //          the day this item is FOR

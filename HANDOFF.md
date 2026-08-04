@@ -18,6 +18,14 @@
 > nếu không `/today` chỉ có kho VOA và `verify-v06` sẽ đỏ. Cách tự kiểm tra: xem mục `verify-v06`
 > trong "Current state".
 >
+> Cập nhật cuối ngày 2026-08-04: đã chạy daily pull, pack **`2026.08.04-2`** đang live. Việc cắt
+> bản này lộ ra **ba lỗi thật của quy trình hai máy** và cả ba đã được vá — nặng nhất là **hai máy
+> đúc ra cùng một tên phiên bản pack cho hai nội dung khác nhau**, mà app lại so sánh đúng chuỗi
+> tên đó để biết có bản mới, nên người dùng giữ bản kia sẽ bị báo "đã mới nhất" vĩnh viễn.
+> Từ nay có sổ **`packs.lock.json`** (được commit) giữ chỗ tên đã dùng; `pack publish` **từ chối**
+> tái dùng tên cho nội dung khác. **Luôn `git pull` trước khi chạy `/daily-pull`** — sổ chỉ bảo vệ
+> được nếu máy bạn đã đồng bộ. Chi tiết ở đầu "Current state".
+>
 > **👉 Việc tiếp theo, ai cầm máy nào cũng làm được** (xem mục "Next up" để có chi tiết):
 > **(1) Thử trên iPhone thật** — đây là tuyên bố CUỐI CÙNG của v0.9 chưa ai kiểm chứng, và
 > **không script nào thay thế được** vì bản chất là hành vi Chrome không tái hiện. Bảng 6 bước
@@ -83,6 +91,47 @@
 Keep this file current: update the **Current state** and **Next up** sections at the end of every
 working session, and commit it with the session's push. It is the single source of truth for
 "where were we?" on a fresh clone.
+
+## Current state (updated 2026-08-04, later)
+
+- **Daily pull for 2026-08-04 shipped, and cutting it exposed three real defects in the
+  two-machine workflow.** Pack `2026.08.04-2` is live (release `pack-2026.08.04-2`, deploy green,
+  `verify-v10-live` PASS). 9 curated items (3 per language), 24 planned words, and a French tip on
+  homographs (*est · plus · fils · tous · sens*). But the pull was cut from the **second clone**,
+  and that is where everything below came from. New committed file: **`packs.lock.json`**.
+  - **Two clones minted the same pack version for different content.** `nextPackVersion` counted
+    `-N` from the local `build/packs/` directory only — and `build/` is gitignored, so this clone
+    started the counter from scratch and produced a `2026.08.04-1` while a *different*
+    `2026.08.04-1` (sha `ee622228…` vs `6643d065…`) was already published. **The app compares the
+    version STRING in its update check**, so shipping that would have told anyone holding the
+    other pack that they were permanently up to date. Caught before publication; this release is
+    `-2` for that reason. Fix: `packs.lock.json`, a committed ledger of published versions.
+    `pack build` skips reserved names; `pack publish` **refuses** to reuse a name for different
+    bytes and is idempotent for identical bytes. Backfilled with all four released packs.
+  - **`daily:all --date <past>` fabricates data, and now refuses.** Every source is a live feed
+    with no archive, so `--date` never selected a day's news — it only chose which day the current
+    fetch was *filed under*. Trying to recover the missing days this way filed 27 of today's
+    articles under 2026-08-03. They were removed with `daily:select` (empty `keep`), which is the
+    documented undo. `assertPullDate` in [lib/daily.ts](apps/ingest/src/lib/daily.ts) now rejects
+    past and future dates on the PULL commands only — `daily:select`/`daily:candidates` still take
+    a past date, because editing rows that exist invents nothing.
+  - **A pack can silently lose daily history, and already had.** `build/staging.db` is gitignored,
+    so whichever clone builds publishes only the days *it* pulled: this pack has 175 daily items
+    where the previous had 238. `pack verify` cannot catch it — its ID-churn gate deliberately
+    excludes `daily_items`. Checking the ledger showed the same thing had happened before and gone
+    unnoticed: **212 → 166 between `2026.08.03-1` and `2026.08.03-2`**. `pack publish` now warns
+    on any decrease. It is a warning, not an error: a `/curate-pack` prune is a legitimate shrink,
+    and the lost items are unrecoverable either way — what mattered was that nobody was told.
+  - **Also fixed in the skill:** it hardcoded a repo path from another machine
+    (`d:\Non-work\multilingual-studies`), and `pnpm ingest <cmd> --file X` does not work here at
+    all — the root `ingest` script ends in `--`, which pnpm forwards literally, so commander reads
+    `--file` as an operand and reports it missing. Both commands in the skill now bypass the
+    wrapper.
+  - **Open, and it needs a decision rather than more code:** the pack pipeline is effectively
+    single-machine. `staging.db` is the real database and does not travel, so alternating which
+    clone publishes will keep trimming the daily archive. Either nominate one publishing machine,
+    or make staging portable (it is ~156 MB — a release asset would work, at the cost of a large
+    download per clone).
 
 ## Current state (updated 2026-08-04)
 

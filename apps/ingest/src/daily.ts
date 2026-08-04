@@ -18,7 +18,7 @@ import { Command } from 'commander';
 import { readFileSync } from 'node:fs';
 import { tipId, type IdLang } from '@mls/shared';
 import { openStaging, type DB } from './lib/staging';
-import { assertIsoDate, todayIso } from './lib/daily';
+import { assertIsoDate, assertPullDate, todayIso } from './lib/daily';
 import { wordMatcher } from './lib/level';
 import { DAILY_TIP_PREFIX, registerTipsSource } from './sources/shared/tips';
 
@@ -45,7 +45,7 @@ export function registerDaily(program: Command): void {
       .description(`daily pull: ${name}`)
       .option('--date <iso>', 'the day to pull for (default: today)')
       .action(async (opts: { date?: string }) => {
-        const date = assertIsoDate(opts.date ?? todayIso());
+        const date = assertPullDate(opts.date ?? todayIso()); // a pull may only fetch TODAY
         const db = openStaging();
         try {
           const mod = await MODULES[name]!();
@@ -61,7 +61,7 @@ export function registerDaily(program: Command): void {
     .description('run every daily source; a failing source is reported, not fatal')
     .option('--date <iso>', 'the day to pull for (default: today)')
     .action(async (opts: { date?: string }) => {
-      const date = assertIsoDate(opts.date ?? todayIso());
+      const date = assertPullDate(opts.date ?? todayIso()); // see assertPullDate — feeds have no archive
       const db = openStaging();
       const ok: ModuleResult[] = [];
       const failed: { module: string; error: string }[] = [];

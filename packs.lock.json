@@ -1,0 +1,32 @@
+{
+  "published": [
+    {
+      "packVersion": "2026.08.03-1",
+      "dbSha256": "c871dfa134e59e25dc18b233a8e0dbc57414882152dc95f56ceb39b7db358229",
+      "publishedAt": "2026-08-03",
+      "dailyItems": 212,
+      "note": "release pack-2026.08.03-1 — first pack served from GitHub Pages"
+    },
+    {
+      "packVersion": "2026.08.03-2",
+      "dbSha256": "b722a55cb06717d4a7c1e4d6cd6513ff5ba765f4d9d0f0b854883fb0193e1c5d",
+      "publishedAt": "2026-08-03",
+      "dailyItems": 166,
+      "note": "release v0.9 — the media split (core 56 MB + optional media 74 MB)"
+    },
+    {
+      "packVersion": "2026.08.04-1",
+      "dbSha256": "ee622228831abd0badd0364911125d9391fcb74a26dea9b6321db4c6c1d7a1f0",
+      "publishedAt": "2026-08-04",
+      "dailyItems": 238,
+      "note": "release pack-2026.08.04-1 — the 2026-08-03 pull, cut from the first clone"
+    },
+    {
+      "packVersion": "2026.08.04-2",
+      "dbSha256": "d91eb065d518b297581e5551e8b9306bf9244b8cbfa8e5b41b249183b9991c2f",
+      "publishedAt": "2026-08-04",
+      "dailyItems": 175,
+      "note": "release pack-2026.08.04-2 — the 2026-08-04 pull, cut from the second clone. Named -2 because a local build had already minted -1 for different bytes; that collision is why this ledger exists."
+    }
+  ]
+}
