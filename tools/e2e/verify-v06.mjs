@@ -46,6 +46,14 @@ const plan = pdb.prepare('SELECT COUNT(*) n FROM daily_plan').get().n;
 log(`pack ${newest}: daily_items ${byLang.map(r => `${r.lang} ${r.n}`).join(' · ')}`);
 log(`  sources: ${bySource.map(r => `${r.source_id} ${r.n}`).join(' · ')}`);
 log(`  tips ${tips} · daily_plan ${plan}`);
+// Distinguish "this machine has never pulled" from "the pull is broken". `build/staging.db` is
+// gitignored, so a fresh clone that has only run `seed:all` has the VOA archive and nothing from
+// the daily modules — and the old message ("expected daily content in all three languages") read
+// like a product regression. It is a missing PREREQUISITE, and the script should say which.
+const freshItems = pdb.prepare(`SELECT COUNT(*) n FROM daily_items WHERE source_id IN ${FRESH}`).get().n;
+if (freshItems === 0)
+  fail('this pack holds no pulled daily items at all — run `pnpm ingest daily:all` and rebuild the pack first '
+     + '(build/staging.db is gitignored, so a fresh clone starts with only the seeded VOA archive)');
 if (byLang.length < 3) fail('expected daily content in all three languages');
 if (tips === 0) fail('the pack must ship evergreen tips — the Today screen has to work on day one');
 if (plan === 0) fail('the pack must ship a word plan');

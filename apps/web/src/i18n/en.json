@@ -51,6 +51,11 @@
     "importConfirm": "Restoring will REPLACE all study progress on this device with the backup file. Continue?",
     "importOk": "Restore complete.",
     "importError": "Restore failed: {{message}}",
+    "exportError": "Backup failed: {{message}}",
+    "exportNotRecorded": "The file downloaded, but this backup could not be remembered: {{message}}",
+    "exportConfirmAsk": "Did the backup file save? The browser does not tell the app either way.",
+    "exportConfirmYes": "Yes, I have the file",
+    "exportConfirmed": "Backup recorded for today.",
     "debugClock": "Debug clock: {{offset}}",
     "iv": {
       "now": "<1m",
@@ -162,7 +167,10 @@
     "notPersisted": "Storage: not durable — the browser MAY evict data under pressure.",
     "usage": "using {{mb}} MB",
     "protect": "Protect data",
+    "protectDenied": "The browser declined. Install the app to your home screen and try again.",
     "nag": "It has been over 7 days since your last progress backup.",
+    "nagUnconfirmed": "You downloaded a backup but never confirmed the file saved.",
+    "nagConfirm": "Yes, I have the file",
     "nagGo": "Back up now"
   },
   "media": {

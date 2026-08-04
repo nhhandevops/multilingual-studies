@@ -94,7 +94,7 @@ await page.goto(`${BASE}/review`, { waitUntil: 'domcontentloaded' });
 await page.waitForSelector('.backup button', { timeout: 30_000 });
 const [download] = await Promise.all([
   page.waitForEvent('download', { timeout: 30_000 }),
-  page.click('.backup button:first-of-type'),
+  page.click('.backup button.export-backup'),
 ]);
 const backupPath = join(mkdtempSync(join(tmpdir(), 'mls-backup-')), 'user-backup.db');
 await download.saveAs(backupPath);

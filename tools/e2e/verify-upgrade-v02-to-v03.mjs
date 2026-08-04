@@ -3,24 +3,47 @@
 // from scratch. This one starts on the pre-v0.3 pack, builds real SRS state, then swaps the
 // pack file underneath the app — the way a real user receives an update.
 import { chromium } from 'playwright-core';
-import { copyFileSync } from 'node:fs';
+import { copyFileSync, existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 
-import { REPO, BASE, CHROME } from './paths.mjs';
+import { REPO, BASE, CHROME, newestPack } from './paths.mjs';
 const DIST = join(REPO, 'apps/web/dist/packs');
-const OLD = join(REPO, 'build/packs/2026.07.30-1'); // pre-v0.3: no graphemes/audio/assets
-const NEW = join(REPO, 'build/packs/2026.07.30-5'); // v0.3
+const PACKS = join(REPO, 'build/packs');
+const fail = (m) => { throw new Error(`ASSERT: ${m}`); };
+const log = (m) => console.log(m);
+
+// The two pack versions used to be hardcoded ('2026.07.30-1' and '-5'), which made this script
+// unrunnable anywhere but the machine that built them — `build/packs/` is gitignored, so a fresh
+// clone got a bare ENOENT. That is exactly the machine-specific coupling paths.mjs was created to
+// remove, one level up: in the DATA rather than in the paths. Derive the pair from what a pack
+// actually contains instead, and say what is missing when no pair exists.
+const manifests = readdirSync(PACKS)
+  .filter((v) => existsSync(join(PACKS, v, 'manifest.json')) && existsSync(join(PACKS, v, 'content.db.gz')))
+  .map((v) => ({ v, m: JSON.parse(readFileSync(join(PACKS, v, 'manifest.json'), 'utf8')) }));
+const byNewest = (vs) => (vs.length ? newestPack(vs) : null);
+
+// "pre-v0.3" is a property of the CONTENT (no graphemes ⇒ no /write, /pinyin, /ipa), not of a
+// version string — which is what the assertions below actually depend on.
+const OLD_V = byNewest(manifests.filter((x) => !x.m.counts?.graphemes).map((x) => x.v));
+const NEW_V = byNewest(manifests.filter((x) => (x.m.counts?.graphemes ?? 0) > 0).map((x) => x.v));
+if (!OLD_V || !NEW_V)
+  fail(`need one pre-v0.3 pack (graphemes = 0) and one v0.3+ pack in build/packs; found `
+     + `${manifests.map((x) => `${x.v}:${x.m.counts?.graphemes ?? 0}`).join(', ') || '(none)'}. `
+     + `Build both, or copy them from the machine that has them.`);
+const OLD = join(PACKS, OLD_V);
+const NEW = join(PACKS, NEW_V);
 
 const publish = (dir) => {
   copyFileSync(join(dir, 'manifest.json'), join(DIST, 'manifest.json'));
   copyFileSync(join(dir, 'content.db.gz'), join(DIST, 'content.pack'));
+  // Since v0.9 a pack may be a PAIR. Ship the media file whenever the pack has one, so the
+  // manifest never advertises a download that would 404.
+  if (existsSync(join(dir, 'media.db.gz'))) copyFileSync(join(dir, 'media.db.gz'), join(DIST, 'media.pack'));
 };
-const fail = (m) => { throw new Error(`ASSERT: ${m}`); };
-const log = (m) => console.log(m);
 
 publish(OLD);
-log('serving the PRE-v0.3 pack (2026.07.30-1)');
+log(`serving the PRE-v0.3 pack (${OLD_V}) → will upgrade to ${NEW_V}`);
 
 const browser = await chromium.launch({ executablePath: CHROME, headless: true });
 const ctx = await browser.newContext(); // one profile for the whole run = one OPFS
@@ -34,7 +57,7 @@ await page.goto(BASE, { waitUntil: 'domcontentloaded' });
 await page.waitForSelector('input.searchbox', { timeout: 300_000 });
 const oldVersion = await page.$eval('footer.pack', (e) => e.textContent.trim());
 log(`installed: ${oldVersion}`);
-if (!/2026\.07\.30-1/.test(oldVersion)) fail(`expected the old pack, got ${oldVersion}`);
+if (!oldVersion.includes(OLD_V)) fail(`expected the old pack ${OLD_V}, got ${oldVersion}`);
 
 await page.click('header.top nav a[href="/browse"]');
 await page.waitForSelector('ul.words li .deck-btn', { timeout: 60_000 });
@@ -65,7 +88,7 @@ await page.reload({ waitUntil: 'domcontentloaded' });
 await page.waitForSelector('footer.pack', { timeout: 300_000 });
 const newVersion = await page.$eval('footer.pack', (e) => e.textContent.trim());
 log(`installed after reload: ${newVersion}`);
-if (!/2026\.07\.30-5/.test(newVersion)) fail(`pack did not upgrade — still ${newVersion}`);
+if (!newVersion.includes(NEW_V)) fail(`pack did not upgrade to ${NEW_V} — still ${newVersion}`);
 
 // --- 3. progress survived the content swap ---------------------------------------------------
 await page.click('header.top nav a[href="/review"]');

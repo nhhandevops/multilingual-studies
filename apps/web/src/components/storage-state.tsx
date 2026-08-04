@@ -11,6 +11,7 @@ export function StorageStateLine() {
   const { t } = useTranslation();
   const [state, setState] = useState<PersistState | null>(null);
   const [mb, setMb] = useState<number | null>(null);
+  const [denied, setDenied] = useState(false);
 
   const refresh = useCallback(() => {
     void persistState().then(setState);
@@ -27,15 +28,24 @@ export function StorageStateLine() {
         <>
           {' '}
           <button
-            className="linklike"
+            className="linklike protect-storage"
             onClick={() => {
-              void ensurePersisted().then(() => refresh());
+              // The result was previously discarded, so a browser that says NO produced a
+              // character-for-character identical screen: the learner could not tell the click
+              // from a no-op. Chrome refuses until the origin is installed or engaged enough,
+              // which is exactly when saying so is useful.
+              setDenied(false);
+              void ensurePersisted().then((next) => {
+                setDenied(next !== 'persisted');
+                refresh();
+              });
             }}
           >
             {t('storage.protect')}
           </button>
         </>
       )}
+      {denied && <span className="storage-denied"> {t('storage.protectDenied')}</span>}
     </p>
   );
 }

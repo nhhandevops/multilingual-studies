@@ -10,6 +10,7 @@ import { getWordAudio, type WordAudioRow } from '../db/queries';
 import { SpeakButton } from '../components/speak-button';
 import {
   fetchQueue,
+  getSetting,
   queueSummary,
   rateCard,
   setNewPerDay,
@@ -59,6 +60,11 @@ export function Review() {
   const [queue, setQueue] = useState<UserCardRow[]>([]);
   const [showAnswer, setShowAnswer] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  // Backup messages get their own slot, rendered INSIDE the .backup panel. `notice` prints under
+  // the <h2>, ~800 px above these buttons on a phone, so the export result was invisible from
+  // where it was triggered — the state-layer bug this change fixes, re-created in the layout.
+  const [backupNotice, setBackupNotice] = useState<string | null>(null);
+  const [awaitingBackupConfirm, setAwaitingBackupConfirm] = useState(false);
   const [ratingBusy, setRatingBusy] = useState(false);
   const [cardAudio, setCardAudio] = useState<WordAudioRow | null | undefined>(undefined);
   const ratingRef = useRef(false); // re-entrancy guard: a double-tap must not rate twice
@@ -71,6 +77,12 @@ export function Review() {
       setSummaries(await queueSummary(db, [...LANGS], now));
       setStats(await todayStats(db, localDateStr(now)));
       setStreakDays(await streak(db, now));
+      // An unanswered "did the file save?" is state of the DATA, not of this mount. Held only in
+      // useState it died on the first route change — and since nothing else writes
+      // last_backup_at, the learner then had no way at all to record a backup they really had.
+      const pending = Date.parse((await getSetting(db, 'backup_export_pending_at')) ?? '') || 0;
+      const last = Date.parse((await getSetting(db, 'last_backup_at')) ?? '') || 0;
+      setAwaitingBackupConfirm(pending > last);
     } catch {
       setSummaries([]); //  a failed refresh must land somewhere, or the screen spins forever
     }
@@ -114,16 +126,62 @@ export function Review() {
   };
 
   const onExport = async () => {
-    const bytes = await db.userExport();
-    const url = URL.createObjectURL(new Blob([bytes], { type: 'application/octet-stream' }));
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `mls-user-${localDateStr(srsNow())}.db`;
-    a.click();
-    URL.revokeObjectURL(url);
-    // Feeds the weekly backup nag. Written AFTER the download was offered, never before.
-    await setSetting(db, 'last_backup_at', new Date(srsNow()).toISOString());
-    window.dispatchEvent(new Event(BACKUP_DONE_EVENT)); // the nag re-reads and clears itself
+    // Two try blocks on purpose. Producing the file and offering it is one operation that can
+    // genuinely fail; recording that we offered it is bookkeeping. Sharing a catch made a failed
+    // settings write report "backup failed" for a file that HAD downloaded, and swallowed the
+    // confirmation prompt with it — a false negative on the one irreplaceable file in the app.
+    try {
+      const bytes = await db.userExport();
+      const url = URL.createObjectURL(new Blob([bytes], { type: 'application/octet-stream' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `mls-user-${localDateStr(srsNow())}.db`;
+      a.click();
+      // Revoke on a later tick, not on the next line. Chrome 150 was measured to deliver the
+      // download either way, but a detached anchor whose blob URL dies in the same task is a
+      // known non-starter in other engines — and this is the one irreplaceable file in the app.
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch (e) {
+      // Without this the rejection escaped as an unhandled pageerror and the screen said
+      // nothing at all — while the analogous import path has always reported its failures.
+      setAwaitingBackupConfirm(false);
+      setBackupNotice(t('review.exportError', { message: e instanceof Error ? e.message : String(e) }));
+      return;
+    }
+
+    // The file has been offered. An anchor download reports NOTHING back — cancelled, blocked
+    // and saved are the same event to us — so this records the ATTEMPT under its own key, not a
+    // backup and not a "Để sau" snooze. Overloading the snooze key threw away the one fact we
+    // have, which left the reminder unable to say anything true and made it a daily false alarm.
+    setAwaitingBackupConfirm(true);
+    setBackupNotice(null);
+    try {
+      await setSetting(db, 'backup_export_pending_at', new Date(srsNow()).toISOString());
+      window.dispatchEvent(new Event(BACKUP_DONE_EVENT)); // the nag re-reads and re-phrases itself
+    } catch (e) {
+      // The file is on disk either way; only the reminder's memory failed. Say that, and keep
+      // the confirmation on screen so the learner can still record it.
+      setBackupNotice(t('review.exportNotRecorded', { message: e instanceof Error ? e.message : String(e) }));
+    }
+  };
+
+  /**
+   * The learner confirms the file really is on disk. This is the ONLY writer of last_backup_at:
+   * the app never claims a backup on the learner's behalf.
+   */
+  const onBackupConfirmed = async () => {
+    try {
+      await setSetting(db, 'last_backup_at', new Date(srsNow()).toISOString());
+      await setSetting(db, 'backup_export_pending_at', '');
+      // Clear the prompt only once the write has landed. Tearing it down first meant a failed
+      // write left nothing to click again — the same silent-failure shape this whole change
+      // exists to remove, in the one click that records the backup.
+      setAwaitingBackupConfirm(false);
+      window.dispatchEvent(new Event(BACKUP_DONE_EVENT));
+      setBackupNotice(t('review.exportConfirmed'));
+    } catch (e) {
+      setBackupNotice(t('review.exportError', { message: e instanceof Error ? e.message : String(e) }));
+    }
   };
 
   const onImportFile = async (file: File) => {
@@ -353,8 +411,31 @@ export function Review() {
         <h3>{t('review.backupTitle')}</h3>
         <p className="hint">{t('review.backupHint')}</p>
         <StorageStateLine />
-        <button onClick={() => void onExport()}>{t('review.export')}</button>{' '}
-        <button onClick={() => fileRef.current?.click()}>{t('review.import')}</button>
+        {/* The class is the test hook AND the documentation: three acceptance scripts used to
+            aim at `.backup button:first-of-type`, which quietly started matching the storage
+            button nested in the <p> above the day v0.9 added it. Name what you mean. */}
+        <button className="export-backup" onClick={() => void onExport()}>
+          {t('review.export')}
+        </button>{' '}
+        <button className="import-backup" onClick={() => fileRef.current?.click()}>
+          {t('review.import')}
+        </button>
+        {awaitingBackupConfirm && (
+          <p className="backup-confirm hint" role="status">
+            {t('review.exportConfirmAsk')}{' '}
+            <button className="confirm-backup" onClick={() => void onBackupConfirmed()}>
+              {t('review.exportConfirmYes')}
+            </button>
+          </p>
+        )}
+        {/* Rendered here, not in the page-level `notice`: the buttons that produce these
+            messages are at the bottom of a long screen, and a result the learner has to scroll
+            up to find is a result they do not see. */}
+        {backupNotice && (
+          <p className="backup-notice hint" role="status">
+            {backupNotice}
+          </p>
+        )}
         <input
           ref={fileRef}
           type="file"

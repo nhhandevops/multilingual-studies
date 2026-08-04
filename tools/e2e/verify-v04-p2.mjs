@@ -9,10 +9,11 @@ import { readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { REPO, BASE, CHROME, newestPack } from './paths.mjs';
+import { installMediaPack } from './media.mjs';
 const require=createRequire(`${REPO}/apps/ingest/package.json`);
 const Database=require('better-sqlite3');
 const packsDir=join(REPO,'build','packs');
-const newest=readdirSync(packsDir).sort().at(-1);
+const newest=newestPack(readdirSync(packsDir));
 const pdb=new Database(join(packsDir,newest,'content.db'),{readonly:true});
 const clips=pdb.prepare("SELECT COUNT(*) n FROM audio WHERE kind='word'").get().n;
 const links=pdb.prepare('SELECT COUNT(*) n FROM word_audio').get().n;
@@ -42,15 +43,22 @@ page.on('request',r=>{if(!/^(http:\/\/localhost:5173|data:|blob:)/.test(r.url())
 
 await page.goto(BASE,{waitUntil:'domcontentloaded'});
 await page.waitForSelector('input.searchbox',{timeout:300000});
+// This script is ABOUT the recording, and since v0.9 the bytes ship in the opt-in media pack.
+// A fresh context has none, so do what the learner does before claiming a word speaks.
+await installMediaPack(page, log);
+await page.click('header.top nav a[href="/"]');
+await page.waitForSelector('input.searchbox',{timeout:60000});
 await page.fill('input.searchbox', target.headword);
 await page.waitForFunction(h=>[...document.querySelectorAll('ul.words .hw')].some(e=>e.textContent.trim()===h), target.headword, {timeout:30000});
 await page.click(`ul.words li:has(.hw:text-is("${target.headword}")) a`);
-await page.waitForSelector('.word-detail button.speak',{timeout:60000});
-log('word page shows a play button');
+// :not(.tts) — a synthetic-voice button also carries .speak, so the bare selector would let a
+// TTS fallback satisfy a test whose whole subject is the human recording.
+await page.waitForSelector('.word-detail button.speak:not(.tts)',{timeout:60000});
+log('word page shows a play button for the RECORDED voice');
 
 await page.evaluate(()=>{ window.__played=[]; const O=window.Audio;
   window.Audio=function(src){ const el=new O(src); window.__played.push(el); return el; }; });
-await page.click('.word-detail button.speak');
+await page.click('.word-detail button.speak:not(.tts)');
 await page.waitForFunction(()=>(window.__played??[]).length>0,null,{timeout:20000});
 const info=await page.evaluate(async()=>{ const el=window.__played[0];
   await new Promise(r=>{ if(el.readyState>=1) return r(); el.addEventListener('loadedmetadata',r,{once:true}); setTimeout(r,5000); });
@@ -68,8 +76,10 @@ await page.click('button.start-all');
 await page.waitForSelector('button.show-answer',{timeout:20000});
 await page.click('button.show-answer');
 await page.waitForSelector('.review-answer',{timeout:15000});
-if (!(await page.$('.review-answer button.speak'))) fail('review card offers no pronunciation');
-log('review card offers the pronunciation too');
+// Same reason as the word page: assert the RECORDED voice, or a TTS button passes the line that
+// claims "the review card offers the same".
+if (!(await page.$('.review-answer button.speak:not(.tts)'))) fail('review card offers no recorded pronunciation');
+log('review card offers the recorded pronunciation too');
 
 log(`off-origin requests: ${off.length}`);
 if (off.length>0) fail('word audio must be served from the pack');

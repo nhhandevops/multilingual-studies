@@ -51,6 +51,11 @@
     "importConfirm": "Phục hồi sẽ THAY THẾ toàn bộ tiến độ học trên máy này bằng tệp sao lưu. Tiếp tục?",
     "importOk": "Đã phục hồi thành công.",
     "importError": "Không phục hồi được: {{message}}",
+    "exportError": "Không tạo được bản sao lưu: {{message}}",
+    "exportNotRecorded": "Đã tải file xuống, nhưng chưa ghi nhớ được lần sao lưu này: {{message}}",
+    "exportConfirmAsk": "Đã lưu được file sao lưu chưa? Trình duyệt không báo lại cho ứng dụng biết.",
+    "exportConfirmYes": "Rồi, đã có file",
+    "exportConfirmed": "Đã ghi nhận bản sao lưu hôm nay.",
     "debugClock": "Đồng hồ debug: {{offset}}",
     "iv": {
       "now": "<1 ph",
@@ -162,7 +167,10 @@
     "notPersisted": "Bộ nhớ: chưa bền vững — trình duyệt CÓ THỂ tự xoá khi thiếu chỗ.",
     "usage": "đang dùng {{mb}} MB",
     "protect": "Bảo vệ dữ liệu",
+    "protectDenied": "Trình duyệt chưa cho phép. Cài ứng dụng vào màn hình chính rồi thử lại.",
     "nag": "Đã hơn 7 ngày chưa sao lưu tiến độ học.",
+    "nagUnconfirmed": "Bạn vừa tải bản sao lưu nhưng chưa xác nhận là đã lưu được file.",
+    "nagConfirm": "Rồi, đã có file",
     "nagGo": "Sao lưu ngay"
   },
   "media": {

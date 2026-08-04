@@ -20,6 +20,7 @@ import { copyFileSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import { REPO, BASE, CHROME, newestPack } from './paths.mjs';
+import { installMediaPack } from './media.mjs';
 
 const require = createRequire(`${REPO}/apps/ingest/package.json`);
 const Database = require('better-sqlite3');
@@ -202,27 +203,11 @@ log(`media absent: ${spoken} offers ${ttsBtn ? 'the labelled TTS voice' : 'no vo
 if (!(await page.$('.media-hint'))) fail(`${spoken} has a recording in the pack — the media nudge must show`);
 log('media nudge shown on a word whose recording is not installed');
 
-// install the media pack from /review
-await page.click('header.top nav a[href="/review"]');
-await page.waitForSelector('.media-pack button', { timeout: 30_000 });
-const installLabel = await page.$eval('.media-pack button', (e) => e.textContent);
-log(`installing media pack: "${installLabel.trim()}"`);
-await page.click('.media-pack button');
-await page.waitForFunction(
-  () => {
-    const el = document.querySelector('.media-pack');
-    return el && !el.textContent.includes('MB)') === false || el.textContent.length > 0;
-  },
-  { timeout: 5_000 },
-).catch(() => {});
-// installed state: the control's button flips to the remove action (no MB size in label)
-await page.waitForFunction(
-  () => {
-    const btn = document.querySelector('.media-pack button');
-    return btn && !/MB/.test(btn.textContent);
-  },
-  { timeout: 300_000 },
-);
+// install the media pack from /review, through the shared helper (media.mjs) — this used to be
+// inline here, and its wait passed `{timeout: 300_000}` as the ARG rather than the options, so
+// the real cap was Playwright's 30 s default and a failed install threw a bare TimeoutError
+// instead of the reason the control was already showing.
+await installMediaPack(page, log);
 log('media pack installed');
 
 // the same word now speaks with the recorded voice

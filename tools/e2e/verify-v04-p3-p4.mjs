@@ -14,6 +14,7 @@ import { readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { REPO, BASE, CHROME, newestPack } from './paths.mjs';
+import { installMediaPack } from './media.mjs';
 const require = createRequire(`${REPO}/apps/ingest/package.json`);
 const Database = require('better-sqlite3');
 const packsDir = join(REPO, 'build', 'packs');
@@ -111,7 +112,12 @@ const VOICE_STUB = voices => `(${(v => {
   window.SpeechSynthesisUtterance = function (text) { this.text = text; };
 }).toString()})(${JSON.stringify(voices)})`;
 
-async function session(voices, autoload = true) {
+/**
+ * `media` installs the optional media pack. Since v0.9 the word-recording BYTES live there, so a
+ * session that asserts anything about a RECORDING must install it; sessions whose subject is the
+ * TTS fallback deliberately do NOT, because "no recording" is precisely their input.
+ */
+async function session(voices, autoload = true, media = false) {
   const ctx = await browser.newContext();
   await ctx.addInitScript(VOICE_STUB(voices));
   const page = await ctx.newPage();
@@ -123,6 +129,7 @@ async function session(voices, autoload = true) {
   await page.waitForSelector('input.searchbox', { timeout: 300000 });
   // The stub always starts with an empty voice list; deliver them the way Chrome does.
   if (voices.length > 0 && autoload) await page.evaluate(() => window.__loadVoices());
+  if (media) await installMediaPack(page, log);
   return { ctx, page, errors, off };
 }
 
@@ -158,7 +165,7 @@ const FULL = [{ n: 'Fake FR', l: 'fr-FR' }, { n: 'Fake EN', l: 'en-US' }, { n: '
 
 // ===== 1. a recording plays, and beats TTS even though voices are installed ==================
 {
-  const { ctx, page, errors, off } = await session(FULL);
+  const { ctx, page, errors, off } = await session(FULL, true, true); // subject = the recording
 
   // The headword button must NEVER paint as synthetic for a word we have a recording of.
   // Before the loading state was modelled, `audioId === null` meant both "no clip" and "still
@@ -238,7 +245,7 @@ const FULL = [{ n: 'Fake FR', l: 'fr-FR' }, { n: 'Fake EN', l: 'en-US' }, { n: '
 
 // ===== 3. no voices installed + no recording ⇒ no button at all ==============================
 {
-  const { ctx, page } = await session([]);
+  const { ctx, page } = await session([], true, true); // the second half needs the recording
   await openWord(page, noAudio.headword);
   await page.waitForSelector('.word-detail', { timeout: 60000 });
   await page.waitForTimeout(1500); // let the async audio lookup settle before asserting absence
@@ -248,8 +255,30 @@ const FULL = [{ n: 'Fake FR', l: 'fr-FR' }, { n: 'Fake EN', l: 'en-US' }, { n: '
 
   // ...but a recorded word still plays with no voices installed at all
   await openWord(page, frTarget.headword);
-  await page.waitForSelector('.word-detail button.speak', { timeout: 60000 });
+  await page.waitForSelector('.word-detail button.speak:not(.tts)', { timeout: 60000 });
   log('recorded FR word still plays with zero installed voices');
+  await ctx.close();
+}
+
+// ===== 4. media pack ABSENT: the recorded word degrades to the LABELLED synthetic voice =======
+// v0.9's user-facing promise in Vietnamese is "chưa tải thì từ vẫn đọc bằng giọng máy có nhãn
+// TTS". Nothing asserted it with a deterministic voice: verify-v09 only LOGS whether a TTS button
+// appeared, because real headless Chrome may have no voice for the language. Here the voice is
+// stubbed, so the state can be pinned exactly — and this is the state the two pre-v0.9 scripts
+// were accidentally demonstrating while looking like product failures.
+{
+  const { ctx, page, errors } = await session(FULL); // no media => no recording bytes
+  await openWord(page, frTarget.headword);
+  await page.waitForSelector('.word-detail button.speak', { timeout: 60000 });
+  const cls = await page.evaluate(() =>
+    document.querySelector('.word-detail button.speak').className);
+  if (!/\btts\b/.test(cls)) fail(`media absent: the button must be the LABELLED synthetic voice, got "${cls}"`);
+  if (await page.$('.word-detail button.speak:not(.tts)'))
+    fail('media absent: a recorded-voice button was offered for bytes we do not have — the label lies');
+  if (!(await page.$('.media-hint')))
+    fail('media absent: a word that HAS a recording must show the nudge to install the media pack');
+  log('media absent: recorded word degrades to the labelled TTS voice, and offers the media nudge');
+  if (errors.length) fail(`console errors: ${errors.slice(0, 3).join(' | ')}`);
   await ctx.close();
 }
 

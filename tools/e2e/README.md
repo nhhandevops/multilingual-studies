@@ -23,32 +23,47 @@ Each script exits non-zero and prints `ASSERT: …` on failure, or a `RESULT: PA
 line at the end. Run the lot:
 
 ```sh
-# The upgrade test is the one exception — it swaps the pack file underneath the app, so it needs
-# the static server rather than `pnpm dev`. Running it in this loop always "fails".
+# Round 1 — against `pnpm dev`. Three scripts are excluded: verify-upgrade and verify-v09 swap
+# the pack file underneath the app (Vite's watcher dies with EBUSY on Windows), and
+# verify-v10-live drives the deployed site and needs nothing local.
 for s in verify-*.mjs; do
-  case "$s" in verify-upgrade*) continue;; esac
-  printf '%-30s ' "$s"; node "./$s" >/dev/null 2>&1 && echo PASS || echo FAIL
+  case "$s" in verify-upgrade*|verify-v09*|verify-v10-live*) continue;; esac
+  printf '%-32s ' "$s"; node "./$s" >/dev/null 2>&1 && echo PASS || echo FAIL
 done
 
-# then, for the upgrade test:
-pnpm --filter @mls/web build && node static-server.mjs &
+# Round 2 — against the static server. `vite build` EMPTIES dist/, packs included, so re-copy
+# them or the server hands out whatever stale pack public/packs happened to hold.
+pnpm --filter @mls/web build
+cp ../../apps/web/public/packs/{manifest.json,content.pack,media.pack} ../../apps/web/dist/packs/
+node static-server.mjs &
+MLS_BASE=http://localhost:5199 node ./verify-v09.mjs
 MLS_BASE=http://localhost:5199 node ./verify-upgrade-v02-to-v03.mjs
+
+# Round 3 — the live deployment, from anywhere:
+node ./verify-v10-live.mjs
 ```
 
-Status on v1.0 (2026-08-03, after the UX pass): **14 of 19 pass**, and the 5 that do not were
-measured as PRE-EXISTING — the same five fail identically on the commit before the UX work
-(checked by restoring `apps/web/src` and `tools/e2e` to that commit and re-running):
+Status (2026-08-04): **19 of 20 pass.** The five that were red after the UX pass are FIXED — and
+the earlier note here diagnosed one of them wrongly, which is worth keeping as a lesson:
 
-| Failing | Symptom | Almost certainly |
-|---|---|---|
-| `verify-v02`, `verify-v03-p3`, `verify-v04-p1` | `waitForEvent('download')` times out | the browser profile blocks the `user.db` backup download; nothing to do with the assertion under test |
-| `verify-v04-p2` | `.word-detail button.speak` never appears | v0.9 split word audio into the optional `media.pack`; a fresh profile has not installed it, and this pre-split script assumes a bundled recording |
-| `verify-v04-p3-p4` | "a word WITH a recording must not fall back to TTS" | same cause — the recording is in `media.pack`, absent by design until installed |
+| Was failing | Guessed cause | MEASURED cause | Fix |
+|---|---|---|---|
+| `verify-v02`, `verify-v03-p3`, `verify-v04-p1` | "the browser profile blocks the download" | **wrong.** `.backup button:first-of-type` is a DESCENDANT selector, so it started matching two buttons the day v0.9 put `StorageStateLine` inside `.backup`: its nested `button.linklike` is first-of-type inside its own `<p>` and precedes the export button, and `page.click()` is non-strict. The click landed on "Bảo vệ dữ liệu"; no download was ever requested. The download mechanism is fine (verified: 65,536-byte file, `SQLite format 3\0` header, headless AND headed) | the export button now carries `className="export-backup"` and the scripts aim at it |
+| `verify-v04-p2`, `verify-v04-p3-p4` | word audio moved to the optional `media.pack` | **right.** `audio_blobs JOIN audio WHERE kind='word'` = 0 rows in `content.db`, 9,991 in `media.db` | both install the media pack through the real UI first, via the shared [media.mjs](media.mjs) |
 
-They are not silently tolerated: fix them by teaching v04-p2/p3-p4 to install the media pack
-first (as `verify-v09` does), and by checking the download permission for the three others.
+`verify-v06` is the one that does not pass here, and it is a **data prerequisite, not a defect**:
+`build/staging.db` is gitignored, so a clone that has only run `seed:all` holds the seeded VOA
+archive and nothing from the `daily:*` modules. The script now says exactly that instead of
+failing with "expected daily content in all three languages", which read like a regression.
+Run `pnpm ingest daily:all` and rebuild the pack to make it pass.
 
-The other 14 — including `verify-v06`, whose two waits this pass had to repair — pass green.
+**Two scripts were machine-specific and are not any more.** `verify-upgrade-v02-to-v03` hardcoded
+pack versions `2026.07.30-1`/`-5`, which exist only on the machine that built them — a bare
+`ENOENT` anywhere else. It now derives the pair from pack CONTENT (newest with `graphemes = 0`,
+newest with `graphemes > 0`), which is what its assertions actually depend on, and names the
+missing prerequisite when no such pair exists. `verify-v04-p1` still used
+`readdirSync().sort().at(-1)` — the v0.7 stale-pack trap that `newestPack` was written to kill;
+it imported the helper and never called it.
 
 ⚠️ **Runner matters.** The pre-v0.9 scripts hardcode `http://localhost:5173` in their
 off-origin allow-list (e.g. `verify-v05-p1-p2.mjs:88`), so they must run against `pnpm dev`;
@@ -78,7 +93,8 @@ bug and is not one.
 | `verify-v09.mjs` | 0.9 | the media split (core holds no word blobs, media holds exactly them, no reference dangles across the pair, sampled blobs are real mp3), an in-place upgrade from a v0.8-format pack, media-absent → labelled TTS + nudge, media-installed → the recording plays, webmanifest + service-worker control, and a full offline session (needs `static-server.mjs`) |
 | `verify-v10-live.mjs` | 1.0 | the DEPLOYED site (GitHub Pages, base `/multilingual-studies/` — a path no local script runs at): packs served next to the shell, a cold deep link boots through Pages' `404.html` fallback and the router resolves it, the SW takes control, 0 off-origin. Needs nothing local — it drives the public URL (`MLS_LIVE` to point elsewhere) |
 | `verify-ux.mjs` | 1.0 | the four reported UX defects: the current tab is lit with `aria-current` (and a nested route keeps its parent lit) · **0px page overflow at 360–1280** with the lit tab scrolled into view · every screen opens with exactly one real `.screen-intro` in BOTH languages · **no screen claims "no data" before its query answers** (asserted with a SEEDED deck — with an empty deck the message is simply true) · no IPA chip overflows, overlaps or duplicates another · **vi.json/en.json key parity**, which nothing else in the suite checked |
-| `verify-upgrade-v02-to-v03.mjs` | 0.3 | an in-place pack upgrade preserves all SRS state (needs `static-server.mjs`, not `pnpm dev`) |
+| `verify-backup-honesty.mjs` | 1.0 | the app never claims a backup it cannot confirm: an UNCONFIRMED export snoozes a day and is not recorded as a backup (checked by cancelling the download, then fast-forwarding the debug clock), a confirmed one buys the full week and then expires, a FAILING export reports itself instead of dying as an unhandled rejection, and a REFUSED durable-storage request says so instead of looking like a no-op |
+| `verify-upgrade-v02-to-v03.mjs` | 0.3 | an in-place pack upgrade preserves all SRS state (needs `static-server.mjs`, not `pnpm dev`). The pack PAIR is derived from content, not hardcoded, so it runs on any machine that has one pre-v0.3 and one v0.3+ pack |
 | `audit-v04-fixes.cjs` | 0.4 | data-level audit of the sentence corpus (no browser; reads `build/staging.db`) |
 
 `static-server.mjs` serves `apps/web/dist` with no file watcher — required for the upgrade test,
@@ -109,3 +125,21 @@ Every one of these cost real debugging time; HANDOFF's "Testing recipe" section 
   server serves whatever stale pack `public/packs/` happened to hold.
 - Derive the off-origin allow-pattern from `BASE`, never a hardcoded port — these scripts run on
   5173 (dev) and 5199 (static server).
+- **`:first-of-type` is scoped to an element's OWN parent**, so a DESCENDANT selector like
+  `.backup button:first-of-type` silently gains matches the day anyone nests a button inside the
+  container — and `page.click()` is non-strict, so it takes the first in document order and says
+  nothing. Three scripts spent a version clicking the wrong button. Anchor on a class that names
+  the intent. `verify-v03-p2.mjs:103` (`.decomposition a:first-of-type`) carries the same latent
+  trap.
+- **`page.waitForFunction(fn, {timeout})` is a 2-arg call**: Playwright's signature is
+  `(fn, arg, options)`, so the options object is passed as the ARG and the timeout silently falls
+  back to the 30 s default. Measured: a wait written for 2 s took 30 s. Always pass `null`
+  explicitly. `verify-v09` was the only offender left; the check is `grep -n waitForFunction`.
+- **Machine-specific data is machine-specific coupling.** `paths.mjs` removed hardcoded repo and
+  Chrome paths, but `verify-upgrade-v02-to-v03` still named two pack VERSIONS that only ever
+  existed on one machine. Derive what a script needs from what a pack contains, and when the
+  prerequisite is genuinely missing, fail with the command that fixes it — `verify-v06` now names
+  `pnpm ingest daily:all` instead of implying the daily pull is broken.
+- **A test that has never been seen RED proves nothing.** `verify-backup-honesty` was run against
+  a deliberately reverted `onExport` and failed on the exact assertion it exists for, before it
+  was believed.

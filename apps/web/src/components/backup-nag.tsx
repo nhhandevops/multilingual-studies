@@ -21,6 +21,8 @@ export function BackupNag() {
   const db = useDb();
   const location = useLocation();
   const [due, setDue] = useState(false);
+  /** An export was offered and never confirmed — a different, milder, and TRUE thing to say. */
+  const [unconfirmed, setUnconfirmed] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -30,7 +32,14 @@ export function BackupNag() {
       const now = srsNow().getTime();
       const last = Date.parse((await getSetting(db, 'last_backup_at')) ?? '') || 0;
       const snoozed = Date.parse((await getSetting(db, 'backup_nag_snoozed_at')) ?? '') || 0;
-      if (!cancelled) setDue(now - last > WEEK_MS && now - snoozed > SNOOZE_MS);
+      const pending = Date.parse((await getSetting(db, 'backup_export_pending_at')) ?? '') || 0;
+      if (cancelled) return;
+      // "You downloaded a backup 25 hours ago and never told me whether it saved" is a fact the
+      // app HAS. Saying "it has been over 7 days since your last backup" instead was a second
+      // dishonesty in place of the first one, and a daily alarm a learner would train past.
+      const awaitingAnswer = pending > last && now - pending <= WEEK_MS;
+      setUnconfirmed(awaitingAnswer);
+      setDue(awaitingAnswer ? now - snoozed > SNOOZE_MS : now - last > WEEK_MS && now - snoozed > SNOOZE_MS);
     };
     void evaluate();
     // Re-read from user.db rather than blindly hiding: a failed settings write must not
@@ -48,8 +57,26 @@ export function BackupNag() {
 
   return (
     <div className="backup-nag" role="status">
-      <span>{t('storage.nag')}</span>{' '}
-      {!onReview && <Link to="/review">{t('storage.nagGo')}</Link>}{' '}
+      <span>{unconfirmed ? t('storage.nagUnconfirmed') : t('storage.nag')}</span>{' '}
+      {unconfirmed ? (
+        // One click, from wherever they are, to record a backup they already have. Without this
+        // the only writer of last_backup_at was a prompt that died on the next route change.
+        <button
+          className="linklike confirm-backup"
+          onClick={() => {
+            setDue(false);
+            void (async () => {
+              await setSetting(db, 'last_backup_at', new Date(srsNow()).toISOString());
+              await setSetting(db, 'backup_export_pending_at', '');
+              window.dispatchEvent(new Event(BACKUP_DONE_EVENT));
+            })();
+          }}
+        >
+          {t('storage.nagConfirm')}
+        </button>
+      ) : (
+        !onReview && <Link to="/review">{t('storage.nagGo')}</Link>
+      )}{' '}
       <button
         className="linklike"
         onClick={() => {

@@ -14,7 +14,7 @@ import { REPO, BASE, CHROME, newestPack } from './paths.mjs';
 const require=createRequire(`${REPO}/apps/ingest/package.json`);
 const Database=require('better-sqlite3');
 const packsDir=join(REPO,'build','packs');
-const newest=readdirSync(packsDir).sort().at(-1);
+const newest=newestPack(readdirSync(packsDir));
 const pdb=new Database(join(packsDir,newest,'content.db'),{readonly:true});
 const stats=pdb.prepare('SELECT COUNT(*) n FROM sentences').get();
 const noAttr=pdb.prepare("SELECT COUNT(*) n FROM sentences WHERE attribution IS NULL OR attribution=''").get();
@@ -94,7 +94,7 @@ for (let i=0;i<12;i++){
 }
 await page.click('main.review button.more');
 await page.waitForSelector('.backup button',{timeout:30000});
-const [dl]=await Promise.all([page.waitForEvent('download',{timeout:30000}), page.click('.backup button:first-of-type')]);
+const [dl]=await Promise.all([page.waitForEvent('download',{timeout:30000}), page.click('.backup button.export-backup')]);
 const bak=join(mkdtempSync(join(tmpdir(),'mls-v04-')),'user.db');
 await dl.saveAs(bak);
 await page.setInputFiles('.backup input[type=file]', bak);

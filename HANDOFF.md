@@ -6,6 +6,13 @@
 >
 > **TL;DR (tiếng Việt):** Dự án đang ở **v0.9** (đã xong — **ứng dụng cài được, học offline**),
 > và phần **triển khai thật của v1.0 đã xong** (Pages + Releases, xem "Current state").
+> Mới nhất (2026-08-04): sửa xong **5 script kiểm thử còn đỏ**, và trong lúc đo đạc phát hiện
+> **ba lỗi thật chưa ai báo** — nặng nhất là ứng dụng **tự tắt lời nhắc sao lưu dựa trên một
+> bản sao lưu có thể không tồn tại** (bấm "Tải bản sao lưu" rồi huỷ tải là app im lặng suốt
+> 7 ngày). Giờ app hỏi lại "đã lưu được file chưa?" và chỉ ghi nhận khi bạn xác nhận;
+> xuất lỗi thì báo lỗi; trình duyệt từ chối quyền lưu trữ bền vững thì nói ra. Chi tiết trong
+> "Current state". **Việc còn nợ trên máy này: chạy `pnpm ingest daily:all` rồi build lại pack**
+> (máy này chưa từng chạy daily pull, nên `/today` chỉ có kho VOA và `verify-v06` chưa xanh).
 > Ngay sau đó là một **đợt sửa UX** (2026-08-03, cùng ngày): tab đang mở giờ có highlight,
 > mỗi màn hình có một câu hướng dẫn, màn hình **không còn báo sai "không có dữ liệu"** lúc đang
 > tải (trước đây `/review` từng nói "bộ thẻ trống" với người ĐANG có thẻ), thanh điều hướng
@@ -66,7 +73,89 @@ Keep this file current: update the **Current state** and **Next up** sections at
 working session, and commit it with the session's push. It is the single source of truth for
 "where were we?" on a fresh clone.
 
-## Current state (updated 2026-08-03)
+## Current state (updated 2026-08-04)
+
+- **The five red acceptance scripts are fixed — and the README's diagnosis of three of them was
+  wrong.** After the UX pass this suite stood at 14 of 19 with the failures recorded as
+  "pre-existing", which is true but was never a root cause. Measuring them produced two test
+  bugs and **three product bugs nobody had reported**. Script for the new ones:
+  `tools/e2e/verify-backup-honesty.mjs`. Suite now **19 of 20**, with the one gap explained below.
+  - **The download tests were clicking the wrong button.** The README guessed "the browser
+    profile blocks the `user.db` backup download". It does not: a real export delivers a
+    65,536-byte file whose header is `SQLite format 3\0`, in headless AND headed Chrome, and
+    Chrome's own DownloadManager reported `completed` on 5 of 5 attempts. The real cause is that
+    `:first-of-type` is scoped to an element's OWN parent, so the DESCENDANT selector
+    `.backup button:first-of-type` began matching TWO buttons the day v0.9 added
+    `StorageStateLine` inside `.backup` — and `page.click()` is non-strict, so it silently took
+    the first in document order: "Bảo vệ dữ liệu". Instrumented with capture-phase listeners
+    rather than inferred. The export button now carries `className="export-backup"`.
+  - **The app was silencing its own backup reminder on a backup that may not exist.** `onExport`
+    wrote `last_backup_at` immediately after `a.click()`. An anchor download reports nothing
+    back — cancelled, blocked and saved are the same event — so cancelling the download made
+    `.backup-nag` disappear and STAY gone across a reload. Measured with `download.cancel()`.
+    `user.db` is the only irreplaceable data in this product and this reminder is PLAN risk #3's
+    entire mitigation. The export now records the ATTEMPT under its own key,
+    `backup_export_pending_at`, and **the learner confirming they have the file is the only
+    writer of `last_backup_at`.**
+  - **The first version of that fix was itself wrong in four ways, and a review of the diff
+    caught all four.** Worth reading before touching this code again, because two of them
+    re-created the exact bug being fixed:
+    - It wrote the export attempt into `backup_nag_snoozed_at`, a key that already meant "the
+      learner pressed Để sau". Throwing away the one fact we had left the reminder unable to say
+      anything true: measured, it repeated *"Đã hơn 7 ngày chưa sao lưu"* 25 hours after an
+      export, on 6 days out of 7 — one dishonesty swapped for another, and an alarm a learner
+      would train themselves to click past. The attempt now has its own key, and the nag branches
+      on it: *"Bạn vừa tải bản sao lưu nhưng chưa xác nhận là đã lưu được file"* with a one-click
+      **Rồi, đã có file**.
+    - `onBackupConfirmed` had **no catch and cleared the prompt before awaiting** — so a failed
+      write on the app's ONLY writer of `last_backup_at` left the learner with the file on disk,
+      no message, and nothing left to click. That is bug (1)'s description verbatim, inside the
+      function added to fix bug (1).
+    - The snooze write shared a `try` with the download, so a failed settings write reported
+      *"Không tạo được bản sao lưu"* for a file that **had** downloaded, and removed the
+      confirmation with it. Producing the file and recording that we produced it are now separate
+      blocks with separate messages.
+    - The confirmation was `useState` in `Review`, so **one route change destroyed it** and the
+      backup became unrecordable. It is now derived from settings on every refresh, and the nag
+      carries the same one-click answer from anywhere in the app.
+  - **The trade is deliberate and worth restating**: the reminder can now appear the day after an
+    unconfirmed export. That is correct — it is a true statement with a one-click answer, not a
+    repeat of an alarm already acted on. A reminder that returns is a smaller failure than one
+    that never returns at all.
+  - **A failing export said nothing.** With blob creation made to throw, the screen was
+    byte-identical before and after the click while the rejection escaped as an unhandled
+    `pageerror` — the handler is invoked as `void onExport()`. It now reports the reason, the way
+    the import path always has.
+  - **"Bảo vệ dữ liệu" was a silent no-op on denial** — `ensurePersisted()` returns the resulting
+    state and `StorageStateLine` threw it away, so a browser saying no produced a
+    character-identical panel. This is the button the three broken tests had been clicking since
+    v0.9, and its silence is why the failure looked like a download problem.
+  - **A picker-based fix was proposed, measured, and rejected.** `window.showSaveFilePicker` is
+    the only web API that reports save-vs-cancel, but headless Chrome 150 EXPOSES it and rejects
+    with `AbortError`, so "if it exists, call it; on AbortError return silently" would have made
+    export a silent no-op in the harness and re-broken the three scripts with the same invisible
+    signature as the bug being fixed. `AbortError` also cannot distinguish "user cancelled" from
+    "no picker can be shown". Presence-based feature detection was not enough.
+  - **Two scripts were machine-specific, which the e2e README explicitly forbids.**
+    `verify-upgrade-v02-to-v03` hardcoded pack versions that exist only on the machine that built
+    them (bare `ENOENT` anywhere else); it now derives the pair from pack CONTENT and, as a
+    bonus, exercises a longer upgrade path than before (v0.1-era pack → the v0.9 split pack).
+    `verify-v04-p1` imported `newestPack` and never called it — the v0.7 stale-pack trap, still
+    live in one file.
+  - **`verify-v06` is the one script that does not pass here, and it is a data prerequisite, not
+    a defect**: `build/staging.db` is gitignored, so this machine — which has only ever run
+    `seed:all` — holds the seeded VOA archive and zero rows from the `daily:*` modules. It now
+    fails with the command that fixes it (`pnpm ingest daily:all`, then rebuild the pack) instead
+    of "expected daily content in all three languages", which read like a regression. **Running
+    the daily pull and rebuilding the pack is the outstanding chore on this machine.**
+  - **Two testing lessons, both paid for.** The acceptance script now checks the export result is
+    *in the viewport*, not merely in `main.review`'s `textContent` — the messages were rendering
+    ~800 px above the button that produced them, which is the state-layer bug re-created in the
+    layout, and a `textContent` assertion is satisfied by an invisible message. And its
+    failure-injection **counts its own hits on `window`**: the first version keyed on `msg.args`
+    when the field is `params`, matched nothing, and reported a clean pass for a case it never
+    exercised. An injection that silently matches nothing looks exactly like a product that
+    handled the failure.
 
 - **UX pass shipped — four reported defects, and the three worse ones under them.** A user
   reported: no active-tab highlight, no per-screen guidance, blank frames while loading,
@@ -873,6 +962,15 @@ Two things worth doing before/while that month runs:
    ~50 MB Cache-API caveat are all coded and reasoned from documentation; none has met an actual
    iPhone. That is the last unverified claim in the version. The live URL makes this testable
    on any iPhone now — no LAN setup needed.
+3. **Run the daily pull on THIS machine and rebuild the pack.** `build/staging.db` is gitignored,
+   so a second machine starts with the seeded VOA archive and nothing from the `daily:*` modules:
+   `/today` has graded reading but no fresh news, and `verify-v06` cannot pass. `pnpm ingest
+   daily:all` → `pnpm pack:build` → `pnpm pack:verify` → `pnpm ingest pack publish` (stop
+   `pnpm dev` first). This is also the v1.0 gate's real work — the habit, ≥25 pulls over 30 days.
+4. **The backup confirmation is new UX and has only met an acceptance script.** An export now
+   asks "did the file save?" and only a Yes records the backup. If a month of real use shows the
+   prompt is noise, the lever is `onExport` in [review.tsx](apps/web/src/routes/review.tsx) — but
+   do not go back to recording a backup nobody confirmed; that is the bug it replaced.
 
 ## Release flow (referenced by deploy.yml)
 

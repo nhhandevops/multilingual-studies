@@ -148,6 +148,16 @@ button.rating-easy, button.rating-good { border-color: var(--accent); }
 .media-pack button { border: 1px solid var(--border); background: var(--bg-soft); color: var(--fg);
   border-radius: 6px; padding: 0.35rem 0.8rem; cursor: pointer; }
 .media-hint { border: 1px dashed var(--border); border-radius: 6px; padding: 0.4rem 0.7rem; }
+/* The export result belongs beside the export button, not in the page-level notice slot at the
+   top of a long screen. Boxed so it reads as an answer to the click that produced it. */
+.backup-confirm, .backup-notice {
+  border: 1px dashed var(--accent); border-radius: 6px;
+  padding: 0.4rem 0.7rem; margin-top: 0.7rem;
+}
+.backup-confirm button.confirm-backup { margin-left: 0.2rem; }
+/* A refused persistence request used to render nothing at all. It is a refusal, not a crash, so
+   it does not get .error's red — but it must not read as body text either. */
+.storage-denied { font-weight: 600; }
 .update-banner, .backup-nag {
   display: flex; gap: 0.8rem; align-items: center; flex-wrap: wrap;
   border: 1px solid var(--accent); border-radius: 8px;
