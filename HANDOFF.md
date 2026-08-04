@@ -17,6 +17,13 @@
 > repo** — máy nào chưa từng chạy daily pull thì chạy `pnpm ingest daily:all` rồi build lại pack,
 > nếu không `/today` chỉ có kho VOA và `verify-v06` sẽ đỏ. Cách tự kiểm tra: xem mục `verify-v06`
 > trong "Current state".
+>
+> **👉 Việc tiếp theo, ai cầm máy nào cũng làm được** (xem mục "Next up" để có chi tiết):
+> **(1) Thử trên iPhone thật** — đây là tuyên bố CUỐI CÙNG của v0.9 chưa ai kiểm chứng, và
+> **không script nào thay thế được** vì bản chất là hành vi Chrome không tái hiện. Bảng 6 bước
+> đã viết sẵn trong "Next up", chỉ cần một chiếc iPhone + Safari + Wi-Fi, không cần cài gì trên
+> máy tính. **(2) Chạy `/daily-pull` mỗi sáng** — đây chính là cổng v1.0 (30 ngày, ≥25 lần), và
+> là phần duy nhất không thể rút ngắn bằng code.
 > Ngay sau đó là một **đợt sửa UX** (2026-08-03, cùng ngày): tab đang mở giờ có highlight,
 > mỗi màn hình có một câu hướng dẫn, màn hình **không còn báo sai "không có dữ liệu"** lúc đang
 > tải (trước đây `/review` từng nói "bộ thẻ trống" với người ĐANG có thẻ), thanh điều hướng
@@ -979,15 +986,36 @@ Two things worth doing before/while that month runs:
    settings are in place (Pages enabled; `v*` tag rule on the environment), so a `v*` tag
    push deploys automatically. Lighthouse's installability audit is still unrun (manual
    step; the criteria themselves are asserted by verify-v09).
-2. **Test the real iPhone path.** The Add-to-Home overlay, the standalone display mode, and the
-   ~50 MB Cache-API caveat are all coded and reasoned from documentation; none has met an actual
-   iPhone. That is the last unverified claim in the version. The live URL makes this testable
-   on any iPhone now — no LAN setup needed.
-3. **Run the daily pull on THIS machine and rebuild the pack.** `build/staging.db` is gitignored,
-   so a second machine starts with the seeded VOA archive and nothing from the `daily:*` modules:
-   `/today` has graded reading but no fresh news, and `verify-v06` cannot pass. `pnpm ingest
-   daily:all` → `pnpm pack:build` → `pnpm pack:verify` → `pnpm ingest pack publish` (stop
-   `pnpm dev` first). This is also the v1.0 gate's real work — the habit, ≥25 pulls over 30 days.
+2. **Test the real iPhone path — the last unverified claim in the version.** The Add-to-Home
+   overlay, standalone display mode, and Safari's storage limits are all coded and reasoned from
+   documentation; none has met an actual iPhone. **No script can cover this** — the whole point
+   is behaviour Chrome does not reproduce — so it is a manual run, and the procedure is written
+   here so it does not have to be re-derived. Needs nothing local: the live URL is the target.
+
+   *Prep:* **Safari** (only Safari creates a true standalone web app on iOS), **Wi-Fi** (the
+   first run downloads ~56 MB), ~500 MB free.
+
+   | # | Do | Must see | A failure here means |
+   |---|---|---|---|
+   | 1 | Open the live URL in a Safari TAB | The Add-to-Home note at the foot of the page (`ios.hint` + `ios.steps`) | `isIos()` in [ios-a2hs.tsx](apps/web/src/components/ios-a2hs.tsx) is wrong on this device |
+   | 2 | Let the pack install in the tab | "Đang tải gói dữ liệu (56 MB…)" then `Gói dữ liệu 2026.08.04-1` in the footer | **the riskiest step** — Safari's quota vs a 56 MB OPFS pack. Record the exact message |
+   | 3 | Share (□↑) → Thêm vào MH chính | The icon on the home screen (the real 192/512 PNG, not a page snapshot) | the webmanifest icons are not being picked up |
+   | 4 | Open from the icon | **No address bar, no Safari chrome**, and the Add-to-Home note is GONE | standalone is not active, or `isStandalone()` is wrong on iOS |
+   | 5 | Airplane mode, reopen from the icon | Search, `/review` and `/grammar` all work | the v0.9 offline promise does not hold on iOS |
+   | 6 | Airplane off → `/review` → "Sao lưu tiến độ" | The storage line: persisted or not, plus MB used. If not persisted, press **Bảo vệ dữ liệu** | note whether Safari grants it or shows `storage.protectDenied` — Safari differs from Chrome here and the docs are vague |
+
+   **Expected, NOT a bug:** the home-screen app has storage separate from the Safari tab, so
+   step 4 downloads the 56 MB pack a second time. That is iOS, not us.
+   **The one that needs patience:** Safari evicts site data after **7 days unused** for tab
+   usage; home-screen apps are supposed to be exempt. Leaving the installed app untouched for
+   8–9 days and finding study progress intact is the only real proof, and nothing else can
+   substitute for it.
+3. **The v1.0 gate itself: 30 days of real use, ≥25 daily pulls.** `pnpm ingest daily:all` →
+   `pack:build` → `pack:verify` → `pack publish` (stop `pnpm dev` first), driven by the
+   `/daily-pull` skill. Note this is per-clone work in one respect: `build/staging.db` is
+   gitignored, so a clone that has never pulled has `/today` without fresh news and cannot pass
+   `verify-v06` — see the `verify-v06` note in "Current state" for the one-liner that tells you
+   which case you are in.
 4. **The backup confirmation is new UX and has only met an acceptance script.** An export now
    asks "did the file save?" and only a Yes records the backup. If a month of real use shows the
    prompt is noise, the lever is `onExport` in [review.tsx](apps/web/src/routes/review.tsx) — but
