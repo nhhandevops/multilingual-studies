@@ -118,6 +118,10 @@ working session, and commit it with the session's push. It is the single source 
   acceptance scripts, but never `pack publish`. Recorded as a rule in [CLAUDE.md](CLAUDE.md).
   The first publish under that rule **restored the archive the alternation had been eating**:
   daily items **175 → 274**, tips **17 → 18**. Core 56.5 → **56.6 MB** gz, media steady at 74.1 MB.
+  Released as `pack-2026.08.11-1` (all three assets `uploaded`), deployed via `deploy-pages`
+  (run 31463095352, success), and **`verify-v10-live` PASS** against the public URL: the cold deep
+  link to `/stats` boots through Pages' `404.html` fallback with 19 level bars, the service worker
+  takes control, 0 off-origin requests.
   - **Why nominating a machine was the right call and not laziness.** `staging.db` is 249 MB here
     and is the real database; the ledger shows the alternation cost 212→166 and 238→175. Making
     staging portable was the alternative and it is still open, but it is a per-clone 249 MB
