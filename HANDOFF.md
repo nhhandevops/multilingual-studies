@@ -198,6 +198,17 @@ working session, and commit it with the session's push. It is the single source 
   new [docs/warning_bug_and_solutions.md](docs/warning_bug_and_solutions.md) (the file the global
   rules ask for; it did not exist until now).
 
+- **The acceptance suite is 19/19 again against pack `2026.08.11-1`** — seventeen against
+  `pnpm dev`, `verify-v09` and `verify-upgrade-v02-to-v03` against the static server, nothing
+  skipped. `verify-v06` is green because this clone published the pack carrying its own pull.
+  - **One new runner trap, and it cost a 300-second timeout.** `verify-backup-honesty` FAILED on
+    the first pass, timing out on `input.searchbox` — because the loop started it 25 seconds after
+    `pnpm dev` did, so it raced Vite's cold dependency-optimisation *and* a first-ever 56.6 MB pack
+    install into an empty OPFS. Re-run alone against the warm server it passed all sixteen of its
+    assertions. **Let the dev server serve one request before starting the suite**; the first
+    script otherwise pays for everything the others get for free, and its failure looks like a
+    product bug.
+
 - **The 2026-08-05 → 2026-08-10 gap is unrecoverable, and it resets the v1.0 clock.** Six days with
   no pull, and `assertPullDate` correctly refuses to invent them. Arithmetic worth stating once: any
   30-day window containing all six missed days holds at most 24 pull-days, which is below the gate's
