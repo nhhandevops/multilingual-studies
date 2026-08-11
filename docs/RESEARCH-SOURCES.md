@@ -228,9 +228,9 @@ NOTES: Verified alive, actively maintained, 4.7k stars. Use it to auto-pinyin Ta
 ### hugolpz/audio-cmn (Shtooka/SWAC Mandarin recordings)  [RECOMMENDED]
 URL: https://github.com/hugolpz/audio-cmn
 WHAT: 1,707 pinyin SYLLABLE recordings (full pinyin chart across tones) + 8,596 HSK word recordings by native speakers (cmn-caen-tan collection, speakers Chen Wang & Yue Tan), pre-encoded at multiple MP3 bitrates.
-LICENSE: CC BY-SA (verified in README, per-speaker attribution). Redistribution in free/paid apps OK with credit to the speakers/project and share-alike on the audio files.
-ACCESS: GitHub bulk download, keyless — this is the surviving mirror of the Shtooka project audio (shtooka.net itself is DEAD: domain now 301-redirects to an unrelated site, verified).
-NOTES: Verified alive. This solves both the pinyin-chart-with-tones audio AND legal per-word audio for ~8.6k HSK-2.0-era words in one CC-licensed package. AllSet Learning's and Yoyo Chinese's pinyin chart audio are proprietary — do NOT scrape/bundle those.
+LICENSE: CC BY-SA, **VERSION UNSTATED BY THE SOURCE** (re-audited at the artifact 2026-08-11 — correction to the earlier entry). The README says literally "CC-by-sa" with no version and defers to http://packs.shtooka.net/cmn-caen-tan/readme.txt; that URL is now DEAD, and the repo has no LICENSE file (GitHub's license API returns 404). So the `CC BY-SA 3.0` this project stamps on all 8,918 clips is OUR inference, not the source's statement. Redistribution in free/paid apps is fine either way — credit the named speakers and keep share-alike, which satisfies 3.0 and 4.0 alike — but do not quote a version as if the source gave one.
+ACCESS: GitHub bulk download, keyless — this is the surviving mirror of the Shtooka project audio. shtooka.net is DEAD and has changed squatters: it 301-redirected to us-stemcell.com when checked 2026-07-29, and on 2026-08-11 it served HTTP 200 as "Copyright © 2020 Xoilac TV, All rights reserved." packs.shtooka.net no longer resolves at all. The Wayback Machine rate-limited (429) every attempt to read the archived readme on 2026-08-11, so the true version is still UNRESOLVED — retry that if the exact version ever matters.
+NOTES: Verified alive. This solves both the pinyin-chart-with-tones audio AND legal per-word audio for ~8.6k HSK-2.0-era words in one CC-licensed package. AllSet Learning's and Yoyo Chinese's pinyin chart audio are proprietary — do NOT scrape/bundle those. Contrast with lingualibre-fra, which after the v0.4 fix carries FOUR different per-file licences (CC0 1,870 · CC BY-SA 4.0 902 · CC BY 4.0 9 · CC BY-SA 3.0 1): a single blanket string is plausible here because this is one collection by two named speakers, but "plausible" is why it went unchecked for four versions.
 
 ### davinfifield/mp3-chinese-pinyin-sound  [skip/low]
 URL: https://github.com/davinfifield/mp3-chinese-pinyin-sound
@@ -488,7 +488,7 @@ NOTES: Verified alive; dormant since 2014 (fine for static audio). Gotcha: origi
 ### audio-cmn (syllables + HSK word audio)  [RECOMMENDED]
 URL: https://github.com/hugolpz/audio-cmn
 WHAT: ~10,300 MP3s: 1,707 pinyin syllables (speaker Chen Wang) + 8,596 HSK words (speaker Yue Tan, from the SWAC project), each in 4 bitrates (18k–96k) — doubles as vocab audio for your Chinese modules beyond the alphabet chapter.
-LICENSE: CC BY-SA (verified in README). Commercial redistribution OK; must credit the named speakers/project; ShareAlike applies to the audio files themselves.
+LICENSE: CC BY-SA, **version unstated by the source** — see the fuller correction under "hugolpz/audio-cmn (Shtooka/SWAC Mandarin recordings)" in the CHINESE section (re-audited at the artifact 2026-08-11). Commercial redistribution OK; must credit the named speakers/project; ShareAlike applies to the audio files themselves.
 ACCESS: GitHub bulk download; keyless.
 NOTES: Verified alive. Cleaner provenance than davinfifield (named speakers). Use the 24k or 64k files for app size.
 

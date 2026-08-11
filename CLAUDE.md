@@ -14,6 +14,12 @@ Rules that override defaults:
   `YYYY.MM.DD-N` and the app's update check compares that string, but `build/` is gitignored — so
   two clones once minted the same name for different content. The committed ledger is the only
   thing that prevents it; `pack publish` refuses to reuse a name for different bytes.
+- **ONE machine publishes packs: the Windows clone at `d:\Non-work\multilingual-studies`**
+  (decided 2026-08-11). `build/staging.db` is the real database and it does not travel, so whichever
+  clone builds ships only the daily history *it* pulled — alternating publishers trimmed the archive
+  twice already (212→166, 238→175). Other clones may pull code, run the app and run acceptance
+  scripts; they must not run `pack publish`. If that ever has to change, move `staging.db` between
+  machines first — do not just build on the other one.
 - **A daily pull can only ever fetch TODAY.** The sources are live feeds with no archive, so
   `--date <past>` would file today's articles under an older day; the pull commands now refuse it.
   A missed day is gone. (`daily:select` with `"keep": []` is the undo for a bad day's rows.)

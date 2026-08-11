@@ -19,3 +19,8 @@ apps/ingest/data-cache/
 .env
 .env.*
 .DS_Store
+
+# editor-extension output, not project work: a VS Code extension writes these
+# into .github/ on its own schedule. .github/workflows/ is ours and stays tracked.
+.github/copilot-instructions.md
+.github/instructions/

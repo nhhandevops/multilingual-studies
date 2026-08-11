@@ -27,6 +27,12 @@
       "publishedAt": "2026-08-04",
       "dailyItems": 175,
       "note": "release pack-2026.08.04-2 — the 2026-08-04 pull, cut from the second clone. Named -2 because a local build had already minted -1 for different bytes; that collision is why this ledger exists."
+    },
+    {
+      "packVersion": "2026.08.11-1",
+      "dbSha256": "f35ccc3d8f51f99c5af6248f77d8866cbb8c4a9f37054d69a98a09df083eaa2b",
+      "publishedAt": "2026-08-11",
+      "dailyItems": 274
     }
   ]
 }

@@ -26,6 +26,24 @@
 > tái dùng tên cho nội dung khác. **Luôn `git pull` trước khi chạy `/daily-pull`** — sổ chỉ bảo vệ
 > được nếu máy bạn đã đồng bộ. Chi tiết ở đầu "Current state".
 >
+> **Cập nhật 2026-08-11 — pack `2026.08.11-1` đang live.** Chuyện hai máy **đã được quyết, không
+> code vòng nữa**: từ nay **chỉ máy Windows `d:\Non-work\multilingual-studies` được publish pack**;
+> máy khác cứ pull code, chạy app, chạy script kiểm thử, nhưng không `pack publish`. Ngay lần
+> publish đầu theo luật đó, kho tin **175 → 274 mục** (lấy lại phần bị cắt), tips **17 → 18**.
+> Phiên này chạy `/daily-pull` **và** `/curate-pack` cùng lúc để cả hai vào CHUNG một pack.
+> Ba lỗi thật tìm được, không lỗi nào có ai báo:
+> **(1)** cổng ID-churn **không nhìn thấy** ID biến mất so với bản đang chạy thật (nó chỉ so với pack
+> cũ nằm trong `build/` của chính máy đang build) — một tip do máy kia viết suýt bị xoá im lặng,
+> đã cứu lại **từ chính bytes đã publish**, đúng ID cũ; **(2)** "từ của ngày" **có thể trỏ vào một từ
+> không có nghĩa nào**, và `pack verify` cho qua — `en:w:cefrj:media` đã ship thật 2 ngày, mặt sau
+> thẻ trống; **(3)** gloss tiếng Anh hay **dẫn nghĩa phụ trước** (4/10 mẫu), nặng nhất là
+> `resilience` **không hề có nghĩa về con người**. Thêm: giấy phép 8.918 clip tiếng Trung ghi
+> `CC BY-SA 3.0` nhưng **nguồn chưa bao giờ nói phiên bản nào** (README chỉ ghi "CC-by-sa", trang gốc
+> đã chết). Sổ sự cố mới: [docs/warning_bug_and_solutions.md](docs/warning_bug_and_solutions.md).
+> ⚠️ **Sáu ngày 08-05 → 08-10 không pull là mất hẳn** (nguồn là feed trực tiếp, không có kho lưu):
+> cửa sổ 30 ngày nào chứa đủ sáu ngày đó cũng chỉ còn tối đa 24 lần < 25, nên **đồng hồ cổng v1.0
+> tính lại từ 2026-08-11**.
+>
 > **👉 Việc tiếp theo, ai cầm máy nào cũng làm được** (xem mục "Next up" để có chi tiết):
 > **(1) Thử trên iPhone thật** — đây là tuyên bố CUỐI CÙNG của v0.9 chưa ai kiểm chứng, và
 > **không script nào thay thế được** vì bản chất là hành vi Chrome không tái hiện. Bảng 6 bước
@@ -91,6 +109,99 @@
 Keep this file current: update the **Current state** and **Next up** sections at the end of every
 working session, and commit it with the session's push. It is the single source of truth for
 "where were we?" on a fresh clone.
+
+## Current state (updated 2026-08-11)
+
+- **Pack `2026.08.11-1` is live, and this clone is now the ONE machine that publishes.** The
+  two-machine question left open on 2026-08-04 was decided rather than coded around: the Windows
+  clone at `d:\Non-work\multilingual-studies` publishes; other clones pull code, run the app and run
+  acceptance scripts, but never `pack publish`. Recorded as a rule in [CLAUDE.md](CLAUDE.md).
+  The first publish under that rule **restored the archive the alternation had been eating**:
+  daily items **175 → 274**, tips **17 → 18**. Core 56.5 → **56.6 MB** gz, media steady at 74.1 MB.
+  - **Why nominating a machine was the right call and not laziness.** `staging.db` is 249 MB here
+    and is the real database; the ledger shows the alternation cost 212→166 and 238→175. Making
+    staging portable was the alternative and it is still open, but it is a per-clone 249 MB
+    download for a problem that one sentence in CLAUDE.md removes entirely.
+  - **This session ran `/daily-pull` and `/curate-pack` together on purpose**, so both landed in ONE
+    pack instead of two. Curate's data step (prune) runs before the pull's build; there is nothing
+    else to sequence.
+
+- **The ID-churn gate cannot see IDs that vanished relative to what is LIVE — and one already had.**
+  This is the most important finding of the session, because `tips` sits *inside* that gate and was
+  therefore believed safe.
+  - `findPreviousPack(packsDir, …)` compares against the previous pack in the **local**
+    `build/packs/`. `build/` is gitignored. So on a two-machine setup the gate compares this clone's
+    new pack against this clone's old pack — a tip authored on the other clone was never in either,
+    and 0 of 0 vanished is a pass.
+  - Measured: the live pack `2026.08.04-2` carried **17 tips**, this clone's staging held **16**.
+    `words` (147,261), `grammar_topics` (720) and `tech_terms` (161) were identical, so `tips` was
+    the only divergence — but publishing blind would have silently deleted a hand-written tip.
+  - **Recovered from the published bytes, not retyped from a description.** `gh release download`
+    → stream-gunzip → read `tips` → diff against staging. `tips:add` takes an optional `date`
+    (`assertIsoDate`, not the new `assertPullDate`), so `tipId(lang, date, 'daily-'+slug)` lands
+    back on the **original id** `fr:tip:2026-08-04:daily-tu-viet-giong-doc-khac`. Re-adding, not
+    re-creating.
+  - Not fixed in code. The fix is for the gate — or `pack publish` — to compare against
+    `packs.lock.json`/the newest release rather than the local directory. See "Next up".
+
+- **`daily_plan` can point at a word with NO senses, and `pack verify` passes it.** The verify gate
+  only asks whether the word exists (`NOT EXISTS (SELECT 1 FROM words …)`). A word row with zero
+  `senses` satisfies that, so "word of the day" ships a card whose answer is blank.
+  - Already shipped: **`en:w:cefrj:media`**, planned on 2026-07-31 and 2026-08-01.
+  - Scale of the class: levelled words with zero senses — **en 289/8,648 (3.34%)**,
+    **fr 100/5,000 (2.00%)**, **zh 0**. The French ones are overwhelmingly inflected forms and
+    determiners (`ma`, `toute`, `ceux`, `uns`, `chacune`): Lexique lists word FORMS, the gloss
+    source (kaikki) has LEMMA entries, and nothing joined them.
+  - Worked around for this pull by checking all 18 planned words before `daily:select`; the gate
+    itself is not written yet.
+
+- **The English glosses lead with the wrong sense often enough to matter.** 30 random glosses
+  (10 per language): zh 10/10 and fr 10/10 sound, **en 4/10 lead with a rare or technical sense** —
+  `discovery` (B1) with the *legal-disclosure* sense, `smash` with "a conspicuous success",
+  `elevation` with the astronomy sense, `impulsive` with the physics sense. Cause: senses come from
+  Open English WordNet, whose sense order is not frequency-ordered.
+  - Worst case found while curating: **`resilience` has no human sense at all** — both its senses
+    are material elasticity, while the article that surfaced it means "recovering from disaster".
+    It was dropped from the day's words for that reason, along with `cocoa`, `shed`, `fortement`
+    and `lesquelles` (the last has zero senses, per the bug above).
+  - No data change yet; this needs a decision on sense ordering, not a patch.
+
+- **Licence audit at the artifact (curate step 1): `audio-cmn` / `audio-cmn-hsk`, 8,918 clips.**
+  Chosen because a single blanket licence string over thousands of files is the exact shape of the
+  v0.4 Lingua Libre bug. Result: the blanket string is *probably* fine — one collection, two named
+  speakers — but **the version we assert is not the source's**.
+  - The README says literally `CC-by-sa`, **no version**, and defers to
+    `packs.shtooka.net/cmn-caen-tan/readme.txt`, which is **dead**. The repo has no LICENSE file
+    (GitHub's licence API 404s). Our DB stamps `CC BY-SA 3.0` on all 8,918 rows — our inference.
+  - `shtooka.net` has changed squatters again: the ledger recorded a 301 to us-stemcell.com on
+    2026-07-29; on 2026-08-11 it serves HTTP 200 as *"Copyright © 2020 Xoilac TV"*.
+  - The Wayback Machine returned **429 to every request** from this network, so the true version is
+    **unresolved**, and that is written down rather than guessed. Correction filed in
+    [docs/RESEARCH-SOURCES.md](docs/RESEARCH-SOURCES.md); the 8,918 data rows are unchanged pending
+    a decision.
+  - Contrast kept in the ledger: `lingualibre-fra` after the v0.4 fix carries **four** per-file
+    licences (CC0 1,870 · CC BY-SA 4.0 902 · CC BY 4.0 9 · CC BY-SA 3.0 1).
+
+- **Source liveness (curate step 4): all three daily sources current; VOA English still frozen.**
+  The pull itself is the evidence — 28 items, **0/3 sources failed**, newest VOA-zh 11 Aug, GV-en
+  11 Aug, GV-fr 10 Aug, both wiki-itn revisions fresh. VOA Learning English has **not** revived:
+  newest item **468 days old** (`voanews.com/api/epiqq` 513 days). No version-scoping change.
+  Prune (step 3) removed nothing — the 90-day cutoff is 2026-05-13 and the oldest daily row is
+  2026-07-31. The 160-article VOA archive is never pruned.
+
+- **A new operational trap, and it is this machine, not the code: `pnpm -r typecheck` dies with
+  exit 134.** `FATAL ERROR: … JavaScript heap out of memory` reads like a compile failure in
+  `apps/web`. It is not: free RAM was **0.97 GB of 15.8 GB** (VMware 1.6 GB + VS Code 0.9 GB +
+  Brave ~3.5 GB). The same `tsc --noEmit` run directly in `apps/web` while memory was available
+  passed **clean**. PowerShell's `Out-String` throws `OutOfMemoryException` under the same pressure,
+  which is why the ingest commands in this session ran through Bash. Recorded with the rest in the
+  new [docs/warning_bug_and_solutions.md](docs/warning_bug_and_solutions.md) (the file the global
+  rules ask for; it did not exist until now).
+
+- **The 2026-08-05 → 2026-08-10 gap is unrecoverable, and it resets the v1.0 clock.** Six days with
+  no pull, and `assertPullDate` correctly refuses to invent them. Arithmetic worth stating once: any
+  30-day window containing all six missed days holds at most 24 pull-days, which is below the gate's
+  ≥25. **The earliest window that can pass therefore starts 2026-08-11.**
 
 ## Current state (updated 2026-08-04, later)
 
@@ -1069,6 +1180,29 @@ Two things worth doing before/while that month runs:
    asks "did the file save?" and only a Yes records the backup. If a month of real use shows the
    prompt is noise, the lever is `onExport` in [review.tsx](apps/web/src/routes/review.tsx) — but
    do not go back to recording a backup nobody confirmed; that is the bug it replaced.
+5. **Three defects found on 2026-08-11 are diagnosed and measured but NOT fixed.** Each needs a
+   decision rather than a keystroke, which is why none was patched in passing:
+   - **Make the ID-churn gate compare against what is LIVE.** Today it compares against the
+     previous pack in the local `build/packs/`, so it cannot see a row that exists only in the
+     published pack — which is exactly how a hand-written tip nearly disappeared. `packs.lock.json`
+     already carries `dbSha256` per published version; the cheap version is for `pack publish` to
+     refuse when a gated table shrinks against the newest release, the thorough version is to
+     download that release and diff IDs. Decide which.
+   - **Gate `daily_plan` on senses, not just existence.** One line in
+     [verify.ts](packages/content-pack/src/verify.ts) next to the existing `orphanPlan` check:
+     a planned word with zero `senses` is a card with a blank answer, and `en:w:cefrj:media`
+     shipped that way twice. The 289 en / 100 fr senseless levelled words stay searchable —
+     only *planning* one should fail the build.
+   - **Decide what to do about WordNet sense order.** 4 of 10 sampled English words lead with a
+     rare sense and `resilience` has no human sense at all. Options: reorder senses by frequency
+     (a frequency list is already in the pack — `freq-hermitdave`), or pick the sense at curation
+     time and store it on the plan row. The second is smaller but only helps the day's words.
+6. **Two smaller carried-forward decisions, both stated so they are not rediscovered.**
+   - The 8,918 `audio-cmn*` rows still say `CC BY-SA 3.0` while the source says only `CC BY-SA`.
+     Either change them to an unversioned string or retry the Wayback lookup (it 429'd on
+     2026-08-11) and record the real version. Credit + share-alike is correct under either.
+   - Making `staging.db` portable is still the alternative to the one-publishing-machine rule.
+     It is 249 MB here; it only becomes worth building if a second machine has to publish.
 
 ## Release flow (referenced by deploy.yml)
 
